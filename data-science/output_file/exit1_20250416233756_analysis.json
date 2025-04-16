@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Multiple individuals are present near the checkout and candy displays.\n- One individual appears to be interacting with the cashier while others are standing nearby.\n- A person in darker clothing near the cigarette display is seen reaching into their jacket multiple times.\n- Some individuals display casual body language, while others seem to be observing the surroundings.\n- No clear actions of concealing items or removing security tags are visible.\n- Movement and interaction patterns do not strongly suggest collaboration or distraction.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- An individual near the cigarette display repeatedly reaches into their jacket, which could be suspicious but lacks clear evidence of theft.\n- No visible attempts to conceal items in clothing, bags, or containers.\n- No apparent collaboration or distraction tactics observed among the group.",
+  "sequence_name": "exit1_20250416233756",
+  "frame_count": 378,
+  "analyzed_frame_count": 8
+}

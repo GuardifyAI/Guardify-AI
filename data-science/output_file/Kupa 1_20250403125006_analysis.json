@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A customer is observed at the checkout area with items visible in hand.\n- The individual proceeds to interact with the cashier and places items on the counter.\n- The cashier scans the items, bags them, and hands the bag to the customer.\n- The customer leaves the checkout area after completing the transaction.",
+  "conclusion": "No",
+  "confidence_level": "95%",
+  "key_behaviors": "- The customer visibly places items on the counter for scanning.\n- The cashier scans and bags the items, indicating a legitimate transaction.\n- No suspicious behaviors such as concealing items, removing security tags, or avoiding checkout areas are observed.",
+  "sequence_name": "Kupa 1_20250403125006",
+  "frame_count": 55,
+  "analyzed_frame_count": 8
+}

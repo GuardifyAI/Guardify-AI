@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A male individual is seated near the shelves and appears to be interacting with items in a concealed manner, possibly placing them into a bag.\n- A female individual stands nearby, seemingly observing the male and interacting with items on the shelf.\n- Another female individual is at the checkout counter, appearing to handle items in her bag but not actively engaging with the cashier.\n- The male's posture and hand movements suggest potential concealment of items.\n- The individuals appear to exhibit coordinated behavior, with one potentially distracting staff while the others interact with items near the shelves.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "70%",
+  "key_behaviors": "- Male individual appears to be interacting with items in a concealed manner near the shelf.\n- Female individual nearby seems to be observing the male's actions and interacting with items on the shelf.\n- Another female individual at the checkout counter may be distracting staff by handling her bag while not actively engaging with the cashier.",
+  "sequence_name": "DI-350IPSN-28-V4_20250416232336",
+  "frame_count": 28,
+  "analyzed_frame_count": 8
+}

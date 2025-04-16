@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A man in a black jacket is seen handling items in the produce section, repeatedly placing his hands into a box and appearing to conceal items in his backpack.\n- A woman in a black top and white shorts is seen picking up produce and inspecting it but does not display any overtly suspicious behavior.\n- Another individual is seen standing near the checkout area but does not engage in any noticeable suspicious activity.\n- The man in the black jacket exits the frame with his backpack, while the woman continues to browse the produce section.",
+  "conclusion": "Yes",
+  "confidence_level": "85%",
+  "key_behaviors": "- The man in the black jacket appears to conceal items in his backpack while handling produce.\n- The man avoids the checkout area and exits the frame without visibly paying for items.\n- The repeated placement of items into a backpack is consistent with shoplifting behavior.",
+  "sequence_name": "COUNTING_20250416230901",
+  "frame_count": 209,
+  "analyzed_frame_count": 8
+}

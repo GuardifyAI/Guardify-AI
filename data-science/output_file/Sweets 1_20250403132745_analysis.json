@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Two individuals are seen in the candy aisle of the store.\n- The first individual, wearing a white shirt and cap, examines items but does not appear to conceal them and eventually leaves the area.\n- The second individual, a child, interacts with items on the shelves briefly but does not exhibit suspicious behavior.\n- A third individual enters the aisle after the previous two leave, picks up an item, and appears to inspect it while looking around.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- The first individual examines items but does not conceal them, and their actions do not clearly indicate shoplifting.\n- The child interacts with items but does not attempt to conceal or remove them.\n- The third individual looks around while inspecting an item, which could suggest awareness of surveillance, but no clear shoplifting activity is observed.",
+  "sequence_name": "Sweets 1_20250403132745",
+  "frame_count": 402,
+  "analyzed_frame_count": 8
+}

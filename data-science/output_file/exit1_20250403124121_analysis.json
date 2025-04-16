@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A male individual enters the store and begins walking down the main aisle.\n- The individual appears to inspect items on the shelves but does not visibly take or conceal anything.\n- The person moves closer to the left aisle, briefly looking at the merchandise, and then turns their head away.\n- The individual continues walking toward the back of the store but does not interact with any items or display suspicious behavior like concealing items, removing tags, or avoiding checkout areas.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "65%",
+  "key_behaviors": "- The individual inspects items but no observable concealment or theft occurs in the frames provided.\n- No interaction with security tags or checkout avoidance is evident.\n- Lack of nervous or erratic behavior in the observed frames.",
+  "sequence_name": "exit1_20250403124121",
+  "frame_count": 27,
+  "analyzed_frame_count": 8
+}

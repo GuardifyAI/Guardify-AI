@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- The individual in the denim jacket is holding a red item (possibly a product) in their hand throughout the sequence.\n- The individual appears to be examining shelves and looking at items but does not display any clear behavior of concealing items in clothing, bags, or containers.\n- The individual does not appear to remove security tags or avoid checkout areas during the observed frames.\n- The group of people nearby does not interact with the individual or exhibit any coordinated behavior suggesting distraction or accomplice activity.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- The individual is holding an item in hand but does not conceal it.\n- No apparent attempt to remove security tags or avoid checkout areas is observed.\n- No clear accomplice activity or nervous behavior is noted.",
+  "sequence_name": "Deli 2_20250416232856",
+  "frame_count": 153,
+  "analyzed_frame_count": 8
+}

@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A person enters the store carrying a handbag and proceeds toward the checkout area.\n- The individual interacts with items near the counter while holding a white bag.\n- The person appears to place items into the white bag without visibly paying.\n- The individual exits the store without approaching the cashier or completing a transaction.",
+  "conclusion": "Yes",
+  "confidence_level": "90%",
+  "key_behaviors": "- Concealing items into a white bag without visible payment.\n- Avoiding checkout or cashier interaction.\n- Exiting the store without completing a transaction.",
+  "sequence_name": "exit1_20250403095803",
+  "frame_count": 153,
+  "analyzed_frame_count": 8
+}

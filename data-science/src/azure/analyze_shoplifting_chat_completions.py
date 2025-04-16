@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import argparse
+import re
 from glob import glob
 from tqdm import tqdm
 from typing import List
@@ -11,6 +12,46 @@ from azure.core.credentials import AzureKeyCredential
 
 # Load environment variables
 load_dotenv()
+
+
+def restructure_analysis(analysis_text: str):
+    """
+    Parse the detailed analysis and restructure it into a simplified JSON format.
+    """
+    # Extract summary from "### Summary of Video:"
+    summary_match = re.search(
+        r"### Summary of Video:\s*(.*?)(?=\n### Shoplifting Determination:)",
+        analysis_text, re.DOTALL | re.IGNORECASE
+    )
+    summary = summary_match.group(1).strip() if summary_match else "N/A"
+
+    # Extract conclusion from "### Shoplifting Determination:"
+    conclusion_match = re.search(
+        r"### Shoplifting Determination:\s*(Yes|No|Inconclusive)",
+        analysis_text, re.IGNORECASE
+    )
+    conclusion = conclusion_match.group(1) if conclusion_match else "N/A"
+
+    # Extract confidence level
+    confidence_match = re.search(
+        r"### Confidence Level:\s*(\d{1,3})%",
+        analysis_text, re.IGNORECASE
+    )
+    confidence = f"{confidence_match.group(1)}%" if confidence_match else "N/A"
+
+    # Extract key behaviors (optional: keep them if you want)
+    behaviors_match = re.search(
+        r"### Key Behaviors Supporting Conclusion:\s*(.*)",
+        analysis_text, re.DOTALL | re.IGNORECASE
+    )
+    key_behaviors = behaviors_match.group(1).strip() if behaviors_match else "N/A"
+
+    return {
+        "summary_of_video": summary,
+        "conclusion": conclusion,
+        "confidence_level": confidence,
+        "key_behaviors": key_behaviors
+    }
 
 
 def encode_image_to_base64(image_path):
@@ -52,23 +93,31 @@ def analyze_frames(client, frames_paths: List[str], max_frames=8):
 
     # Create system prompt
     system_prompt = """
-    As a security analyst, evaluate these surveillance video frames for potential shoplifting activity.
+    You are a security analyst reviewing surveillance frames to determine whether shoplifting is occurring.
     Focus on suspicious behaviors like:
     1. Concealing items in clothing, bags, or containers
     2. Removing security tags
     3. Avoiding checkout areas
     4. Displaying nervous behavior
     5. Working with accomplices to distract staff
-    
-    Provide a detailed analysis with a conclusion stating:
-    1. Whether shoplifting is occurring (definitive answer)
-    2. Your confidence level (0-100%)
-    3. Key behaviors that support your conclusion
-    
-    Structure your analysis as follows:
-    1. Frame-by-frame observations
-    2. Patterns of behavior
-    3. Conclusion with shoplifting determination and confidence level
+
+    Strictly follow this output format using the exact section headers and structure:
+
+    ### Summary of Video:
+    - Summarize behaviors using consistent bullet points.
+    - This section will be extracted as "summary_of_video" in a JSON.
+
+    ### Shoplifting Determination: Yes / No / Inconclusive
+    ### Confidence Level: XX%
+    ### Key Behaviors Supporting Conclusion:
+    - Bullet 1
+    - Bullet 2
+    - Bullet 3
+
+    Make sure:
+    - You always include all 4 parts of the conclusion section.
+    - Each part is labeled exactly as shown.
+    - Confidence Level must be numeric, in this format: "XX%"
     """
 
     # Create the user message content
@@ -172,13 +221,15 @@ def analyze_shoplifting_directory(frames_dir, output_dir):
 
             # Save the analysis
             output_file = os.path.join(output_dir, f"{sequence_name}_analysis.json")
+            result = restructure_analysis(analysis)
+            result.update({
+                "sequence_name": sequence_name,
+                "frame_count": len(frames),
+                "analyzed_frame_count": min(len(frames), 8)
+            })
+
             with open(output_file, 'w') as f:
-                json.dump({
-                    "sequence_name": sequence_name,
-                    "frame_count": len(frames),
-                    "analyzed_frame_count": min(len(frames), 8),  # Assuming max_frames=8
-                    "analysis": analysis
-                }, f, indent=2)
+                json.dump(result, f, indent=2)
 
             print(f"Analysis saved to {output_file}")
 

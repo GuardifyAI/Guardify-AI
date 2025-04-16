@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A person is seen standing near the counter area and interacting with items on the counter.\n- The individual moves to the side of the counter, partially out of view, and appears to handle something near the shelf.\n- The person then returns to the counter area and continues standing there, seemingly without making a purchase.\n- There is another individual present in the frame at one point, but no clear interaction or distraction behavior is observed.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- The individual moves partially out of view, which could suggest an attempt to conceal actions.\n- The person does not appear to proceed to a checkout process during the observed time frame.\n- No clear evidence of item concealment or removal of security tags is visible in the frames provided.",
+  "sequence_name": "exit1_20250403093329",
+  "frame_count": 126,
+  "analyzed_frame_count": 8
+}

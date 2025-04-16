@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A woman is seen holding a bag while browsing the produce section.\n- She appears to pick up an item and moves it towards her bag in the second frame.\n- The subsequent frames show her leaving the area without visibly placing the item back on the shelf or taking any action to check out.\n- There is no interaction with staff or any visible checkout attempt within the sequence.",
+  "conclusion": "Yes",
+  "confidence_level": "85%",
+  "key_behaviors": "- The individual appears to conceal an item in her bag.\n- No visible attempt to return the item to the shelf or proceed to the checkout area.\n- The individual leaves the area quickly, potentially avoiding staff interaction.",
+  "sequence_name": "face recognition_20250403130912",
+  "frame_count": 36,
+  "analyzed_frame_count": 8
+}

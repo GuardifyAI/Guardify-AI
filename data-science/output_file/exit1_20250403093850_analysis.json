@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- The individual appears to be interacting with the cashier and is holding a shopping bag.\n- No visible attempts to conceal items in clothing, bags, or containers.\n- The individual remains near the checkout counter throughout the sequence of frames.\n- There is no evidence of removing security tags or avoiding checkout areas.\n- No suspicious or nervous behavior is observed.",
+  "conclusion": "No",
+  "confidence_level": "95%",
+  "key_behaviors": "- The individual is consistently present at the checkout counter, engaging in what appears to be a standard transaction.\n- No observable attempts to hide or take items without payment.\n- No interaction with accomplices or attempts to distract staff.",
+  "sequence_name": "exit1_20250403093850",
+  "frame_count": 181,
+  "analyzed_frame_count": 8
+}

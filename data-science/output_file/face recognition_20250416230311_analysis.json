@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A male individual is observed standing near the produce section and handling items.\n- The person appears to place items into a shopping bag without visible scanning or payment.\n- Another individual enters the frame and briefly interacts with the first person before leaving the area.\n- The first person continues handling items and appears to conceal them in the bag.\n- No interaction with the checkout counters is observed in the frames provided.",
+  "conclusion": "Yes",
+  "confidence_level": "85%",
+  "key_behaviors": "- Individual is seen placing items into a bag without scanning or payment.\n- No approach to checkout counters is observed during the sequence.\n- Interaction with another individual suggests possible accomplice involvement.",
+  "sequence_name": "face recognition_20250416230311",
+  "frame_count": 178,
+  "analyzed_frame_count": 8
+}

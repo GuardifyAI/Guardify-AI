@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Two individuals are seen near the checkout area, one interacting with items near the counter.\n- One individual appears to place their hand inside a box of candy or snacks multiple times, but it is unclear if any item is taken or concealed.\n- The second individual stands nearby, looking around but not interacting with any items.\n- Both individuals leave the store without visibly paying for any items.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "70%",
+  "key_behaviors": "- One individual repeatedly interacts with a box of items near the counter in a suspicious manner.\n- The second individual appears to be observing the surroundings, which could indicate potential distraction behavior.\n- Both individuals exit the store without any clear indication of payment for items.",
+  "sequence_name": "exit1_20250416231257",
+  "frame_count": 75,
+  "analyzed_frame_count": 8
+}

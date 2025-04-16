@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- An individual is seen handling items from the shelf and placing them in their hand.\n- The individual is holding an item in subsequent frames but does not approach the checkout area.\n- The individual appears to move around the store while still holding the item.\n- No clear evidence of concealing the item in clothing, bags, or containers is observed.\n- A group of other individuals is present in the vicinity, but no direct interaction with the individual is noted.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- The individual is holding an item but does not proceed to the checkout area during the observed frames.\n- No evidence of item concealment is visible in the frames.\n- Presence of other individuals nearby, but no clear indication of coordinated distraction or accomplice behavior.",
+  "sequence_name": "Deli 2_20250416232945",
+  "frame_count": 461,
+  "analyzed_frame_count": 8
+}

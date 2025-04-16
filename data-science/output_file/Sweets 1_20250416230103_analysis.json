@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Multiple individuals are present in the store aisle, interacting with products.\n- A person in a denim jacket appears to be retrieving items from the refrigerated section.\n- Another individual in gray pants is seen with a bag and is standing near the shelves but does not visibly place anything in the bag.\n- There is no clear evidence of items being concealed in clothing, bags, or containers.\n- No visible attempt to remove security tags or avoid checkout areas is observed.\n- The behaviors of all individuals appear casual, with no overt signs of nervousness or coordinated distraction.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- No clear evidence of item concealment in clothing, bags, or containers.\n- No visible removal of security tags or avoidance of checkout areas.\n- Casual and unremarkable behavior observed in the individuals.",
+  "sequence_name": "Sweets 1_20250416230103",
+  "frame_count": 294,
+  "analyzed_frame_count": 8
+}

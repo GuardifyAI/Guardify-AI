@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- An individual enters the store holding a plastic bag.\n- The individual walks through the store without interacting with any products on the shelves.\n- The individual appears to leave the store shortly after entering, without approaching the checkout area or visibly acquiring any new items.",
+  "conclusion": "No",
+  "confidence_level": "90%",
+  "key_behaviors": "- The individual did not interact with any merchandise or attempt to conceal items.\n- The individual was holding a bag when entering and leaving, with no visible change in its contents.\n- No suspicious or nervous behavior was observed, and no accomplices were present.",
+  "sequence_name": "exit1_20250403134430",
+  "frame_count": 31,
+  "analyzed_frame_count": 8
+}

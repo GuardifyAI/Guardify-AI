@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Two individuals are present in the aisle.\n- One person is seen handling items from the shelves but does not appear to conceal them.\n- The second individual is looking at items in the refrigerated section and does not interact with the first person.\n- No visible signs of removing security tags, avoiding checkout areas, or concealing items are observed.\n- No apparent nervous behavior or collaboration to distract staff is evident.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "70%",
+  "key_behaviors": "- No clear evidence of item concealment in clothing, bags, or containers.\n- No removal of security tags observed.\n- No interaction or collaboration between the individuals to distract staff.\n- Both individuals appear to be browsing items without suspicious actions.",
+  "sequence_name": "Sweets 1_20250403123207",
+  "frame_count": 154,
+  "analyzed_frame_count": 8
+}

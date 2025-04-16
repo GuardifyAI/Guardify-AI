@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Multiple individuals are present near the checkout counter.\n- Items are being scanned and placed on the counter by individuals in brown jackets.\n- One individual in a gray jacket is holding items but does not appear to place them on the counter for scanning.\n- Another individual in a white hoodie is seen holding items but does not approach the counter.\n- No clear evidence of concealing items in clothing, bags, or containers is visible.\n- Individuals appear to be conversing and interacting casually without displaying nervous behavior or avoiding checkout areas.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "60%",
+  "key_behaviors": "- One individual in a gray jacket is holding items but does not place them for scanning, which could indicate potential shoplifting behavior.\n- Another individual in a white hoodie holds items but remains at a distance from the counter, raising minor suspicion.\n- No clear evidence of concealing items or removing security tags is observed.",
+  "sequence_name": "Kupa 2_20250416230508",
+  "frame_count": 80,
+  "analyzed_frame_count": 8
+}

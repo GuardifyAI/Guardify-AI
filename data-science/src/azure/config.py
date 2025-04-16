@@ -18,10 +18,11 @@ class AzureConfig:
         self.api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-05-13")
         self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
-        print(self.api_key)
-        print(self.api_base)
-        print(self.api_version)
-        print(self.deployment_name)
+        # Uncomment the following lines to print the configuration values for debugging
+        #print(self.api_key)
+        #print(self.api_base)
+        #print(self.api_version)
+        #print(self.deployment_name)
 
     def validate(self) -> bool:
         """Validate that all required configuration is present"""

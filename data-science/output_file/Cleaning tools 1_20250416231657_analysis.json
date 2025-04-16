@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- The individual appears to reach for an item on the shelf in the first frame.\n- The subsequent frames show the individual holding the item and looking at the shelf.\n- No actions indicating concealment of items in clothing, bags, or containers are observed.\n- The individual appears to leave the area without displaying nervous behavior or avoiding checkout.",
+  "conclusion": "No",
+  "confidence_level": "90%",
+  "key_behaviors": "- The individual holds the item visibly without attempting to conceal it.\n- No signs of removing security tags or working with accomplices are observed.\n- The individual does not exhibit any behavior indicating nervousness or avoidance of checkout areas.",
+  "sequence_name": "Cleaning tools 1_20250416231657",
+  "frame_count": 51,
+  "analyzed_frame_count": 8
+}

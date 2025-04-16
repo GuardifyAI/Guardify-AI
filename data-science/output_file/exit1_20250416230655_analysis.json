@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Individuals are observed standing near the checkout counter and candy shelves.\n- One person in a black and pink jacket interacts with items on the shelves and appears to hold a product in their hand.\n- No clear concealment of items, removal of security tags, or avoidance of checkout areas is visible.\n- Some individuals are holding bags, but no suspicious activity of placing items into these bags is evident.\n- The individuals appear to be waiting in line or interacting with the cashier.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "50%",
+  "key_behaviors": "- No visible evidence of concealing items in clothing, bags, or containers.\n- No signs of removing security tags or avoiding checkout areas.\n- Interaction with items on the shelves is visible but does not clearly indicate theft.\n- Actions are consistent with normal shopping behavior, but further observation is needed to rule out shoplifting.",
+  "sequence_name": "exit1_20250416230655",
+  "frame_count": 201,
+  "analyzed_frame_count": 8
+}

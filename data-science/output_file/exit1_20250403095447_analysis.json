@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- Individuals are present in the store engaging in typical shopping behaviors.\n- One person is at the checkout counter interacting with the cashier.\n- Another individual is seen near the candy shelves, repeatedly reaching into a box of items.\n- No visible attempt to conceal items in clothing, bags, or containers.\n- No apparent removal of security tags or avoidance of checkout areas.\n- No signs of nervous behavior or collaboration to distract staff.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "75%",
+  "key_behaviors": "- Repeated handling of items near the candy shelves without clear evidence of payment or placement into a basket.\n- No visible concealment of items or overtly suspicious behavior.\n- Interaction with the cashier suggests normal shopping activity, but further investigation is required to confirm.",
+  "sequence_name": "exit1_20250403095447",
+  "frame_count": 161,
+  "analyzed_frame_count": 8
+}

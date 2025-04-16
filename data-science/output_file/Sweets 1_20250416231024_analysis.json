@@ -1,0 +1,9 @@
+{
+  "summary_of_video": "- A male individual is observed standing near the refrigerated section.\n- The individual is holding a product and appears to be examining it.\n- There is no visible attempt to conceal items in clothing, bags, or containers.\n- The person remains stationary and does not display nervous behavior or attempt to avoid checkout areas.\n- Another customer enters the frame but does not interact with the individual.",
+  "conclusion": "Inconclusive",
+  "confidence_level": "70%",
+  "key_behaviors": "- The individual is holding a product but does not attempt to conceal it.\n- No overt suspicious behavior, such as removing security tags or avoiding checkout areas, is observed.\n- The individual appears calm and focused on the product without displaying nervousness.",
+  "sequence_name": "Sweets 1_20250416231024",
+  "frame_count": 35,
+  "analyzed_frame_count": 8
+}
