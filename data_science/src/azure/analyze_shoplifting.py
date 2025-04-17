@@ -3,9 +3,10 @@ import json
 import base64
 import argparse
 import re
+import logging
 from glob import glob
 from tqdm import tqdm
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
@@ -15,8 +16,33 @@ load_dotenv()
 
 
 class ShopliftingAnalyzer:
-    def __init__(self):
-        """Initialize the ShopliftingAnalyzer with Azure OpenAI client."""
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """
+        Initialize the ShopliftingAnalyzer with Azure OpenAI client.
+        
+        Args:
+            logger: Optional logger instance. If None, a default logger will be created.
+        """
+        # Setup logging
+        if logger is None:
+            logger = logging.getLogger('ShopliftingAnalyzer')
+            logger.setLevel(logging.INFO)
+            
+            # Create handlers
+            console_handler = logging.StreamHandler()
+            file_handler = logging.FileHandler('shoplifting_analysis.log')
+            
+            # Create formatters and add it to handlers
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            console_handler.setFormatter(formatter)
+            file_handler.setFormatter(formatter)
+            
+            # Add handlers to the logger
+            logger.addHandler(console_handler)
+            logger.addHandler(file_handler)
+        
+        self.logger = logger
+
         # Get Azure OpenAI credentials from environment variables
         self.api_key = os.getenv("AZURE_OPENAI_API_KEY")
         self.endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -24,6 +50,7 @@ class ShopliftingAnalyzer:
 
         # Check if credentials are set
         if not self.api_key or not self.endpoint:
+            self.logger.error("Azure OpenAI credentials not found")
             raise ValueError(
                 "Azure OpenAI credentials not found. Please set the following environment variables:\n"
                 "  AZURE_OPENAI_API_KEY - Your Azure OpenAI API key\n"
@@ -35,11 +62,13 @@ class ShopliftingAnalyzer:
         if self.deployment_name and "deployments" not in self.endpoint:
             self.endpoint = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
 
+        self.logger.info("Initializing Azure OpenAI client")
         # Initialize the ChatCompletionsClient
         self.client = ChatCompletionsClient(
             endpoint=self.endpoint,
             credential=AzureKeyCredential(self.api_key)
         )
+        self.logger.info("Azure OpenAI client initialized successfully")
 
     @staticmethod
     def restructure_analysis(analysis_text: str) -> dict:
@@ -115,7 +144,7 @@ class ShopliftingAnalyzer:
             step = len(frames_paths) // max_frames
             frames_paths = frames_paths[::step][:max_frames]
 
-        print(f"Analyzing {len(frames_paths)} frames...")
+        self.logger.info(f"Analyzing {len(frames_paths)} frames...")
 
         # Create system prompt
         system_prompt = """
@@ -168,7 +197,7 @@ class ShopliftingAnalyzer:
 
         # Get the analysis from the model
         try:
-            print("Sending request to Azure OpenAI...")
+            self.logger.info("Sending request to Azure OpenAI...")
             response = self.client.complete(
                 messages=messages,
                 max_tokens=4000,
@@ -176,7 +205,7 @@ class ShopliftingAnalyzer:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"Error getting analysis: {str(e)}")
+            self.logger.error(f"Error getting analysis: {str(e)}")
             return f"Error: {str(e)}"
 
     def analyze_shoplifting_directory(self, frames_dir: str, output_dir: str) -> None:
@@ -190,6 +219,7 @@ class ShopliftingAnalyzer:
         try:
             # Create output directory
             os.makedirs(output_dir, exist_ok=True)
+            self.logger.info(f"Created output directory: {output_dir}")
 
             # Find all directories with frames
             frame_directories = [d for d in glob(os.path.join(frames_dir, "**"), recursive=True)
@@ -204,11 +234,11 @@ class ShopliftingAnalyzer:
                 frames = glob(os.path.join(frame_dir, "*.jpg"))
 
                 if not frames:
-                    print(f"No frames found in {frame_dir}, skipping.")
+                    self.logger.warning(f"No frames found in {frame_dir}, skipping.")
                     continue
 
                 # Analyze the frames
-                print(f"Analyzing sequence: {sequence_name} ({len(frames)} frames)")
+                self.logger.info(f"Analyzing sequence: {sequence_name} ({len(frames)} frames)")
                 analysis = self.analyze_frames(frames)
 
                 # Save the analysis
@@ -223,15 +253,15 @@ class ShopliftingAnalyzer:
                 with open(output_file, 'w') as f:
                     json.dump(result, f, indent=2)
 
-                print(f"Analysis saved to {output_file}")
+                self.logger.info(f"Analysis saved to {output_file}")
 
         except Exception as e:
-            print(f"Error: {str(e)}")
-            print("\nTroubleshooting tips:")
-            print("1. Check if your API key is correct")
-            print("2. Verify your endpoint URL format")
-            print("3. Make sure your deployment name is correct")
-            print("4. Check if your Azure region is correct")
+            self.logger.error(f"Error: {str(e)}")
+            self.logger.error("\nTroubleshooting tips:")
+            self.logger.error("1. Check if your API key is correct")
+            self.logger.error("2. Verify your endpoint URL format")
+            self.logger.error("3. Make sure your deployment name is correct")
+            self.logger.error("4. Check if your Azure region is correct")
 
 
 def main():
