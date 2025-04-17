@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- Two individuals are observed in the first set of frames. One person appears to browse items on the shelf, while the other stands nearby and eventually walks away.\n- In the later frames, a different individual is seen closely examining items on the shelf and interacting with them. This person appears to handle the items while holding a bag.",
-  "conclusion": "Inconclusive",
-  "confidence_level": "60%",
-  "key_behaviors": "- The first individual browses items but does not display clear signs of shoplifting (e.g., concealing items or removing security tags).\n- The second individual interacts with items and holds a bag, but no definitive evidence of concealment or theft is observed in the provided frames.\n- No visible signs of accomplice coordination or avoidance of checkout areas are present in the frames.",
-  "sequence_name": "Deli 2_20250416232738",
-  "frame_count": 317,
-  "analyzed_frame_count": 8
-}

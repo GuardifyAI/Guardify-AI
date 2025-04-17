@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- A customer is seen interacting with the cashier and placing items on the counter for checkout.\n- The customer appears to be paying for the items and the cashier is seen bagging them.\n- No visible attempts to conceal items in clothing, bags, or containers.\n- The customer does not display any nervous behavior or attempt to avoid the checkout process.\n- No evidence of removing security tags or working with accomplices to distract staff.",
-  "conclusion": "No",
-  "confidence_level": "95%",
-  "key_behaviors": "- The customer is visibly paying for items at the checkout.\n- Items are being bagged by the cashier, indicating a legitimate transaction.\n- No suspicious actions such as concealing items or avoiding the checkout area are observed.",
-  "sequence_name": "Kupa 1_20250403124740",
-  "frame_count": 131,
-  "analyzed_frame_count": 8
-}

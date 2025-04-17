@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- A man is observed handling items from the shelves.\n- The man places items into a red bag on the floor, rather than a shopping basket or cart.\n- The man appears to be positioning his body to obscure his actions from view.\n- The man does not proceed to a checkout area within the observed sequence.\n- A second individual briefly appears in proximity but does not interact directly with the man or the items.",
-  "conclusion": "Yes",
-  "confidence_level": "85%",
-  "key_behaviors": "- The man places items into a personal bag rather than using store-provided baskets or carts.\n- Body positioning suggests an attempt to conceal actions from potential witnesses or cameras.\n- No visible movement toward the checkout area after handling items.",
-  "sequence_name": "Deli 1_20250416231801",
-  "frame_count": 112,
-  "analyzed_frame_count": 8
-}

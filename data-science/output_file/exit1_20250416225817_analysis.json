@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- A customer is observed at the checkout counter handling items and placing them into a bag.\n- No clear evidence of concealing items in clothing, bags, or containers is visible.\n- The customer appears to be interacting with the checkout process, which suggests an intent to pay.\n- Other individuals enter the store and engage with merchandise without displaying suspicious behaviors.\n- No signs of removing security tags, avoiding checkout areas, or working with accomplices are evident.",
-  "conclusion": "Inconclusive",
-  "confidence_level": "65%",
-  "key_behaviors": "- The customer at the counter is actively handling items but does not clearly conceal them.\n- The checkout process appears to be ongoing, suggesting payment intent.\n- No overt signs of shoplifting behaviors such as distraction tactics or nervous behavior are visible.",
-  "sequence_name": "exit1_20250416225817",
-  "frame_count": 202,
-  "analyzed_frame_count": 8
-}

@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- Two individuals (one male in a blue hoodie and one female in a black hoodie) are walking through the store aisle.\n- The male is holding a bottled beverage in his hand.\n- The female appears to be walking ahead of the male without interacting with merchandise.\n- A third individual in the background is interacting with items on the shelf but does not exhibit any suspicious behavior.\n- No visible attempt to conceal items, remove security tags, or avoid checkout areas is observed in the frames provided.",
-  "conclusion": "No",
-  "confidence_level": "90%",
-  "key_behaviors": "- The male is holding a visible item (bottled beverage) in his hand, indicating no attempt to conceal it.\n- The female does not interact with any merchandise in the frames provided.\n- No signs of nervous behavior, collaboration, or attempts to distract staff are evident in the footage.",
-  "sequence_name": "Deli 2_20250416230017",
-  "frame_count": 44,
-  "analyzed_frame_count": 8
-}

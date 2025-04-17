@@ -41,25 +41,23 @@ def process_directory(input_dir, output_dir):
         input_dir: Directory containing video files
         output_dir: Base directory to save extracted frames
     """
-
     def rename_non_ascii_videos(directory):
-        for root, _, files in os.walk(directory):
-            for file in files:
-                if file.lower().endswith('.avi') and any(ord(char) > 127 for char in file):
-                    base, ext = os.path.splitext(file)
-                    parts = base.split('_', 1)
+        for filename in os.listdir(directory):
+            old_path = os.path.join(directory, filename)
+            if os.path.isfile(old_path):
+                # Check if filename starts with non-ASCII and rename
+                if not filename.isascii():
+                    parts = filename.split('_', 1)
                     if len(parts) == 2:
-                        # TODO: this is a hard coded name
-                        # exit1 is translating of the original name
-                        # it hard coded!! we need to think if we can want it dynamic
-                        new_base = f"exit1_{parts[1]}"
-                    else:
-                        new_base = "exit1"
-                    new_filename = new_base + ext
-                    old_path = os.path.join(root, file)
-                    new_path = os.path.join(root, new_filename)
-                    print(f"Renaming: {file} → {new_filename}")
-                    os.rename(old_path, new_path)
+                        new_filename = 'exit1_' + parts[1]
+                        new_path = os.path.join(directory, new_filename)
+
+                        # Check if target file already exists
+                        if os.path.exists(new_path):
+                            print(f"Skipped: {new_filename} already exists.")
+                        else:
+                            os.rename(old_path, new_path)
+                            print(f"Renamed: {filename} -> {new_filename}")
 
     rename_non_ascii_videos(input_dir)
 

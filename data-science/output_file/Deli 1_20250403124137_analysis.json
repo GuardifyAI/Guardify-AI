@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- A woman enters the aisle carrying a shopping basket and wearing a backpack.\n- She browses the shelves, picks up items, and places them in the basket.\n- Another individual briefly enters the aisle but does not interact with her.\n- The woman continues shopping without displaying nervous or suspicious behaviors.\n- She exits the aisle, and no unusual activity is observed.",
-  "conclusion": "No",
-  "confidence_level": "95%",
-  "key_behaviors": "- The woman places items in a shopping basket rather than concealing them.\n- No attempt to remove security tags or hide items in her backpack is evident.\n- The interaction with another individual in the aisle appears incidental and not coordinated.",
-  "sequence_name": "Deli 1_20250403124137",
-  "frame_count": 1470,
-  "analyzed_frame_count": 8
-}

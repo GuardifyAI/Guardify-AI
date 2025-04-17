@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- Two individuals are visible near the checkout area, one with a dog and a shopping cart.\n- The person with the dog has a shopping bag and interacts with items on the counter but does not exhibit behavior of concealing items.\n- Another individual near the candy section touches items but does not place them into pockets or bags.\n- All individuals eventually proceed toward the checkout area, and no avoidance of payment is observed.",
-  "conclusion": "No",
-  "confidence_level": "95%",
-  "key_behaviors": "- No evidence of concealing items in clothing, bags, or containers.\n- All individuals remain near the checkout area and interact with the cashier.\n- No signs of nervous behavior or collaboration to distract staff.",
-  "sequence_name": "exit1_20250416230233",
-  "frame_count": 135,
-  "analyzed_frame_count": 8
-}

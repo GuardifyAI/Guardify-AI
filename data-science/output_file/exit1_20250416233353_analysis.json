@@ -1,9 +1,0 @@
-{
-  "summary_of_video": "- Two individuals are seen walking toward the exit of the store without interacting with the checkout counter.\n- One individual is carrying a bag in his right hand, which appears to contain items.\n- No visible attempt to remove security tags or conceal items in clothing or bags is observed.\n- The individuals do not display nervous behavior or interact with other customers in a distracting manner.",
-  "conclusion": "Inconclusive",
-  "confidence_level": "60%",
-  "key_behaviors": "- Individuals are seen leaving the store without approaching the checkout counter, which could indicate avoidance.\n- A bag is carried by one individual, but the contents and whether they were paid for are unclear.\n- No visible signs of concealment, security tag removal, or accomplice interaction are observed.",
-  "sequence_name": "exit1_20250416233353",
-  "frame_count": 23,
-  "analyzed_frame_count": 8
-}
