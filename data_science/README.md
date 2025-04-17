@@ -26,7 +26,7 @@ This project uses Azure OpenAI's GPT-4o model to analyze surveillance video fram
 To extract frames from your videos at 4 frames per second:
 
 ```bash
-python data-science/src/extract_frames.py --input data-science/shoplifting_dataset --output data-science/extracted_frames
+python data_science/src/extract_frames.py --input data_science/shoplifting_dataset --output data_science/extracted_frames
 ```
 
 This will process all MP4 files in the `shoplifting_dataset` directory and its subdirectories, and save the extracted frames in the `extracted_frames` directory.

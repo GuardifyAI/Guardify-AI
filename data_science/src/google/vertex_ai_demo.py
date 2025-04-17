@@ -185,7 +185,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # all_videos_analysis = load_pickle_files_from_directory("/home/yonatan.r/PycharmProjects/SurveillanceAI/data-science/src/")
+    # all_videos_analysis = load_pickle_files_from_directory("/home/yonatan.r/PycharmProjects/SurveillanceAI/data_science/src/")
     # final_predictions = {}
     # for video_uri, video_analysis in all_videos_analysis.items():
     #     final_predictions[video_analysis["video_uri"]] = int(determine_shoplifting_likelihood(video_analysis["analysis"]) > 0.5)
