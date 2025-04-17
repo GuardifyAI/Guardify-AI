@@ -17,7 +17,7 @@ load_dotenv()
 
 
 class PromptModel:
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None, system_prompt: str = None):
         """
         Initialize the PromptModel for generating prompts for CV analysis.
         
@@ -57,9 +57,10 @@ class PromptModel:
         )
         self.logger.info("Azure OpenAI client initialized successfully")
 
-    def generate_prompt(self) -> str:
-        # Create system prompt for prompt generation
-        system_prompt = """
+        if system_prompt:
+            self.system_prompt = system_prompt
+        else:
+            self.system_prompt = """
         As an assistant to the cv_model, your primary function is to help it perform its duties as a virtual security guard in a retail environment.
         Your role is to craft detailed prompts that will enable the cv_model to monitor customer behavior accurately and identify potential shoplifting activities by breaking down these complex tasks into smaller, more manageable steps.
         This approach is similar to how a human would tackle a complex problem, enhancing the cv_model’s ability to process and analyze situations effectively.
@@ -81,6 +82,7 @@ class PromptModel:
         Each prompt should refine the cv_model's ability to observe and evaluate with precision.
         """
 
+    def generate_prompt(self) -> str:
         # Create user message
         user_message = """
         Generate a detailed prompt for analyzing these surveillance frames for shoplifting detection.
@@ -99,7 +101,7 @@ class PromptModel:
 
         # Create messages
         messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_message}
         ]
 
