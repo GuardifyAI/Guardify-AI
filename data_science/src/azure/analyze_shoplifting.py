@@ -6,42 +6,29 @@ import re
 import logging
 from glob import glob
 from tqdm import tqdm
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
+from .utils import create_logger
 
 # Load environment variables
 load_dotenv()
 
 
-class ShopliftingAnalyzer:
+class PromptModel:
     def __init__(self, logger: Optional[logging.Logger] = None):
         """
-        Initialize the ShopliftingAnalyzer with Azure OpenAI client.
+        Initialize the PromptModel for generating prompts for CV analysis.
         
         Args:
             logger: Optional logger instance. If None, a default logger will be created.
         """
         # Setup logging
         if logger is None:
-            logger = logging.getLogger('ShopliftingAnalyzer')
-            logger.setLevel(logging.INFO)
-            
-            # Create handlers
-            console_handler = logging.StreamHandler()
-            file_handler = logging.FileHandler('shoplifting_analysis.log')
-            
-            # Create formatters and add it to handlers
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            console_handler.setFormatter(formatter)
-            file_handler.setFormatter(formatter)
-            
-            # Add handlers to the logger
-            logger.addHandler(console_handler)
-            logger.addHandler(file_handler)
-        
-        self.logger = logger
+            self.logger = create_logger('PromptModel', 'shoplifting_analysis.log')
+        else:
+            self.logger = logger
 
         # Get Azure OpenAI credentials from environment variables
         self.api_key = os.getenv("AZURE_OPENAI_API_KEY")
@@ -62,7 +49,7 @@ class ShopliftingAnalyzer:
         if self.deployment_name and "deployments" not in self.endpoint:
             self.endpoint = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
 
-        self.logger.info("Initializing Azure OpenAI client")
+        self.logger.info("Initializing Azure OpenAI client for PromptModel")
         # Initialize the ChatCompletionsClient
         self.client = ChatCompletionsClient(
             endpoint=self.endpoint,
@@ -70,45 +57,117 @@ class ShopliftingAnalyzer:
         )
         self.logger.info("Azure OpenAI client initialized successfully")
 
-    @staticmethod
-    def restructure_analysis(analysis_text: str) -> dict:
+    def generate_prompt(self, frames_paths: List[str]) -> str:
         """
-        Parse the detailed analysis and restructure it into a simplified JSON format.
+        Generate a prompt for CV analysis based on the frames.
+        
+        Args:
+            frames_paths: List of paths to frames to analyze
+            
+        Returns:
+            str: Generated prompt for CV analysis
         """
-        # Extract summary from "### Summary of Video:"
-        summary_match = re.search(
-            r"### Summary of Video:\s*(.*?)(?=\n### Shoplifting Determination:)",
-            analysis_text, re.DOTALL | re.IGNORECASE
-        )
-        summary = summary_match.group(1).strip() if summary_match else "N/A"
+        # Create system prompt for prompt generation
+        system_prompt = """
+        You are a prompt engineering expert specializing in computer vision tasks. Your task is to generate 
+        detailed prompts that will help a vision model analyze surveillance footage for shoplifting detection.
+        
+        The prompt should:
+        1. Focus on specific visual elements and behaviors
+        2. Guide the model to look for key indicators of shoplifting
+        3. Request detailed analysis of suspicious activities
+        4. Ask for specific observations about people's actions and movements
+        5. Request analysis of interactions with merchandise and store equipment
+        
+        The prompt should be clear, specific, and structured to get the most detailed analysis possible.
+        """
 
-        # Extract conclusion from "### Shoplifting Determination:"
-        conclusion_match = re.search(
-            r"### Shoplifting Determination:\s*(Yes|No|Inconclusive)",
-            analysis_text, re.IGNORECASE
-        )
-        conclusion = conclusion_match.group(1) if conclusion_match else "N/A"
+        # Create user message
+        user_message = """
+        Generate a detailed prompt for analyzing these surveillance frames for shoplifting detection.
+        The frames are in temporal sequence and show a retail environment.
+        
+        The prompt should guide the model to:
+        1. Analyze each person's behavior and movements
+        2. Look for suspicious interactions with merchandise
+        3. Identify potential concealment attempts
+        4. Note any unusual patterns or behaviors
+        5. Consider the context of the retail environment
+        
+        Please provide a comprehensive prompt that will result in detailed analysis.
+        """
 
-        # Extract confidence level
-        confidence_match = re.search(
-            r"### Confidence Level:\s*(\d{1,3})%",
-            analysis_text, re.IGNORECASE
-        )
-        confidence = f"{confidence_match.group(1)}%" if confidence_match else "N/A"
+        # Create messages
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
 
-        # Extract key behaviors
-        behaviors_match = re.search(
-            r"### Key Behaviors Supporting Conclusion:\s*(.*)",
-            analysis_text, re.DOTALL | re.IGNORECASE
-        )
-        key_behaviors = behaviors_match.group(1).strip() if behaviors_match else "N/A"
+        try:
+            self.logger.info("Generating prompt for CV analysis...")
+            response = self.client.complete(
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.7
+            )
+            prompt = response.choices[0].message.content
+            self.logger.info("Prompt generated successfully")
+            return prompt
+        except Exception as e:
+            self.logger.error(f"Error generating prompt: {str(e)}")
+            # Return a default prompt if generation fails
+            return """
+            Analyze these surveillance frames for potential shoplifting activity. Focus on:
+            1. Each person's behavior and movements
+            2. Interactions with merchandise
+            3. Potential concealment attempts
+            4. Unusual patterns or behaviors
+            5. Context of the retail environment
+            
+            Provide detailed observations about any suspicious activities or behaviors.
+            """
 
-        return {
-            "summary_of_video": summary,
-            "conclusion": conclusion,
-            "confidence_level": confidence,
-            "key_behaviors": key_behaviors
-        }
+
+class CVModel:
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """
+        Initialize the CVModel for analyzing video frames.
+        
+        Args:
+            logger: Optional logger instance. If None, a default logger will be created.
+        """
+        # Setup logging
+        if logger is None:
+            self.logger = create_logger('CVModel', 'shoplifting_analysis.log')
+        else:
+            self.logger = logger
+
+        # Get Azure OpenAI credentials from environment variables
+        self.api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        self.endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+
+        # Check if credentials are set
+        if not self.api_key or not self.endpoint:
+            self.logger.error("Azure OpenAI credentials not found")
+            raise ValueError(
+                "Azure OpenAI credentials not found. Please set the following environment variables:\n"
+                "  AZURE_OPENAI_API_KEY - Your Azure OpenAI API key\n"
+                "  AZURE_OPENAI_ENDPOINT - Your Azure OpenAI endpoint URL\n"
+                "  AZURE_OPENAI_DEPLOYMENT_NAME - Your Azure OpenAI deployment name"
+            )
+
+        # Create the endpoint URL
+        if self.deployment_name and "deployments" not in self.endpoint:
+            self.endpoint = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
+
+        self.logger.info("Initializing Azure OpenAI client for CVModel")
+        # Initialize the ChatCompletionsClient
+        self.client = ChatCompletionsClient(
+            endpoint=self.endpoint,
+            credential=AzureKeyCredential(self.api_key)
+        )
+        self.logger.info("Azure OpenAI client initialized successfully")
 
     @staticmethod
     def encode_image_to_base64(image_path: str) -> str:
@@ -124,13 +183,14 @@ class ShopliftingAnalyzer:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def analyze_frames(self, frames_paths: List[str], max_frames: int = 8) -> str:
+    def analyze_frames(self, frames_paths: List[str], prompt: str, max_frames: int = 8) -> str:
         """
-        Analyze a set of frames for shoplifting detection
+        Analyze frames using the provided prompt.
         
         Args:
             frames_paths: List of paths to frames to analyze
-            max_frames: Maximum number of frames to include (to avoid token limits)
+            prompt: The prompt to use for analysis
+            max_frames: Maximum number of frames to include
             
         Returns:
             str: Analysis result
@@ -146,39 +206,9 @@ class ShopliftingAnalyzer:
 
         self.logger.info(f"Analyzing {len(frames_paths)} frames...")
 
-        # Create system prompt
-        system_prompt = """
-        You are a security analyst reviewing surveillance frames to determine whether shoplifting is occurring.
-        Focus on suspicious behaviors like:
-        1. Concealing items in clothing, bags, or containers
-        2. Removing security tags
-        3. Avoiding checkout areas
-        4. Displaying nervous behavior
-        5. Working with accomplices to distract staff
-
-        Strictly follow this output format using the exact section headers and structure:
-
-        ### Summary of Video:
-        - Summarize behaviors using consistent bullet points.
-        - This section will be extracted as "summary_of_video" in a JSON.
-
-        ### Shoplifting Determination: Yes / No / Inconclusive
-        ### Confidence Level: XX%
-        ### Key Behaviors Supporting Conclusion:
-        - Bullet 1
-        - Bullet 2
-        - Bullet 3
-
-        Make sure:
-        - You always include all 4 parts of the conclusion section.
-        - Each part is labeled exactly as shown.
-        - Confidence Level must be numeric, in this format: "XX%"
-        """
-
         # Create the user message content
         user_content = [
-            {"type": "text",
-             "text": "Analyze these surveillance video frames for shoplifting activity. These frames are in temporal sequence."}
+            {"type": "text", "text": prompt}
         ]
 
         # Add all frames to the user message content
@@ -191,7 +221,7 @@ class ShopliftingAnalyzer:
 
         # Create the messages
         messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": ""},  # TODO: Add system prompt
             {"role": "user", "content": user_content}
         ]
 
@@ -207,6 +237,101 @@ class ShopliftingAnalyzer:
         except Exception as e:
             self.logger.error(f"Error getting analysis: {str(e)}")
             return f"Error: {str(e)}"
+
+
+class AnalysisModel:
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """
+        Initialize the AnalysisModel for generating final conclusions.
+        
+        Args:
+            logger: Optional logger instance. If None, a default logger will be created.
+        """
+        # Setup logging
+        if logger is None:
+            self.logger = create_logger('AnalysisModel', 'shoplifting_analysis.log')
+        else:
+            self.logger = logger
+
+        # Get Azure OpenAI credentials from environment variables
+        self.api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        self.endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+
+        # Check if credentials are set
+        if not self.api_key or not self.endpoint:
+            self.logger.error("Azure OpenAI credentials not found")
+            raise ValueError(
+                "Azure OpenAI credentials not found. Please set the following environment variables:\n"
+                "  AZURE_OPENAI_API_KEY - Your Azure OpenAI API key\n"
+                "  AZURE_OPENAI_ENDPOINT - Your Azure OpenAI endpoint URL\n"
+                "  AZURE_OPENAI_DEPLOYMENT_NAME - Your Azure OpenAI deployment name"
+            )
+
+        # Create the endpoint URL
+        if self.deployment_name and "deployments" not in self.endpoint:
+            self.endpoint = f"{self.endpoint}/openai/deployments/{self.deployment_name}"
+
+        self.logger.info("Initializing Azure OpenAI client for AnalysisModel")
+        # Initialize the ChatCompletionsClient
+        self.client = ChatCompletionsClient(
+            endpoint=self.endpoint,
+            credential=AzureKeyCredential(self.api_key)
+        )
+        self.logger.info("Azure OpenAI client initialized successfully")
+
+    def generate_analysis(self, cv_analysis: str) -> Dict[str, Any]:
+        """
+        Generate final analysis and conclusion based on CV analysis.
+        
+        Args:
+            cv_analysis: The analysis from CVModel
+            
+        Returns:
+            Dict[str, Any]: Structured analysis result
+        """
+        # TODO: Implement analysis generation logic
+        return {}
+
+
+class ShopliftingAnalyzer:
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """
+        Initialize the ShopliftingAnalyzer with all three models.
+        
+        Args:
+            logger: Optional logger instance. If None, a default logger will be created.
+        """
+        # Setup logging
+        if logger is None:
+            self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
+        else:
+            self.logger = logger
+        
+        # Initialize all three models
+        self.prompt_model = PromptModel(logger)
+        self.cv_model = CVModel(logger)
+        self.analysis_model = AnalysisModel(logger)
+
+    def analyze_frames(self, frames_paths: List[str], max_frames: int = 8) -> Dict[str, Any]:
+        """
+        Analyze a set of frames for shoplifting detection using all three models.
+        
+        Args:
+            frames_paths: List of paths to frames to analyze
+            max_frames: Maximum number of frames to include
+            
+        Returns:
+            Dict[str, Any]: Analysis result
+        """
+        # Generate prompt
+        prompt = self.prompt_model.generate_prompt(frames_paths)
+        
+        # Get CV analysis
+        cv_analysis = self.cv_model.analyze_frames(frames_paths, prompt, max_frames)
+        
+        # Generate final analysis
+        return self.analysis_model.generate_analysis(cv_analysis)
 
     def analyze_shoplifting_directory(self, frames_dir: str, output_dir: str) -> None:
         """
@@ -239,11 +364,10 @@ class ShopliftingAnalyzer:
 
                 # Analyze the frames
                 self.logger.info(f"Analyzing sequence: {sequence_name} ({len(frames)} frames)")
-                analysis = self.analyze_frames(frames)
+                result = self.analyze_frames(frames)
 
                 # Save the analysis
                 output_file = os.path.join(output_dir, f"{sequence_name}_analysis.json")
-                result = self.restructure_analysis(analysis)
                 result.update({
                     "sequence_name": sequence_name,
                     "frame_count": len(frames),
