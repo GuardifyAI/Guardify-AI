@@ -30,4 +30,4 @@ def create_logger(logger_name: str, log_file: str) -> logging.Logger:
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
     
-    return logger 
+    return logger
