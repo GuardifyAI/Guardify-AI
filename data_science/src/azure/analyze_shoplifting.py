@@ -5,10 +5,15 @@ import argparse
 import re
 from glob import glob
 from tqdm import tqdm
-from typing import List
+from typing import List, Dict, Any
 from dotenv import load_dotenv
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
+from azure.storage.blob import BlobServiceClient, ContainerClient
+import concurrent.futures
+import cv2
+import numpy as np
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -234,16 +239,165 @@ class ShopliftingAnalyzer:
             print("4. Check if your Azure region is correct")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze extracted frames for shoplifting detection using Azure ChatCompletionsClient")
-    parser.add_argument("--frames", required=True, help="Directory containing extracted frames")
-    parser.add_argument("--output", required=True, help="Output directory for analysis results")
-    args = parser.parse_args()
+def download_and_analyze_frame(frame_blob: str, container_client: ContainerClient) -> Dict[str, Any]:
+    """
+    Download a frame from blob storage and analyze it for shoplifting behavior
+    
+    Args:
+        frame_blob: Blob path of the frame
+        container_client: Azure container client for downloading
+        
+    Returns:
+        Dictionary containing analysis results
+    """
+    # Download frame
+    blob_client = container_client.get_blob_client(frame_blob)
+    frame_data = blob_client.download_blob().readall()
+    
+    # Convert to OpenCV format
+    frame_array = np.frombuffer(frame_data, np.uint8)
+    frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+    
+    # TODO: Add your actual shoplifting detection logic here
+    # This is a placeholder that returns random results for demonstration
+    # Convert numpy.bool_ to Python bool
+    is_suspicious = bool(np.random.choice([True, False], p=[0.1, 0.9]))
+    confidence = float(np.random.uniform(0.6, 0.99))
+    
+    results = {
+        "frame": frame_blob,
+        "timestamp": datetime.now().isoformat(),
+        "suspicious_activity_detected": is_suspicious,
+        "confidence_score": round(confidence, 2),
+        "detected_objects": []
+    }
+    
+    if results["suspicious_activity_detected"]:
+        # Convert all numpy types to Python native types
+        x = int(np.random.uniform(0, frame.shape[1]))
+        y = int(np.random.uniform(0, frame.shape[0]))
+        w = int(np.random.uniform(50, 200))
+        h = int(np.random.uniform(100, 300))
+        obj_confidence = float(np.random.uniform(0.7, 0.99))
+        
+        results["detected_objects"] = [
+            {
+                "type": "person",
+                "bbox": [x, y, w, h],
+                "confidence": round(obj_confidence, 2)
+            }
+        ]
+    
+    return results
 
-    # Create analyzer instance and analyze the frames
-    analyzer = ShopliftingAnalyzer()
-    analyzer.analyze_shoplifting_directory(args.frames, args.output)
+
+def ensure_container_exists(blob_service_client: BlobServiceClient, container_name: str) -> ContainerClient:
+    """
+    Ensure that a container exists, create it if it doesn't
+    """
+    try:
+        container_client = blob_service_client.get_container_client(container_name)
+        container_client.get_container_properties()
+    except Exception:
+        container_client = blob_service_client.create_container(container_name)
+        print(f"Created new container: {container_name}")
+    return container_client
+
+
+def analyze_frames(connection_string: str, frames_container: str, results_container: str):
+    """
+    Analyze frames from blob storage for shoplifting behavior
+    
+    Args:
+        connection_string: Azure Storage connection string
+        frames_container: Container name containing the extracted frames
+        results_container: Container name for storing analysis results
+    """
+    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+    frames_container_client = blob_service_client.get_container_client(frames_container)
+    
+    # Ensure results container exists
+    results_container_client = ensure_container_exists(blob_service_client, results_container)
+    
+    # Get list of all frames
+    print("Listing frames from storage...")
+    frame_blobs = []
+    for blob in frames_container_client.list_blobs():
+        if blob.name.lower().endswith('.jpg'):
+            frame_blobs.append(blob.name)
+    
+    print(f"Found {len(frame_blobs)} frames to analyze...")
+    
+    # Process frames in parallel
+    results_by_video = {}
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_frame = {
+            executor.submit(download_and_analyze_frame, frame_blob, frames_container_client): frame_blob
+            for frame_blob in frame_blobs
+        }
+        
+        for future in tqdm(concurrent.futures.as_completed(future_to_frame), total=len(frame_blobs)):
+            frame_blob = future_to_frame[future]
+            try:
+                result = future.result()
+                
+                # Group results by video
+                video_name = os.path.dirname(frame_blob)
+                if video_name not in results_by_video:
+                    results_by_video[video_name] = []
+                results_by_video[video_name].append(result)
+                
+            except Exception as e:
+                print(f"Error processing {frame_blob}: {e}")
+    
+    # Upload results for each video
+    print("Uploading analysis results...")
+    for video_name, results in results_by_video.items():
+        # Sort results by frame number
+        results.sort(key=lambda x: int(os.path.basename(x["frame"]).split("_")[1].split(".")[0]))
+        
+        # Prepare summary
+        summary = {
+            "video_name": video_name,
+            "total_frames": len(results),
+            "suspicious_frames": sum(1 for r in results if r["suspicious_activity_detected"]),
+            "average_confidence": round(sum(r["confidence_score"] for r in results) / len(results), 2),
+            "timestamp": datetime.now().isoformat(),
+            "frame_results": results
+        }
+        
+        # Upload results
+        blob_name = f"{video_name}/analysis_results.json"
+        results_container_client.upload_blob(
+            name=blob_name,
+            data=json.dumps(summary, indent=2),
+            overwrite=True
+        )
+        print(f"Uploaded results for {video_name}")
+    
+    print(f"Analysis complete. Results uploaded to '{results_container}' container")
+
+
+def main():
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Get settings from environment variables
+    connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+    frames_container = os.getenv('AZURE_STORAGE_CONTAINER_FRAMES_NAME')
+    results_container = os.getenv('AZURE_STORAGE_CONTAINER_OUTPUT_NAME')
+    
+    # Validate required environment variables
+    if not connection_string:
+        raise ValueError("AZURE_STORAGE_CONNECTION_STRING not found in .env file")
+    if not frames_container:
+        raise ValueError("AZURE_STORAGE_CONTAINER_FRAMES_NAME not found in .env file")
+    if not results_container:
+        raise ValueError("AZURE_STORAGE_CONTAINER_OUTPUT_NAME not found in .env file")
+    
+    print(f"Processing frames from '{frames_container}' and storing results in '{results_container}'")
+    analyze_frames(connection_string, frames_container, results_container)
 
 
 if __name__ == "__main__":
