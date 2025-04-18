@@ -1,12 +1,13 @@
 import os
-from dotenv import load_dotenv
+from azure.utils import load_dotenv_variables
 from azure.storage.blob import BlobServiceClient
 import json
 from analyze_shoplifting import download_and_analyze_frame
 
+
 def test_single_frame():
     # Load environment variables
-    load_dotenv()
+    load_dotenv_variables()
     
     # Get Azure Storage settings
     connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
@@ -60,6 +61,7 @@ def test_single_frame():
         
     except Exception as e:
         print(f"Error during analysis: {str(e)}")
+
 
 if __name__ == "__main__":
     test_single_frame() 
