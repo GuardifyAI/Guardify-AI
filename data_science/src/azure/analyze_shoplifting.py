@@ -7,20 +7,20 @@ import logging
 from glob import glob
 from tqdm import tqdm
 from typing import List, Optional, Dict, Any
-from dotenv import load_dotenv
+from azure.utils import load_env_variables
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from data_science.src.azure.utils import create_logger
+from azure.utils import create_logger, restructure_analysis, encode_image_to_base64
 
 # Load environment variables
-load_dotenv()
+load_env_variables()
 
 
 class PromptModel:
     def __init__(self, logger: Optional[logging.Logger] = None, system_prompt: str = None):
         """
         Initialize the PromptModel for generating prompts for CV analysis.
-        
+
         Args:
             logger: Optional logger instance. If None, a default logger will be created.
         """
@@ -87,14 +87,14 @@ class PromptModel:
         user_message = """
         Generate a detailed prompt for analyzing these surveillance frames for shoplifting detection.
         The frames are in temporal sequence and show a retail environment.
-        
+
         The prompt should guide the model to:
         1. Analyze each person's behavior and movements
         2. Look for suspicious interactions with merchandise
         3. Identify potential concealment attempts
         4. Note any unusual patterns or behaviors
         5. Consider the context of the retail environment
-        
+
         Please provide a comprehensive prompt that will result in detailed analysis.
         The generated prompt should follow the 'chain of thought' method to break down complex tasks into smaller, more manageable steps.
         """
@@ -125,7 +125,7 @@ class PromptModel:
             3. Potential concealment attempts
             4. Unusual patterns or behaviors
             5. Context of the retail environment
-            
+
             Provide detailed observations about any suspicious activities or behaviors.
             """
 
@@ -134,7 +134,7 @@ class CVModel:
     def __init__(self, logger: Optional[logging.Logger] = None, system_prompt: str = None):
         """
         Initialize the CVModel for analyzing video frames.
-        
+
         Args:
             logger: Optional logger instance. If None, a default logger will be created.
         """
@@ -189,7 +189,7 @@ class CVModel:
                 - Summarize behaviors using consistent bullet points.
                 - This section will be extracted as "summary_of_video" in a JSON.
 
-                ### Shoplifting Determination: Yes / No / Inconclusive
+                ### Shoplifting Determination: Yes / No
                 ### Confidence Level: XX%
                 ### Key Behaviors Supporting Conclusion:
                 - Bullet 1
@@ -202,29 +202,15 @@ class CVModel:
                 - Confidence Level must be numeric, in this format: "XX%"
                 """
 
-    @staticmethod
-    def encode_image_to_base64(image_path: str) -> str:
-        """
-        Encode an image file to base64
-        
-        Args:
-            image_path: Path to the image file
-            
-        Returns:
-            str: Base64 encoded image string
-        """
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-
     def analyze_frames(self, frames_paths: List[str], prompt: str, max_frames: int = 8) -> str:
         """
         Analyze frames using the provided prompt.
-        
+
         Args:
             frames_paths: List of paths to frames to analyze
             prompt: The prompt to use for analysis
             max_frames: Maximum number of frames to include
-            
+
         Returns:
             str: Analysis result
         """
@@ -247,7 +233,7 @@ class CVModel:
 
         # Add all frames to the user message content
         for frame_path in frames_paths:
-            encoded_image = self.encode_image_to_base64(frame_path)
+            encoded_image = encode_image_to_base64(frame_path)
             user_content.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}
@@ -272,150 +258,48 @@ class CVModel:
             self.logger.error(f"Error getting analysis: {str(e)}")
             return f"Error: {str(e)}"
 
+
 class ShopliftingAnalyzer:
-    def __init__(self, logger: Optional[logging.Logger] = None):
-        """
-        Initialize the ShopliftingAnalyzer with all three models.
-        
-        Args:
-            logger: Optional logger instance. If None, a default logger will be created.
-        """
-        # Setup logging
-        if logger is None:
-            self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
-        else:
-            self.logger = logger
-        
-        # Initialize all three models
-        self.prompt_model = PromptModel(logger)
-        self.cv_model = CVModel(logger)
+    def __init__(self, logger=None):
+        self.prompt_model = PromptModel()
+        self.cv_model = CVModel()
+        self.cached_prompt = None
 
-    def analyze_frames(self, frames_paths: List[str], max_frames: int = 8) -> str:
-        """
-        Analyze a set of frames for shoplifting detection using all three models.
-        
-        Args:
-            frames_paths: List of paths to frames to analyze
-            max_frames: Maximum number of frames to include
-            
-        Returns:
-            str: Analysis text
-        """
-        # Generate prompt
-        prompt = self.prompt_model.generate_prompt()
-        
-        # Get CV analysis
-        cv_analysis = self.cv_model.analyze_frames(frames_paths, prompt, max_frames)
+    def get_prompt(self):
+        if self.cached_prompt is None:
+            self.cached_prompt = self.prompt_model.generate_prompt()
+        return self.cached_prompt
 
-        return cv_analysis
+    def analyze_single_video(self, video_name: str, input_base_folder: str, max_frames: int = 8) -> Dict[str, str]:
+        video_folder = os.path.join(input_base_folder, video_name)
+        frame_paths = sorted(glob(os.path.join(video_folder, "*.jpg")))
 
-    def analyze_shoplifting_directory(self, frames_dir: str, output_dir: str) -> None:
-        """
-        Analyze all frame sets in a directory for shoplifting
-        
-        Args:
-            frames_dir: Directory containing extracted frame sets
-            output_dir: Directory to save analysis results
-        """
-        try:
-            # Create output directory
-            os.makedirs(output_dir, exist_ok=True)
-            self.logger.info(f"Created output directory: {output_dir}")
+        if not frame_paths:
+            return {}
 
-            # Find all directories with frames
-            frame_directories = [d for d in glob(os.path.join(frames_dir, "**"), recursive=True)
-                               if os.path.isdir(d) and any(f.endswith('.jpg') for f in os.listdir(d))]
+        prompt = self.get_prompt()
+        analysis_text = self.cv_model.analyze_frames(frame_paths, prompt, max_frames)
 
-            # Process each directory
-            for frame_dir in tqdm(frame_directories, desc="Analyzing frame sets"):
-                # Get the sequence name
-                sequence_name = os.path.basename(frame_dir)
+        structured_result = restructure_analysis(analysis_text)
+        structured_result.update({
+            "sequence_name": video_name,
+            "frame_count": len(frame_paths),
+            "analyzed_frame_count": min(len(frame_paths), max_frames)
+        })
 
-                # Find all frames in this directory
-                frames = glob(os.path.join(frame_dir, "*.jpg"))
+        return structured_result
 
-                if not frames:
-                    self.logger.warning(f"No frames found in {frame_dir}, skipping.")
-                    continue
+    def analyze_all_videos(self, input_base_folder: str, max_frames: int = 8) -> List[Dict[str, str]]:
+        all_video_names = [
+            d for d in os.listdir(input_base_folder)
+            if os.path.isdir(os.path.join(input_base_folder, d))
+        ]
 
-                # Analyze the frames
-                self.logger.info(f"Analyzing sequence: {sequence_name} ({len(frames)} frames)")
-                analysis = self.analyze_frames(frames)
-                result = self.restructure_analysis(analysis)
+        all_results = []
 
-                # Save the analysis
-                output_file = os.path.join(output_dir, f"{sequence_name}_analysis.json")
-                result.update({
-                    "sequence_name": sequence_name,
-                    "frame_count": len(frames),
-                    "analyzed_frame_count": min(len(frames), 8)
-                })
+        for video_name in tqdm(all_video_names, desc="Analyzing all videos"):
+            result = self.analyze_single_video(video_name, input_base_folder, max_frames)
+            if result:
+                all_results.append(result)
 
-                with open(output_file, 'w') as f:
-                    json.dump(result, f, indent=2)
-
-                self.logger.info(f"Analysis saved to {output_file}")
-
-        except Exception as e:
-            self.logger.error(f"Error: {str(e)}")
-            self.logger.error("\nTroubleshooting tips:")
-            self.logger.error("1. Check if your API key is correct")
-            self.logger.error("2. Verify your endpoint URL format")
-            self.logger.error("3. Make sure your deployment name is correct")
-            self.logger.error("4. Check if your Azure region is correct")
-
-    @staticmethod
-    def restructure_analysis(analysis_text: str) -> Dict[str, str]:
-        """
-        Parse the detailed analysis and restructure it into a simplified JSON format.
-        """
-        # Extract summary from "### Summary of Video:"
-        summary_match = re.search(
-            r"### Summary of Video:\s*(.*?)(?=\n### Shoplifting Determination:)",
-            analysis_text, re.DOTALL | re.IGNORECASE
-        )
-        summary = summary_match.group(1).strip() if summary_match else "N/A"
-
-        # Extract conclusion from "### Shoplifting Determination:"
-        conclusion_match = re.search(
-            r"### Shoplifting Determination:\s*(Yes|No|Inconclusive)",
-            analysis_text, re.IGNORECASE
-        )
-        conclusion = conclusion_match.group(1) if conclusion_match else "N/A"
-
-        # Extract confidence level
-        confidence_match = re.search(
-            r"### Confidence Level:\s*(\d{1,3})%",
-            analysis_text, re.IGNORECASE
-        )
-        confidence = f"{confidence_match.group(1)}%" if confidence_match else "N/A"
-
-        # Extract key behaviors (optional: keep them if you want)
-        behaviors_match = re.search(
-            r"### Key Behaviors Supporting Conclusion:\s*(.*)",
-            analysis_text, re.DOTALL | re.IGNORECASE
-        )
-        key_behaviors = behaviors_match.group(1).strip() if behaviors_match else "N/A"
-
-        return {
-            "summary_of_video": summary,
-            "conclusion": conclusion,
-            "confidence_level": confidence,
-            "key_behaviors": key_behaviors
-        }
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze extracted frames for shoplifting detection using Azure ChatCompletionsClient")
-    parser.add_argument("--frames", required=True, help="Directory containing extracted frames")
-    parser.add_argument("--output", required=True, help="Output directory for analysis results")
-    args = parser.parse_args()
-
-    # Create analyzer instance and analyze the frames
-    analyzer = ShopliftingAnalyzer()
-    analyzer.analyze_shoplifting_directory(args.frames, args.output)
-
-
-if __name__ == "__main__":
-    main()
+        return all_results
