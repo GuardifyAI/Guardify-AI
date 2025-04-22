@@ -1,19 +1,18 @@
 import os
-import json
-import base64
-import argparse
-import re
 import logging
 from glob import glob
 from tqdm import tqdm
-from typing import List, Optional, Dict, Any
-from azure.utils import load_env_variables
+from typing import List, Optional, Dict
+from dotenv import load_dotenv
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from azure.utils import create_logger, restructure_analysis, encode_image_to_base64
+from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64
 
 # Load environment variables
-load_env_variables()
+load_dotenv()
+
+
+MAX_FRAMES = 200
 
 
 class PromptModel:
@@ -202,7 +201,7 @@ class CVModel:
                 - Confidence Level must be numeric, in this format: "XX%"
                 """
 
-    def analyze_frames(self, frames_paths: List[str], prompt: str, max_frames: int = 8) -> str:
+    def analyze_frames(self, frames_paths: List[str], prompt: str, max_frames: int = MAX_FRAMES) -> str:
         """
         Analyze frames using the provided prompt.
 
@@ -260,17 +259,18 @@ class CVModel:
 
 
 class ShopliftingAnalyzer:
-    def __init__(self, logger=None):
+    def __init__(self):
         self.prompt_model = PromptModel()
         self.cv_model = CVModel()
         self.cached_prompt = None
+        self.logger = create_logger("ShopliftingAnalyzer", "Analyzed-Videos-Logger.log")
 
     def get_prompt(self):
         if self.cached_prompt is None:
             self.cached_prompt = self.prompt_model.generate_prompt()
         return self.cached_prompt
 
-    def analyze_single_video(self, video_name: str, input_base_folder: str, max_frames: int = 8) -> Dict[str, str]:
+    def analyze_single_video(self, video_name: str, input_base_folder: str, max_frames: int = MAX_FRAMES) -> Dict[str, str]:
         video_folder = os.path.join(input_base_folder, video_name)
         frame_paths = sorted(glob(os.path.join(video_folder, "*.jpg")))
 
@@ -287,9 +287,11 @@ class ShopliftingAnalyzer:
             "analyzed_frame_count": min(len(frame_paths), max_frames)
         })
 
+        self.logger.log(logging.INFO, f"Video name was analyzed: {video_name}")
+
         return structured_result
 
-    def analyze_all_videos(self, input_base_folder: str, max_frames: int = 8) -> List[Dict[str, str]]:
+    def analyze_all_videos(self, input_base_folder: str, max_frames: int = MAX_FRAMES) -> List[Dict[str, str]]:
         all_video_names = [
             d for d in os.listdir(input_base_folder)
             if os.path.isdir(os.path.join(input_base_folder, d))

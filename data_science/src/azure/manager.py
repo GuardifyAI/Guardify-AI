@@ -1,8 +1,8 @@
 import os
-from azure.azure_blob_helpers import AzureBlobHelper
-from azure.extract_frames import FrameExtractor
-from azure.analyze_shoplifting import ShopliftingAnalyzer
-from azure.utils import load_env_variables
+from data_science.src.azure.azure_blob_helpers import AzureBlobHelper
+from data_science.src.azure.extract_frames import FrameExtractor
+from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
+from data_science.src.azure.utils import load_env_variables
 import pandas as pd
 from tqdm import tqdm
 
@@ -106,6 +106,7 @@ def upload_analysis_results(blob_helper: AzureBlobHelper, analysis_results: list
         blob_name = f"{video_name}_analysis.json"
 
         blob_helper.upload_json_object(RESULTS_CONTAINER, blob_name, result)
+
 
 def main():
     """
