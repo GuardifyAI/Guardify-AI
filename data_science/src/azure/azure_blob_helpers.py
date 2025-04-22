@@ -51,13 +51,6 @@ class AzureBlobHelper:
         with open(local_path, "rb") as data:
             blob_client.upload_blob(data, overwrite=True)
 
-    def check_if_frames_exist(self, container_name: str, video_name: str) -> bool:
-        """
-        Check if frames exist already for a video.
-        """
-        frame_blobs = self.list_blobs(container_name, prefix=f"{video_name}/")
-        return any(f.endswith('.jpg') for f in frame_blobs)
-
     def upload_json_object(self, container_name: str, blob_name: str, data: dict):
         """
         Upload a Python dict as a JSON blob.
