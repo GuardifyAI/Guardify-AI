@@ -169,3 +169,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignore data
+data_science/src/azure/dataset_local/
+data_science/src/azure/extracted_frames_local/
+
+# Ignore logs
+data_science/src/azure/logs/
+*.log
