@@ -2,12 +2,12 @@ import os
 from data_science.src.azure.azure_blob_helpers import AzureBlobHelper
 from data_science.src.azure.extract_frames import FrameExtractor
 from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
-from data_science.src.azure.utils import load_env_variables
 import pandas as pd
 from tqdm import tqdm
+from dotenv import load_dotenv
 
 # Load environment variables
-load_env_variables()
+load_dotenv()
 
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 DATASET_CONTAINER = os.getenv("AZURE_STORAGE_CONTAINER_DATASET_NAME")
@@ -85,32 +85,19 @@ def upload_frames(blob_helper: AzureBlobHelper):
                 blob_helper.upload_file_as_blob(FRAMES_CONTAINER, local_frame_path, blob_path)
 
 
-def analyze_frames(analyzer: ShopliftingAnalyzer):
+def analyze_frames(analyzer: ShopliftingAnalyzer, blob_helper: AzureBlobHelper):
     """
-    Analyze extracted frames and return results.
+    Analyze extracted frames and upload results immediately.
     """
-    print("Analyzing frames locally...")
+    print(f"Analyzing frames and uploading results to Azure Blob {os.getenv("AZURE_STORAGE_CONTAINER_OUTPUT_NAME")}...")
 
-    results = analyzer.analyze_all_videos(FRAMES_LOCAL_DIR)
+    results = analyzer.analyze_all_videos(FRAMES_LOCAL_DIR, blob_helper, RESULTS_CONTAINER)
     return results
-
-
-def upload_analysis_results(blob_helper: AzureBlobHelper, analysis_results: list):
-    """
-    Upload JSON analysis results to Azure Storage.
-    """
-    print("Uploading analysis results to Azure Storage...")
-
-    for result in tqdm(analysis_results, desc="Uploading analysis JSONs"):
-        video_name = result["sequence_name"]
-        blob_name = f"{video_name}_analysis.json"
-
-        blob_helper.upload_json_object(RESULTS_CONTAINER, blob_name, result)
 
 
 def main():
     """
-    Full pipeline manager: download ➔ extract ➔ upload frames ➔ analyze ➔ upload results
+    Full pipeline manager: download ➔ extract ➔ upload frames ➔ analyze (with immediate result upload)
     """
     blob_helper = AzureBlobHelper(AZURE_STORAGE_CONNECTION_STRING)
     analyzer = ShopliftingAnalyzer()
@@ -124,11 +111,8 @@ def main():
     # Step 3: Upload frames
     upload_frames(blob_helper)
 
-    # Step 4: Analyze frames
-    analysis_results = analyze_frames(analyzer)
-
-    # Step 5: Upload analysis results
-    upload_analysis_results(blob_helper, analysis_results)
+    # Step 4: Analyze frames and upload results immediately
+    analysis_results = analyze_frames(analyzer, blob_helper)
 
     # Optional: create a summary DataFrame
     df = pd.DataFrame(analysis_results)

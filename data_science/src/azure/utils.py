@@ -33,13 +33,6 @@ def create_logger(name: str, log_file: str) -> logging.Logger:
     return logger
 
 
-def load_env_variables():
-    """
-    Load environment variables from a .env file.
-    """
-    load_dotenv()
-
-
 def encode_image_to_base64(image_path: str) -> str:
     """
     Encode an image file to a base64 string.
@@ -52,8 +45,16 @@ def restructure_analysis(analysis_text: str) -> Dict[str, str]:
     """
     Parse the analysis text into a structured dictionary.
     """
-    summary_match = re.search(r"### Summary of Video:\s*(.*?)(?=\n### Shoplifting Determination:)", analysis_text, re.DOTALL | re.IGNORECASE)
-    summary = summary_match.group(1).strip() if summary_match else "N/A"
+    # Try to match both old and new summary section headers
+    summary_match = re.search(r"### Summary of (?:Current Batch|Video):\s*(.*?)(?=\n###)", analysis_text, re.DOTALL | re.IGNORECASE)
+    summary = summary_match.group(1).strip() if summary_match else ""
+
+    # Get the connection to previous analysis if it exists
+    connection_match = re.search(r"### Connection to Previous Analysis:\s*(.*?)(?=\n###)", analysis_text, re.DOTALL | re.IGNORECASE)
+    if connection_match:
+        connection = connection_match.group(1).strip()
+        if summary:
+            summary = summary + "\n\nConnection to Previous Analysis:\n" + connection
 
     conclusion_match = re.search(r"### Shoplifting Determination:\s*(Yes|No|Inconclusive)", analysis_text, re.IGNORECASE)
     conclusion = conclusion_match.group(1) if conclusion_match else "N/A"
@@ -61,12 +62,24 @@ def restructure_analysis(analysis_text: str) -> Dict[str, str]:
     confidence_match = re.search(r"### Confidence Level:\s*(\d{1,3})%", analysis_text, re.IGNORECASE)
     confidence = f"{confidence_match.group(1)}%" if confidence_match else "N/A"
 
-    behaviors_match = re.search(r"### Key Behaviors Supporting Conclusion:\s*(.*)", analysis_text, re.DOTALL | re.IGNORECASE)
+    behaviors_match = re.search(r"### Key Behaviors Supporting Conclusion:\s*(.*?)(?=\n###|$)", analysis_text, re.DOTALL | re.IGNORECASE)
     key_behaviors = behaviors_match.group(1).strip() if behaviors_match else "N/A"
 
+    # Extract bullet points from behaviors if they exist
+    behaviors_list = []
+    if key_behaviors != "N/A":
+        behaviors_list = [b.strip() for b in key_behaviors.split('\n') if b.strip().startswith('-')]
+        key_behaviors = '\n'.join(behaviors_list) if behaviors_list else key_behaviors
+
+    # Extract bullet points from summary if they exist
+    summary_list = []
+    if summary:
+        summary_list = [s.strip() for s in summary.split('\n') if s.strip().startswith('-')]
+        summary = '\n'.join(summary_list) if summary_list else summary
+
     return {
-        "summary_of_video": summary,
-        "conclusion": conclusion,
+        "summary_of_video": summary if summary else "N/A",
+        "shoplifting_determination": conclusion,
         "confidence_level": confidence,
         "key_behaviors": key_behaviors
     }

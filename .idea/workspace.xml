@@ -6,6 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="fixed imports + added log to analyze_shoplifting.py for seeing the video name that was analyzed + changed max frames to analyze 200">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/azure/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/azure/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
