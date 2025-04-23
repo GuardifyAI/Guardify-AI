@@ -7,7 +7,7 @@ from azure.core.credentials import AzureKeyCredential
 from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64
 
 
-BATCH_SIZE = 10  # Number of frames to analyze in each batch
+BATCH_SIZE = 50  # Number of frames to analyze in each batch
 
 
 class PromptModel:
