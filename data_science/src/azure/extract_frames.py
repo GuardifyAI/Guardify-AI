@@ -1,7 +1,7 @@
 import os
 import cv2
 from typing import Optional
-from azure.utils import create_logger
+from data_science.src.azure.utils import create_logger
 
 
 class FrameExtractor:

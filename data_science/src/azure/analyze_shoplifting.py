@@ -7,10 +7,10 @@ import logging
 from glob import glob
 from tqdm import tqdm
 from typing import List, Optional, Dict, Any
-from azure.utils import load_env_variables
+from data_science.src.azure.utils import load_env_variables
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from azure.utils import create_logger, restructure_analysis, encode_image_to_base64
+from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64
 
 # Load environment variables
 load_env_variables()

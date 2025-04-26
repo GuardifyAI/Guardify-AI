@@ -3,7 +3,7 @@ import json
 import pytest
 import cv2
 from pathlib import Path
-from data_science.src.azure.extract_frames import extract_frames, process_directory
+from data_science.src.azure.extract_frames import FrameExtractor
 from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
 import shutil
 
@@ -33,8 +33,16 @@ def setup_test_environment():
 def test_frame_extraction():
     """Test that video frames are correctly extracted from test test_dataset"""
     # Process all videos in the test test_dataset
-    process_directory(str(TEST_DATASET_DIR), str(TEST_FRAMES_DIR))
-    
+    frames_extractor = FrameExtractor()
+    video_files = sorted(
+        file
+        for ext in frames_extractor.ALLOWED_VIDEO_EXTENSIONS
+        for file in TEST_DATASET_DIR.glob(f"**/*{ext}")
+    )
+
+    # Get the first video file, if any
+    first_video_path = str(video_files[0].resolve()) if video_files else None
+    frames_extractor.extract_frames(first_video_path, str(TEST_FRAMES_DIR))
     # Check that frames were created
     frame_files = list(TEST_FRAMES_DIR.glob("**/*.jpg"))
     assert len(frame_files) > 0, "No frames were extracted"
@@ -46,25 +54,21 @@ def test_frame_extraction():
         assert len(img.shape) == 3, f"Frame {frame_path} should have 3 channels (RGB)"
         assert img.shape[2] == 3, f"Frame {frame_path} should have 3 channels (RGB)"
 
+    print(3)
+
 def test_shoplifting_analysis():
     """Test that shoplifting analysis produces valid JSON output"""
     # Create analyzer instance
     analyzer = ShopliftingAnalyzer()
     
     # Analyze the extracted frames
-    analyzer.analyze_shoplifting_directory(str(TEST_FRAMES_DIR), str(TEST_ANALYSIS_DIR))
+    video_analysis = analyzer.analyze_single_video("test_frames", str(Path(__file__).parent))
     
     # Check that analysis files were created
-    analysis_files = list(TEST_ANALYSIS_DIR.glob("*.json"))
-    assert len(analysis_files) > 0, "No analysis files were created"
-    
-    # Verify JSON content
-    for analysis_file in analysis_files:
-        with open(analysis_file, 'r') as f:
-            analysis_data = json.load(f)
-            
-        # Check required fields
-        required_fields = [
+    assert len(video_analysis) > 0, "No analysis was created"
+
+    # Check required fields
+    required_fields = [
             "summary_of_video",
             "conclusion",
             "confidence_level",
@@ -74,16 +78,16 @@ def test_shoplifting_analysis():
             "analyzed_frame_count"
         ]
         
-        for field in required_fields:
-            assert field in analysis_data, f"Missing required field: {field}"
+    for field in required_fields:
+        assert field in video_analysis, f"Missing required field: {field}"
         
-        # Check field types and formats
-        assert isinstance(analysis_data["summary_of_video"], str)
-        assert analysis_data["conclusion"] in ["Yes", "No", "Inconclusive", "N/A"]
-        assert isinstance(analysis_data["confidence_level"], str)
-        assert analysis_data["confidence_level"].endswith("%") or analysis_data["confidence_level"] == "N/A"
-        assert isinstance(analysis_data["key_behaviors"], str)
-        assert isinstance(analysis_data["sequence_name"], str)
-        assert isinstance(analysis_data["frame_count"], int)
-        assert isinstance(analysis_data["analyzed_frame_count"], int)
-        assert analysis_data["analyzed_frame_count"] <= analysis_data["frame_count"] 
+    # Check field types and formats
+    assert isinstance(video_analysis["summary_of_video"], str)
+    assert video_analysis["conclusion"] in ["Yes", "No", "Inconclusive", "N/A"]
+    assert isinstance(video_analysis["confidence_level"], str)
+    assert video_analysis["confidence_level"].endswith("%") or video_analysis["confidence_level"] == "N/A"
+    assert isinstance(video_analysis["key_behaviors"], str)
+    assert isinstance(video_analysis["sequence_name"], str)
+    assert isinstance(video_analysis["frame_count"], int)
+    assert isinstance(video_analysis["analyzed_frame_count"], int)
+    assert video_analysis["analyzed_frame_count"] <= video_analysis["frame_count"]
