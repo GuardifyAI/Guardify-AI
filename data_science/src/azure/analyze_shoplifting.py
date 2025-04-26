@@ -289,17 +289,16 @@ class ShopliftingAnalyzer:
 
         return structured_result
 
-    def analyze_all_videos(self, input_base_folder: str, max_frames: int = 8) -> List[Dict[str, str]]:
+    def analyze_all_videos(self, input_base_folder: str, max_frames: int = 8) -> Dict[str, Dict[str, str]]:
         all_video_names = [
             d for d in os.listdir(input_base_folder)
             if os.path.isdir(os.path.join(input_base_folder, d))
         ]
 
-        all_results = []
-
+        all_results = dict()
         for video_name in tqdm(all_video_names, desc="Analyzing all videos"):
             result = self.analyze_single_video(video_name, input_base_folder, max_frames)
             if result:
-                all_results.append(result)
+                all_results[video_name] = result
 
         return all_results
