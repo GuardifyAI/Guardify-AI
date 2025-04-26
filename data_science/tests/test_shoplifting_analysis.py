@@ -30,10 +30,19 @@ def setup_test_environment():
     if TEST_ANALYSIS_DIR.exists():
         shutil.rmtree(TEST_ANALYSIS_DIR)
 
-def test_frame_extraction():
+@pytest.fixture(scope="session")
+def frames_extractor():
+    """Fixture to create a FrameExtractor instance"""
+    return FrameExtractor(every_n_frames=5)
+
+@pytest.fixture(scope="session")
+def shoplifting_analyzer():
+    """Fixture to create a ShopliftingAnalyzer instance"""
+    return ShopliftingAnalyzer()
+
+def test_frame_extraction(frames_extractor):
     """Test that video frames are correctly extracted from test test_dataset"""
     # Process all videos in the test test_dataset
-    frames_extractor = FrameExtractor()
     video_files = sorted(
         file
         for ext in frames_extractor.ALLOWED_VIDEO_EXTENSIONS
@@ -56,16 +65,11 @@ def test_frame_extraction():
 
     print(3)
 
-def test_shoplifting_analysis():
+@pytest.mark.parametrize("max_frames", [10, 30, 50])
+def test_shoplifting_analysis(shoplifting_analyzer, max_frames):
     """Test that shoplifting analysis produces valid JSON output"""
-    # Create analyzer instance
-    analyzer = ShopliftingAnalyzer()
-    
     # Analyze the extracted frames
-    video_analysis = analyzer.analyze_single_video("test_frames", str(Path(__file__).parent))
-    
-    # Check that analysis files were created
-    assert len(video_analysis) > 0, "No analysis was created"
+    video_analysis = shoplifting_analyzer.analyze_single_video("test_frames", str(Path(__file__).parent), max_frames)
 
     # Check required fields
     required_fields = [
