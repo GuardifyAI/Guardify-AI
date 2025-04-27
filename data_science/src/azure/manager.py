@@ -1,13 +1,14 @@
 import os
+import pandas as pd
+from tqdm import tqdm
+
 from data_science.src.azure.azure_blob_helpers import AzureBlobHelper
 from data_science.src.azure.extract_frames import FrameExtractor
 from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
-import pandas as pd
-from tqdm import tqdm
-from dotenv import load_dotenv
+from data_science.src.azure.utils import load_env_variables
 
 # Load environment variables
-load_dotenv()
+load_env_variables()
 
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 DATASET_CONTAINER = os.getenv("AZURE_STORAGE_CONTAINER_DATASET_NAME")
@@ -23,7 +24,7 @@ def download_videos(blob_helper: AzureBlobHelper):
     Download videos from Azure Blob Storage to local dataset directory.
     """
     os.makedirs(DATASET_LOCAL_DIR, exist_ok=True)
-    print("Downloading videos from Azure Storage...")
+    print(f"Downloading videos from Azure Storage: {DATASET_CONTAINER}...")
 
     video_blobs = blob_helper.list_blobs(DATASET_CONTAINER)
 
@@ -66,7 +67,7 @@ def upload_frames(blob_helper: AzureBlobHelper):
     """
     Upload extracted frames to Azure Blob Storage if they don't already exist (per video basis).
     """
-    print("Uploading extracted frames to Azure Storage...")
+    print(f"Uploading extracted frames to Azure Storage: {FRAMES_CONTAINER}...")
 
     for video_name in tqdm(os.listdir(FRAMES_LOCAL_DIR), desc="Checking videos"):
         video_folder = os.path.join(FRAMES_LOCAL_DIR, video_name)

@@ -4,8 +4,10 @@ from glob import glob
 from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64
+from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
 
+# Load environment variables
+load_env_variables()
 
 BATCH_SIZE = 50  # Number of frames to analyze in each batch
 
@@ -274,9 +276,12 @@ class ShopliftingAnalyzer:
         self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
         self.prompt_model = PromptModel(self.logger)
         self.cv_model = CVModel(self.logger)
+        self.cached_prompt = None
 
     def get_prompt(self):
-        return self.prompt_model.generate_prompt()
+        if self.cached_prompt is None:
+            self.cached_prompt = self.prompt_model.generate_prompt()
+        return self.cached_prompt
 
     def analyze_batch(self, frame_paths: List[str], prompt: str, previous_analysis: Optional[Dict] = None, video_name: str = None) -> Dict[str, str]:
         """

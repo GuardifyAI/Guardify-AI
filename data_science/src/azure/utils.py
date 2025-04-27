@@ -33,6 +33,13 @@ def create_logger(name: str, log_file: str) -> logging.Logger:
     return logger
 
 
+def load_env_variables():
+    """
+    Load environment variables from a .env file.
+    """
+    load_dotenv()
+
+
 def encode_image_to_base64(image_path: str) -> str:
     """
     Encode an image file to a base64 string.

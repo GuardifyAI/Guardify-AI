@@ -11,3 +11,4 @@ tqdm>=4.66.0
 python-dotenv>=1.0.0
 dotenv~=0.9.9
 azure-ai-inference
+pytest>=7.4.0
