@@ -7,7 +7,6 @@
     <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="raised batches amount to 50 from 10">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/extract_frames.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/extract_frames.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/utils.py" afterDir="false" />

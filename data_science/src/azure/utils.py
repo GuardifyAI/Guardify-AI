@@ -1,8 +1,6 @@
 import os
 import logging
 import base64
-import re
-from typing import Dict
 from dotenv import load_dotenv
 
 
@@ -98,12 +96,46 @@ def restructure_analysis(analysis_text: str, video_name: str = None) -> dict:
         if "Summary of Current Batch" in title:
             result["summary_of_video"] = content
         elif "Shoplifting Determination" in title:
-            result["shoplifting_determination"] = content.strip().split()[0]  # Take first word (Yes/No)
+            # Clean and extract determination
+            determination = content.strip().split()[0]  # Take first word (Yes/No)
+            result["shoplifting_determination"] = determination.replace("*", "").strip()
         elif "Confidence Level" in title:
-            result["confidence_level"] = content.strip().split()[0]  # Take first word (XX%)
+            # Clean and extract confidence
+            confidence = content.strip().split()[0]  # Take first word (XX%)
+            result["confidence_level"] = confidence.replace("*", "").strip()
         elif "Key Behaviors Supporting Conclusion" in title:
-            # Extract bullet points
-            behaviors = [b.strip("- ").strip() for b in content.split("\n") if b.strip().startswith("-")]
+            # Extract bullet points and clean them
+            behaviors = []
+            current_behavior = None
+            
+            for line in content.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Skip header lines (those with asterisks)
+                if line.startswith("**") and line.endswith("**"):
+                    continue
+                # Skip header lines with colons
+                if ":" in line and any(header in line.lower() for header in ["observed", "locations", "movements", "missing"]):
+                    continue
+                    
+                # If it's a bullet point or we have text to add
+                if line.startswith("-"):
+                    if current_behavior:  # Store previous behavior if exists
+                        behaviors.append(current_behavior)
+                    current_behavior = line.strip("- ").strip()
+                elif current_behavior:  # Continuation of previous behavior
+                    current_behavior += " " + line
+                else:  # New behavior without bullet point
+                    current_behavior = line
+            
+            # Add the last behavior if exists
+            if current_behavior:
+                behaviors.append(current_behavior)
+                
+            # Remove any empty strings and clean asterisks
+            behaviors = [b.replace("*", "").strip() for b in behaviors if b.strip()]
             result["key_behaviors"] = behaviors
 
     return result

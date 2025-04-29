@@ -22,13 +22,14 @@ def process_videos(blob_helper: AzureBlobHelper):
     print(f"Processing videos from Azure Storage: {DATASET_CONTAINER}...")
 
     # Initialize components
-    extractor = FrameExtractor(every_n_frames=8)
+    extractor = FrameExtractor()
     analyzer = ShopliftingAnalyzer()
 
     # List all videos
     video_blobs = [b for b in blob_helper.list_blobs(DATASET_CONTAINER) 
                    if extractor.is_valid_video_file(b)]
 
+    results = []
     for blob_name in tqdm(video_blobs, desc="Processing videos"):
         video_name = os.path.splitext(os.path.basename(blob_name))[0]
 
@@ -46,10 +47,31 @@ def process_videos(blob_helper: AzureBlobHelper):
 
     # Analyze all videos
     print("\nAnalyzing videos...")
-    analysis_results = analyzer.analyze_all_videos(blob_helper, FRAMES_CONTAINER, RESULTS_CONTAINER)
+    all_videos = set(os.path.dirname(frame) for frame in blob_helper.list_blobs(FRAMES_CONTAINER))
+    
+    for video_name in sorted(all_videos):
+        if not video_name:  # Skip empty video names
+            continue
+            
+        print(f"\nAnalyzing video: {video_name}")
+        result = analyzer.analyze_frames_from_azure(video_name, blob_helper, FRAMES_CONTAINER)
+        
+        if result:
+            # Upload result
+            blob_name = f"{video_name}_analysis.json"
+            blob_helper.upload_json_object(RESULTS_CONTAINER, blob_name, result)
+            
+            # Print determination
+            determination = result["shoplifting_determination"]
+            confidence = result["confidence_level"]
+            print(f"✓ {video_name}: {determination} (Confidence: {confidence})")
+            
+            results.append(result)
+        else:
+            print(f"✗ {video_name}: Analysis failed")
     
     print("\nAnalysis complete! Results have been uploaded to Azure Storage.")
-    return analysis_results
+    return results
 
 
 def main():

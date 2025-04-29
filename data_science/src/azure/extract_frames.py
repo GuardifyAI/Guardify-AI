@@ -1,6 +1,5 @@
 import os
 import cv2
-import numpy as np
 import tempfile
 from io import BytesIO
 from data_science.src.azure.utils import create_logger
@@ -9,15 +8,17 @@ from data_science.src.azure.utils import create_logger
 class FrameExtractor:
     ALLOWED_VIDEO_EXTENSIONS = ['.avi', '.mp4', '.mov', '.mkv']
 
-    def __init__(self, every_n_frames: int = 8, logger=None):
+    def __init__(self, every_n_frames: int = 3, motion_threshold: float = 800, logger=None):
         """
         Initialize the FrameExtractor.
 
         Args:
-            every_n_frames (int): Extract one frame every N frames.
+            every_n_frames (int): Default frame skip rate for low-motion scenes (3 means capture every 3rd frame)
+            motion_threshold (float): Threshold for motion detection (lower = more sensitive)
             logger (logging.Logger, optional): Logger instance.
         """
         self.every_n_frames = every_n_frames
+        self.motion_threshold = motion_threshold
         self.logger = logger or create_logger("FrameExtractor", "extract_frames.log")
 
     def is_valid_video_file(self, filename: str) -> bool:
