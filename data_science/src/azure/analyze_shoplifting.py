@@ -260,10 +260,11 @@ class CVModel:
 
 
 class ShopliftingAnalyzer:
-    def __init__(self, logger=None):
+    def __init__(self, logger):
         self.prompt_model = PromptModel()
         self.cv_model = CVModel()
         self.cached_prompt = None
+        self.logger = logger
 
     def get_prompt(self):
         if self.cached_prompt is None:
