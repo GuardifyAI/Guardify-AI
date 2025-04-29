@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="deleted redudnant analysis">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,10 +41,8 @@
     <setting file="file://$PROJECT_DIR$/data_science/src/azure/manager.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/AppData/Local/Programs/Python/Python39/Lib/runpy.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/requirements.txt" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/requirements.txt" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/data_science/src/azure/logs/extract_frames.log" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/test_analyze_frame.py" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
