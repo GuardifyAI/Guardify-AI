@@ -5,6 +5,7 @@ from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
 from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
+import base64
 
 # Load environment variables
 load_env_variables()
@@ -211,22 +212,25 @@ class CVModel:
                 - Confidence Level must be numeric, in this format: "XX%"
                 """
 
-    def analyze_frames(self, frames_paths: List[str], prompt: str, previous_analysis: Optional[Dict] = None) -> str:
+    def analyze_frames(self, frames_data: List[dict], prompt: str, previous_analysis: Optional[Dict] = None) -> str:
         """
         Analyze frames using the provided prompt, considering previous analysis if available.
 
         Args:
-            frames_paths: List of paths to frames to analyze
+            frames_data: List of dictionaries containing frame data and paths
+                Each dict should have:
+                - 'path': The blob path of the frame
+                - 'data': The frame data as bytes
             prompt: The prompt to use for analysis
             previous_analysis: Optional previous batch analysis results
 
         Returns:
             str: Analysis result
         """
-        # Sort frames by name which should preserve temporal order
-        frames_paths = sorted(frames_paths)
+        # Sort frames by path which should preserve temporal order
+        frames_data = sorted(frames_data, key=lambda x: x['path'])
 
-        self.logger.info(f"Analyzing {len(frames_paths)} frames...")
+        self.logger.info(f"Analyzing {len(frames_data)} frames...")
 
         # Create the user message content
         user_content = [{"type": "text", "text": prompt}]
@@ -244,8 +248,9 @@ class CVModel:
             user_content.append({"type": "text", "text": previous_context})
 
         # Add all frames to the user message content
-        for frame_path in frames_paths:
-            encoded_image = encode_image_to_base64(frame_path)
+        for frame in frames_data:
+            # Convert frame bytes to base64 directly
+            encoded_image = base64.b64encode(frame['data']).decode('utf-8')
             user_content.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}
@@ -273,6 +278,7 @@ class CVModel:
 
 class ShopliftingAnalyzer:
     def __init__(self):
+        """Initialize the ShopliftingAnalyzer with CV and Prompt models."""
         self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
         self.prompt_model = PromptModel(self.logger)
         self.cv_model = CVModel(self.logger)
@@ -283,32 +289,42 @@ class ShopliftingAnalyzer:
             self.cached_prompt = self.prompt_model.generate_prompt()
         return self.cached_prompt
 
-    def analyze_batch(self, frame_paths: List[str], prompt: str, previous_analysis: Optional[Dict] = None, video_name: str = None) -> Dict[str, str]:
+    def analyze_batch(self, frame_data: List[dict], prompt: str, previous_analysis: Optional[Dict] = None, video_name: str = None) -> Dict[str, str]:
         """
-        Analyze a batch of frames, considering previous analysis if available.
-        
+        Analyze a batch of frames.
+
         Args:
-            frame_paths: List of paths to frames to analyze (should be BATCH_SIZE or fewer frames)
+            frame_data: List of dictionaries containing frame data and paths
+                Each dict should have:
+                - 'path': The blob path of the frame
+                - 'data': The frame data as bytes
             prompt: The prompt to use for analysis
             previous_analysis: Optional previous batch analysis results
             video_name: Name of the video being analyzed
-            
+
         Returns:
             Dict[str, str]: Analysis result for this batch
         """
-        self.logger.info(f"Analyzing batch for video: {video_name}")
-        analysis_text = self.cv_model.analyze_frames(frame_paths, prompt, previous_analysis)
-        structured_result = restructure_analysis(analysis_text)
-        
-        # Add video name to the result
-        structured_result["sequence_name"] = video_name
-        return structured_result
+        try:
+            analysis = self.cv_model.analyze_frames(frame_data, prompt, previous_analysis)
+            return restructure_analysis(analysis, video_name)
+        except Exception as e:
+            self.logger.error(f"Error analyzing batch for video {video_name}: {str(e)}")
+            return None
 
-    def analyze_single_video(self, video_name: str, input_base_folder: str) -> dict[str, str] | None:
-        """Analyze all frames of a single video in batches, with each batch considering previous results."""
-        self.logger.info(f"=== Starting analysis of video: {video_name} ===")
-        frame_folder = os.path.join(input_base_folder, video_name)
-        all_frames = sorted(glob(os.path.join(frame_folder, "*.jpg")))
+    def analyze_frames_from_azure(self, video_name: str, blob_helper, frames_container: str) -> dict[str, str] | None:
+        """
+        Analyze frames directly from Azure blob storage.
+        
+        Args:
+            video_name: Name of the video whose frames to analyze
+            blob_helper: AzureBlobHelper instance
+            frames_container: Container name where frames are stored
+        """
+        self.logger.info(f"=== Starting analysis of video: {video_name} from Azure storage ===")
+        
+        # List all frames for this video
+        all_frames = sorted(blob_helper.list_blobs(frames_container, prefix=f"{video_name}/"))
         
         if not all_frames:
             self.logger.warning(f"No frames found for video {video_name}")
@@ -326,15 +342,60 @@ class ShopliftingAnalyzer:
         for i in range(0, len(all_frames), BATCH_SIZE):
             batch_frames = all_frames[i:i + BATCH_SIZE]
             self.logger.info(f"Processing batch {i//BATCH_SIZE + 1}/{(len(all_frames) + BATCH_SIZE - 1)//BATCH_SIZE} for video: {video_name}")
-            batch_result = self.analyze_batch(batch_frames, prompt, previous_analysis, video_name)
+            
+            # Download frames for this batch
+            frame_data = []
+            for frame_path in batch_frames:
+                frame_bytes = blob_helper.download_blob_as_bytes(frames_container, frame_path)
+                frame_data.append({"path": frame_path, "data": frame_bytes})
+            
+            batch_result = self.analyze_batch(frame_data, prompt, previous_analysis, video_name)
             
             # Store this result for the next iteration
-            previous_analysis = batch_result
-            batch_results.append(batch_result)
+            if batch_result is not None:
+                previous_analysis = batch_result
+                batch_results.append(batch_result)
+            else:
+                self.logger.error(f"Failed to analyze batch for video {video_name}")
+                continue
             
-        # Combine all batch results (the final combination will naturally weight later analyses more heavily)
+        # If we have no valid results, return None
+        if not batch_results:
+            self.logger.error(f"No valid analysis results for video {video_name}")
+            return None
+            
+        # Combine all batch results
         final_result = self.combine_batch_results(batch_results)
         return final_result
+
+    def analyze_all_videos(self, blob_helper, frames_container: str, results_container: str) -> List[Dict[str, str]]:
+        """
+        Analyze all videos with frames in Azure storage.
+        
+        Args:
+            blob_helper: AzureBlobHelper instance
+            frames_container: Container name where frames are stored
+            results_container: Container name for uploading results
+            
+        Returns:
+            List[Dict[str, str]]: List of analysis results
+        """
+        # Get unique video names from frames container
+        all_frames = blob_helper.list_blobs(frames_container)
+        video_names = set(frame_path.split('/')[0] for frame_path in all_frames if '/' in frame_path)
+        
+        results = []
+        for video_name in video_names:
+            result = self.analyze_frames_from_azure(video_name, blob_helper, frames_container)
+            if result:
+                # Upload result immediately
+                blob_name = f"{video_name}_analysis.json"
+                blob_helper.upload_json_object(results_container, blob_name, result)
+                self.logger.info(f"=== Uploaded analysis for video: {video_name} ===")
+                
+                results.append(result)
+                
+        return results
 
     def generate_sequence_summary(self, batch_results: List[Dict[str, str]]) -> str:
         """
@@ -453,32 +514,3 @@ class ShopliftingAnalyzer:
             "total_summary": total_summary,
             "batch_results": batch_results
         }
-
-    def analyze_all_videos(self, input_base_folder: str, blob_helper=None, results_container: str = None) -> List[Dict[str, str]]:
-        """
-        Analyze all videos in the input folder and optionally upload results immediately.
-        
-        Args:
-            input_base_folder: Base folder containing video frame folders
-            blob_helper: Optional AzureBlobHelper instance for immediate result upload
-            results_container: Optional container name for uploading results
-            
-        Returns:
-            List[Dict[str, str]]: List of analysis results
-        """
-        video_folders = [f for f in os.listdir(input_base_folder) 
-                        if os.path.isdir(os.path.join(input_base_folder, f))]
-        
-        results = []
-        for video_name in video_folders:
-            result = self.analyze_single_video(video_name, input_base_folder)
-            if result:
-                # Upload result immediately if blob_helper is provided
-                if blob_helper and results_container:
-                    blob_name = f"{video_name}_analysis.json"
-                    blob_helper.upload_json_object(results_container, blob_name, result)
-                    self.logger.info(f"=== Uploaded analysis for video: {video_name} ===")
-                
-                results.append(result)
-                
-        return results
