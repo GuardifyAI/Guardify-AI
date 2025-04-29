@@ -1,10 +1,11 @@
 import os
-from azure.azure_blob_helpers import AzureBlobHelper
-from azure.extract_frames import FrameExtractor
-from azure.analyze_shoplifting import ShopliftingAnalyzer
-from azure.utils import load_env_variables
 import pandas as pd
 from tqdm import tqdm
+
+from data_science.src.azure.azure_blob_helpers import AzureBlobHelper
+from data_science.src.azure.extract_frames import FrameExtractor
+from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
+from data_science.src.azure.utils import load_env_variables
 
 # Load environment variables
 load_env_variables()
@@ -23,7 +24,7 @@ def download_videos(blob_helper: AzureBlobHelper):
     Download videos from Azure Blob Storage to local dataset directory.
     """
     os.makedirs(DATASET_LOCAL_DIR, exist_ok=True)
-    print("Downloading videos from Azure Storage...")
+    print(f"Downloading videos from Azure Storage: {DATASET_CONTAINER}...")
 
     video_blobs = blob_helper.list_blobs(DATASET_CONTAINER)
 
@@ -66,7 +67,7 @@ def upload_frames(blob_helper: AzureBlobHelper):
     """
     Upload extracted frames to Azure Blob Storage if they don't already exist (per video basis).
     """
-    print("Uploading extracted frames to Azure Storage...")
+    print(f"Uploading extracted frames to Azure Storage: {FRAMES_CONTAINER}...")
 
     for video_name in tqdm(os.listdir(FRAMES_LOCAL_DIR), desc="Checking videos"):
         video_folder = os.path.join(FRAMES_LOCAL_DIR, video_name)
@@ -85,31 +86,19 @@ def upload_frames(blob_helper: AzureBlobHelper):
                 blob_helper.upload_file_as_blob(FRAMES_CONTAINER, local_frame_path, blob_path)
 
 
-def analyze_frames(analyzer: ShopliftingAnalyzer):
+def analyze_frames(analyzer: ShopliftingAnalyzer, blob_helper: AzureBlobHelper):
     """
-    Analyze extracted frames and return results.
+    Analyze extracted frames and upload results immediately.
     """
-    print("Analyzing frames locally...")
+    print(f"Analyzing frames and uploading results to Azure Blob {os.getenv("AZURE_STORAGE_CONTAINER_OUTPUT_NAME")}...")
 
-    results = analyzer.analyze_all_videos(FRAMES_LOCAL_DIR)
+    results = analyzer.analyze_all_videos(FRAMES_LOCAL_DIR, blob_helper, RESULTS_CONTAINER)
     return results
 
 
-def upload_analysis_results(blob_helper: AzureBlobHelper, analysis_results: list):
-    """
-    Upload JSON analysis results to Azure Storage.
-    """
-    print("Uploading analysis results to Azure Storage...")
-
-    for result in tqdm(analysis_results, desc="Uploading analysis JSONs"):
-        video_name = result["sequence_name"]
-        blob_name = f"{video_name}_analysis.json"
-
-        blob_helper.upload_json_object(RESULTS_CONTAINER, blob_name, result)
-
 def main():
     """
-    Full pipeline manager: download ➔ extract ➔ upload frames ➔ analyze ➔ upload results
+    Full pipeline manager: download ➔ extract ➔ upload frames ➔ analyze (with immediate result upload)
     """
     blob_helper = AzureBlobHelper(AZURE_STORAGE_CONNECTION_STRING)
     analyzer = ShopliftingAnalyzer()
@@ -123,11 +112,8 @@ def main():
     # Step 3: Upload frames
     upload_frames(blob_helper)
 
-    # Step 4: Analyze frames
-    analysis_results = analyze_frames(analyzer)
-
-    # Step 5: Upload analysis results
-    upload_analysis_results(blob_helper, analysis_results)
+    # Step 4: Analyze frames and upload results immediately
+    analysis_results = analyze_frames(analyzer, blob_helper)
 
     # Optional: create a summary DataFrame
     df = pd.DataFrame(analysis_results)
