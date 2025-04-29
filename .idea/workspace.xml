@@ -6,15 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="raised batches amount to 50 from 10">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/azure/extract_frames.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/extract_frames.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_science/src/azure/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +64,7 @@
     "Python tests.Python tests in test_shoplifting_analysis.py.executor": "Run",
     "Python.analyze_shoplifting.executor": "Debug",
     "Python.extract_frames.executor": "Run",
-    "git-widget-placeholder": "phi3-compare",
+    "git-widget-placeholder": "new-dataset",
     "node.js.selected.package.tslint": "(autodetect)",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
