@@ -4,18 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="raised batches amount to 50 from 10">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/azure/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-    </list>
+    <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="raised batches amount to 50 from 10" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -68,7 +57,7 @@
     "Python tests.Python tests in test_shoplifting_analysis.py.executor": "Run",
     "Python.analyze_shoplifting.executor": "Debug",
     "Python.extract_frames.executor": "Run",
-    "git-widget-placeholder": "phi3-compare",
+    "git-widget-placeholder": "no-download-videos-locally",
     "node.js.selected.package.tslint": "(autodetect)",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
@@ -204,5 +193,6 @@
     <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
     <SUITE FILE_PATH="coverage/Guardify_AI$.coverage" NAME=" Coverage Results" MODIFIED="1745741326755" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/tests" />
     <SUITE FILE_PATH="coverage/Guardify_AI$analyze_shoplifting.coverage" NAME="analyze_shoplifting Coverage Results" MODIFIED="1745740847945" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746294776364" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
 </project>
