@@ -30,20 +30,20 @@ def process_videos(blob_helper: AzureBlobHelper):
                    if extractor.is_valid_video_file(b)]
 
     results = []
-    for blob_name in tqdm(video_blobs, desc="Processing videos"):
-        video_name = os.path.splitext(os.path.basename(blob_name))[0]
-
-        # Skip if frames already exist
-        if blob_helper.does_video_frames_exist(FRAMES_CONTAINER, video_name):
-            print(f"Frames already exist for video '{video_name}', skipping extraction.")
-            continue
-
-        # Download video as bytes stream
-        print(f"Extracting frames for video: {video_name}")
-        video_stream = blob_helper.download_blob_as_bytes(DATASET_CONTAINER, blob_name)
-        
-        # Extract frames directly to Azure storage
-        extractor.extract_frames_from_stream(video_stream, blob_helper, FRAMES_CONTAINER, video_name)
+    # for blob_name in tqdm(video_blobs, desc="Processing videos"):
+    #     video_name = os.path.splitext(os.path.basename(blob_name))[0]
+    #
+    #     # Skip if frames already exist
+    #     if blob_helper.does_video_frames_exist(FRAMES_CONTAINER, video_name):
+    #         print(f"Frames already exist for video '{video_name}', skipping extraction.")
+    #         continue
+    #
+    #     # Download video as bytes stream
+    #     print(f"Extracting frames for video: {video_name}")
+    #     video_stream = blob_helper.download_blob_as_bytes(DATASET_CONTAINER, blob_name)
+    #
+    #     # Extract frames directly to Azure storage
+    #     extractor.extract_frames_from_stream(video_stream, blob_helper, FRAMES_CONTAINER, video_name)
 
     # Analyze all videos
     print("\nAnalyzing videos...")
