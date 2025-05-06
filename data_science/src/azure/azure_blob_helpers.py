@@ -42,6 +42,15 @@ class AzureBlobHelper:
             download_stream = blob_client.download_blob()
             f.write(download_stream.readall())
 
+    def download_blob_as_bytes(self, container_name: str, blob_name: str) -> bytes:
+        """
+        Download a blob and return its contents as bytes.
+        """
+        container_client = self.blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        download_stream = blob_client.download_blob()
+        return download_stream.readall()
+
     def upload_file_as_blob(self, container_name: str, local_path: str, blob_path: str) -> None:
         """
         Upload a local file to a blob container.
@@ -50,6 +59,14 @@ class AzureBlobHelper:
         blob_client = container_client.get_blob_client(blob_path)
         with open(local_path, "rb") as data:
             blob_client.upload_blob(data, overwrite=True)
+
+    def upload_bytes_as_blob(self, container_name: str, data: bytes, blob_path: str) -> None:
+        """
+        Upload bytes directly to a blob container.
+        """
+        container_client = self.blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_path)
+        blob_client.upload_blob(data, overwrite=True)
 
     def upload_json_object(self, container_name: str, blob_name: str, data: dict):
         """
