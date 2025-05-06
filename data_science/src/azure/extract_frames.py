@@ -1,6 +1,5 @@
 import os
 import cv2
-import numpy as np
 import tempfile
 from io import BytesIO
 from data_science.src.azure.utils import create_logger
@@ -9,7 +8,7 @@ from data_science.src.azure.utils import create_logger
 class FrameExtractor:
     ALLOWED_VIDEO_EXTENSIONS = ['.avi', '.mp4', '.mov', '.mkv']
 
-    def __init__(self, every_n_frames: int = 8, logger=None):
+    def __init__(self, every_n_frames, logger=None):
         """
         Initialize the FrameExtractor.
 

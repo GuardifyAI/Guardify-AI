@@ -1,11 +1,9 @@
 import os
 import logging
-from glob import glob
 from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
 from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
-import base64
 
 # Load environment variables
 load_env_variables()
@@ -219,7 +217,7 @@ class CVModel:
         Args:
             frames_data: List of dictionaries containing frame data and paths
                 Each dict should have:
-                - 'path': The blob path of the frame
+                - 'path': The path of the frame
                 - 'data': The frame data as bytes
             prompt: The prompt to use for analysis
             previous_analysis: Optional previous batch analysis results
@@ -250,7 +248,7 @@ class CVModel:
         # Add all frames to the user message content
         for frame in frames_data:
             # Convert frame bytes to base64 directly
-            encoded_image = base64.b64encode(frame['data']).decode('utf-8')
+            encoded_image = encode_image_to_base64(frame['data'])
             user_content.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}
@@ -296,7 +294,7 @@ class ShopliftingAnalyzer:
         Args:
             frame_data: List of dictionaries containing frame data and paths
                 Each dict should have:
-                - 'path': The blob path of the frame
+                - 'path': The path of the frame
                 - 'data': The frame data as bytes
             prompt: The prompt to use for analysis
             previous_analysis: Optional previous batch analysis results
@@ -322,35 +320,36 @@ class ShopliftingAnalyzer:
             frames_container: Container name where frames are stored
         """
         self.logger.info(f"=== Starting analysis of video: {video_name} from Azure storage ===")
-        
+
         # List all frames for this video
         all_frames = sorted(blob_helper.list_blobs(frames_container, prefix=f"{video_name}/"))
-        
+
         if not all_frames:
             self.logger.warning(f"No frames found for video {video_name}")
             return None
 
         self.logger.info(f"Found {len(all_frames)} frames for video: {video_name}")
-            
+
         # Get the analysis prompt
         prompt = self.get_prompt()
-        
+
         # Process frames in batches, keeping track of previous analysis
         batch_results = []
         previous_analysis = None
-        
+
         for i in range(0, len(all_frames), BATCH_SIZE):
             batch_frames = all_frames[i:i + BATCH_SIZE]
-            self.logger.info(f"Processing batch {i//BATCH_SIZE + 1}/{(len(all_frames) + BATCH_SIZE - 1)//BATCH_SIZE} for video: {video_name}")
-            
+            self.logger.info(f"Processing batch {i//BATCH_SIZE + 1}/{(len(all_frames) + BATCH_SIZE - 1)//BATCH_SIZE}"
+                             f"for video: {video_name}")
+
             # Download frames for this batch
             frame_data = []
             for frame_path in batch_frames:
                 frame_bytes = blob_helper.download_blob_as_bytes(frames_container, frame_path)
                 frame_data.append({"path": frame_path, "data": frame_bytes})
-            
+
             batch_result = self.analyze_batch(frame_data, prompt, previous_analysis, video_name)
-            
+
             # Store this result for the next iteration
             if batch_result is not None:
                 previous_analysis = batch_result
@@ -358,12 +357,12 @@ class ShopliftingAnalyzer:
             else:
                 self.logger.error(f"Failed to analyze batch for video {video_name}")
                 continue
-            
+
         # If we have no valid results, return None
         if not batch_results:
             self.logger.error(f"No valid analysis results for video {video_name}")
             return None
-            
+
         # Combine all batch results
         final_result = self.combine_batch_results(batch_results)
         return final_result
@@ -383,7 +382,7 @@ class ShopliftingAnalyzer:
         # Get unique video names from frames container
         all_frames = blob_helper.list_blobs(frames_container)
         video_names = set(frame_path.split('/')[0] for frame_path in all_frames if '/' in frame_path)
-        
+
         results = []
         for video_name in video_names:
             result = self.analyze_frames_from_azure(video_name, blob_helper, frames_container)
@@ -392,9 +391,9 @@ class ShopliftingAnalyzer:
                 blob_name = f"{video_name}_analysis.json"
                 blob_helper.upload_json_object(results_container, blob_name, result)
                 self.logger.info(f"=== Uploaded analysis for video: {video_name} ===")
-                
+
                 results.append(result)
-                
+
         return results
 
     def generate_sequence_summary(self, batch_results: List[Dict[str, str]]) -> str:
@@ -413,9 +412,9 @@ class ShopliftingAnalyzer:
                 total_weight += weight
             except (ValueError, TypeError):
                 self.logger.warning(f"Invalid confidence value in batch result: {confidence_str}")
-        
+
         avg_confidence = f"{(total_confidence / total_weight if total_weight > 0 else 0):.1f}%"
-        
+
         # Create a prompt for the model
         summary_prompt = """
         Based on the following batch analysis results, provide a concise summary of the entire video sequence.
@@ -430,22 +429,22 @@ class ShopliftingAnalyzer:
         
         Analysis Results:
         """.format(confidence_level=avg_confidence)
-        
+
         # Add batch results to the prompt
         for i, result in enumerate(batch_results, 1):
             summary_prompt += f"\nBatch {i}:\n"
             summary_prompt += f"Summary: {result.get('summary_of_video', 'N/A')}\n"
-        
+
         # Add final metrics
         summary_prompt += f"\nFinal Determination: {batch_results[-1].get('shoplifting_determination', 'N/A')}\n"
         summary_prompt += f"Overall Confidence Level: {avg_confidence}\n"
-        
+
         # Get summary from the model
         messages = [
             {"role": "system", "content": "You are a security analysis assistant tasked with providing clear, concise summaries of surveillance footage analysis. Always use the exact confidence level provided in the prompt."},
             {"role": "user", "content": summary_prompt}
         ]
-        
+
         try:
             response = self.cv_model.client.complete(
                 messages=messages,
@@ -463,18 +462,18 @@ class ShopliftingAnalyzer:
         """
         if not batch_results:
             return None
-            
+
         total_confidence = 0
         weighted_yes_votes = 0
         total_weight = 0
-        
+
         # Get video name from the first batch result
         video_name = batch_results[0].get("sequence_name", "unknown_sequence")
-        
+
         # Give more weight to later batches
         for idx, result in enumerate(batch_results):
             weight = idx + 1  # Later batches get higher weights
-            
+
             # Extract confidence percentage
             confidence_str = result.get("confidence_level", "0%").replace("%", "")
             try:
@@ -482,7 +481,7 @@ class ShopliftingAnalyzer:
             except (ValueError, TypeError):
                 confidence = 0
                 self.logger.warning(f"Invalid confidence value in batch result: {confidence_str}")
-            
+
             # Count weighted shoplifting determinations
             determination = result.get("shoplifting_determination", "").lower()
             if determination == "yes":
@@ -491,20 +490,20 @@ class ShopliftingAnalyzer:
                 weighted_yes_votes += 0  # Explicit no vote
             else:
                 self.logger.warning(f"Invalid shoplifting determination in batch result: {determination}")
-            
+
             total_confidence += confidence * weight
             total_weight += weight
-        
+
         # Calculate final metrics
         avg_confidence = total_confidence / total_weight if total_weight > 0 else 0
         shoplifting_probability = (weighted_yes_votes / total_weight) if total_weight > 0 else 0
-        
+
         # Create final determination
         final_determination = "Yes" if shoplifting_probability >= 0.5 else "No"
-        
+
         # Generate model-based summary
         total_summary = self.generate_sequence_summary(batch_results)
-        
+
         return {
             "sequence_name": video_name,
             "total_batches_analyzed": len(batch_results),

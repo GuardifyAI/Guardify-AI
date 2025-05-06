@@ -22,7 +22,7 @@ def process_videos(blob_helper: AzureBlobHelper):
     print(f"Processing videos from Azure Storage: {DATASET_CONTAINER}...")
 
     # Initialize components
-    extractor = FrameExtractor(every_n_frames=8)
+    extractor = FrameExtractor(every_n_frames=3)
     analyzer = ShopliftingAnalyzer()
 
     # List all videos
@@ -54,7 +54,7 @@ def process_videos(blob_helper: AzureBlobHelper):
 
 def main():
     """
-    Full pipeline manager: process videos directly from Azure Storage
+    Full pipeline manager: process videos from Azure Storage
     """
     blob_helper = AzureBlobHelper(AZURE_STORAGE_CONNECTION_STRING)
     
