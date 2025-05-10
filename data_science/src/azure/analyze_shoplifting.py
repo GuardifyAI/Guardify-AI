@@ -10,6 +10,8 @@ from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
 from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
+from transformers import AutoTokenizer
+from data_science.src.azure.extract_frames import FrameExtractor
 
 # Load environment variables
 load_env_variables()
@@ -302,6 +304,7 @@ class Phi3CVModel:
         try:
             self.logger.info("Loading Phi-3.5 model...")
             self.pipeline = ov_genai.VLMPipeline(model_path, "CPU")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
             self.logger.info("Phi-3.5 model loaded successfully")
         except Exception as e:
             self.logger.error(f"Failed to load Phi-3.5 model: {str(e)}")
@@ -370,65 +373,80 @@ class Phi3CVModel:
             self.logger.error(f"Error processing image: {str(e)}")
             raise
 
+    from openvino_genai import GenerationConfig
+
     def analyze_frames(self, frames_data: List[dict], prompt: str, previous_analysis: Optional[Dict] = None) -> str:
-        """
-        Analyze frames using the local Phi-3.5 model.
-
-        Args:
-            frames_data: List of dictionaries containing frame data and paths
-                Each dict should have:
-                - 'path': The path of the frame
-                - 'data': The frame data as bytes
-            prompt: The prompt to use for analysis
-            previous_analysis: Optional previous batch analysis results
-
-        Returns:
-            str: Analysis result
-        """
         try:
-            # Sort frames by path which should preserve temporal order
-            frames_data = sorted(frames_data, key=lambda x: x['path'])
-            self.logger.info(f"Analyzing {len(frames_data)} frames...")
+            # Sort and process frames
+            frames_data = sorted(frames_data, key=lambda x: x['path'])[:1]
+            image_tensors = []
+            image_tags = ""
 
-            # Process all frames
-            processed_frames = []
-            for frame in frames_data:
-                tensor = self.process_image(frame['data'])
-                processed_frames.append(tensor)
+            for i, frame in enumerate(frames_data):
+                image = Image.open(io.BytesIO(frame["data"])).convert("RGB")
 
-            # If we have previous analysis, add it to the prompt
+                # Resize if needed
+                max_size = 324
+                if max(image.size) > max_size:
+                    ratio = max_size / max(image.size)
+                    new_size = (int(image.width * ratio), int(image.height * ratio))
+                    image = image.resize(new_size, Image.LANCZOS)
+
+                # Convert to ov.Tensor
+                np_image = np.array(image).astype(np.uint8)
+                np_image = np_image.reshape(1, *np_image.shape)  # NHWC
+                tensor = ov.Tensor(np_image)
+                image_tensors.append(tensor)
+
+                image_tags += f"<ov_genai_image_{i}>\n"
+
+            # Append previous context if available
             if previous_analysis:
                 previous_context = f"""
-                Previous Analysis Summary:
-                - Determination: {previous_analysis.get('shoplifting_determination', 'Unknown')}
-                - Confidence: {previous_analysis.get('confidence_level', '0%')}
-                - Key Behaviors: {', '.join(previous_analysis.get('key_behaviors', []))}
-                
-                Please analyze the following frames in context of these previous findings.
-                """
-                prompt = f"{previous_context}\n\n{prompt}"
+    Previous Analysis Summary:
+    - Determination: {previous_analysis.get('shoplifting_determination', 'Unknown')}
+    - Confidence: {previous_analysis.get('confidence_level', '0%')}
+    - Key Behaviors: {', '.join(previous_analysis.get('key_behaviors', []))}
 
-            # Create the formatted prompt
-            template = "<|im_start|>system\n{}\n<|im_end|>\n<|im_start|>user\n{}\n<|im_end|>\n<|im_start|>assistant\n"
-            formatted_prompt = template.format(self.system_prompt, prompt)
+    Please analyze the following frames in context of these previous findings.
+    """
+                prompt = previous_context + "\n" + prompt
 
-            # Generate analysis for each frame
-            analyses = []
-            for frame_tensor in processed_frames:
-                result = self.pipeline.generate(formatted_prompt, image=frame_tensor, max_new_tokens=300)
-                analyses.append(str(result))
+            # Construct full prompt
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": image_tags + prompt}
+            ]
+            prompt_text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-            # Combine analyses
-            combined_analysis = "\n\n".join(analyses)
+            # Set generation config
+            generation_config = ov_genai.GenerationConfig(
+                max_new_tokens=100,  # 300–1000 is way too much on CPU
+                temperature=0.0,
+                do_sample=False
+            )
 
-            # Clean up the response
-            combined_analysis = combined_analysis.split("How to")[0].split("User:")[0].split("#")[0].strip()
+            # Generate response
+            result = self.pipeline.generate(
+                prompt=prompt_text,
+                images=image_tensors,
+                generation_config=generation_config,
+            )
 
-            return combined_analysis
+            return str(result).strip()
 
         except Exception as e:
-            self.logger.error(f"Error analyzing frames: {str(e)}")
+            self.logger.error(f"Error during Phi-3.5 multi-image analysis: {str(e)}")
             return f"Error: {str(e)}"
+
+    def pil_to_tensor(self, image: Image.Image) -> ov.Tensor:
+        """
+        Convert a PIL Image to an OpenVINO-compatible tensor.
+        """
+        np_image = np.array(image).astype(np.uint8)
+        if len(np_image.shape) == 3:  # HWC
+            np_image = np_image.reshape(1, *np_image.shape)  # NHWC
+        return ov.Tensor(np_image)
 
 
 class ShopliftingAnalyzer:
@@ -679,3 +697,36 @@ class ShopliftingAnalyzer:
             "total_summary": total_summary,
             "batch_results": batch_results
         }
+
+
+def analyze_video_with_phi3(video_path: str, output_dir: str = None) -> Dict:
+    """
+    Analyze a video using Phi3CVModel.
+
+    Args:
+        video_path: Path to the video file
+        output_dir: Optional directory to save extracted frames
+
+    Returns:
+        Dict: Analysis results
+    """
+    try:
+        # Initialize analyzer with Phi3CVModel
+        analyzer = ShopliftingAnalyzer(use_phi3=True)
+
+        # Extract frames
+        frames_data = FrameExtractor(every_n_frames=30).extract_frames(video_path, '/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/tests/test_frames')
+
+        # Get the analysis prompt
+        prompt = analyzer.get_prompt()
+
+        # Analyze frames
+        result = analyzer.analyze_batch(frames_data, prompt)
+
+        return result
+
+    except Exception as e:
+        raise Exception(f"Error analyzing video: {str(e)}")
+
+
+analyze_video_with_phi3("/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/test_dataset/COUNTING_20250403130713.avi")
