@@ -3,7 +3,7 @@ import cv2
 import tempfile
 from io import BytesIO
 from data_science.src.azure.utils import create_logger
-
+from typing import List, Dict
 
 class FrameExtractor:
     ALLOWED_VIDEO_EXTENSIONS = ['.avi', '.mp4', '.mov', '.mkv']
@@ -97,16 +97,17 @@ class FrameExtractor:
             except Exception as e:
                 self.logger.warning(f"Error deleting temporary file: {str(e)}")
 
-    def extract_frames(self, video_path: str, output_folder: str) -> None:
+    def extract_frames(self, video_path: str, output_folder: str) -> List[Dict]:
         """
         Legacy method for local file extraction. Kept for backwards compatibility.
         """
+        frames_data = list()
         os.makedirs(output_folder, exist_ok=True)
 
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             self.logger.error(f"Cannot open video file: {video_path}")
-            return
+            return []
 
         frame_idx = 0
         success, frame = cap.read()
@@ -116,9 +117,19 @@ class FrameExtractor:
                 frame_filename = f"frame_{frame_idx:04d}.jpg"
                 frame_path = os.path.join(output_folder, frame_filename)
                 cv2.imwrite(frame_path, frame)
+                # Convert to bytes
+                img_byte_arr = BytesIO()
+                _, buffer = cv2.imencode('.jpg', frame)
+                img_byte_arr.write(buffer.tobytes())
+                # Add to frames data
+                frames_data.append({
+                    'path': frame_path,
+                    'data': img_byte_arr.getvalue()
+                })
 
             frame_idx += 1
             success, frame = cap.read()
 
         cap.release()
         self.logger.info(f"Frames extracted for video: {video_path}")
+        return frames_data

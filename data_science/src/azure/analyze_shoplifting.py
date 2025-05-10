@@ -1,5 +1,11 @@
 import os
 import logging
+import numpy as np
+import openvino as ov
+import openvino_genai as ov_genai
+import io
+import cv2
+from PIL import Image
 from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
@@ -274,12 +280,172 @@ class CVModel:
             return f"Error: {str(e)}"
 
 
+class Phi3CVModel:
+    def __init__(self, logger: Optional[logging.Logger] = None, model_path: str = None):
+        """
+        Initialize the Phi3CVModel for analyzing video frames using local Phi-3.5 model.
+        
+        Args:
+            logger: Optional logger instance. If None, a default logger will be created.
+            model_path: Path to the Phi-3.5 model. If None, uses default path.
+        """
+        # Setup logging
+        if logger is None:
+            self.logger = create_logger('Phi3CVModel', 'shoplifting_analysis.log')
+        else:
+            self.logger = logger
+
+        # Set default model path if not provided
+        if model_path is None:
+            model_path = "/home/yonatan.r/PycharmProjects/Guardify-AI/Phi-3.5-vision-instruct-openvino"
+
+        try:
+            self.logger.info("Loading Phi-3.5 model...")
+            self.pipeline = ov_genai.VLMPipeline(model_path, "CPU")
+            self.logger.info("Phi-3.5 model loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to load Phi-3.5 model: {str(e)}")
+            raise
+
+        # Define the system prompt for shoplifting analysis
+        self.system_prompt = """You are a security analyst reviewing surveillance frames to determine whether shoplifting is occurring.
+        You will analyze frames sequentially in batches, taking into account previous observations and conclusions.
+        
+        Focus on suspicious behaviors like:
+        1. Concealing items in clothing, bags, or containers
+        2. Removing security tags
+        3. Avoiding checkout areas
+        4. Displaying nervous behavior
+        5. Working with accomplices to distract staff
+
+        When analyzing each batch, consider:
+        - How the current observations relate to previous findings
+        - Whether suspicious behaviors are continuing or changing
+        - New individuals entering the scene
+        - The progression of events over time
+
+        Strictly follow this output format using the exact section headers and structure:
+
+        ### Summary of Current Batch:
+        - Summarize behaviors in current frames using bullet points
+        - Note any continuation or changes from previous observations
+
+        ### Connection to Previous Analysis:
+        - How current observations relate to previous findings
+        - Whether suspicious behaviors are escalating or diminishing
+        - New developments or patterns emerging
+
+        ### Shoplifting Determination: Yes / No
+        ### Confidence Level: XX%
+        ### Key Behaviors Supporting Conclusion:
+        - Bullet 1
+        - Bullet 2
+        - Bullet 3"""
+
+    def process_image(self, image_data: bytes) -> ov.Tensor:
+        """
+        Process image data for model input.
+        
+        Args:
+            image_data: Raw image data in bytes
+            
+        Returns:
+            ov.Tensor: Processed image tensor
+        """
+        try:
+            # Convert bytes to PIL Image
+            image = Image.open(io.BytesIO(image_data)).convert('RGB')
+            
+            # Resize large images to prevent memory issues
+            max_size = 1024
+            if max(image.size) > max_size:
+                ratio = max_size / max(image.size)
+                new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+                image = image.resize(new_size, Image.LANCZOS)
+            
+            # Convert to OpenVINO tensor
+            image_data = np.array(image).reshape(1, image.size[1], image.size[0], 3).astype(np.uint8)
+            return ov.Tensor(image_data)
+        except Exception as e:
+            self.logger.error(f"Error processing image: {str(e)}")
+            raise
+
+    def analyze_frames(self, frames_data: List[dict], prompt: str, previous_analysis: Optional[Dict] = None) -> str:
+        """
+        Analyze frames using the local Phi-3.5 model.
+
+        Args:
+            frames_data: List of dictionaries containing frame data and paths
+                Each dict should have:
+                - 'path': The path of the frame
+                - 'data': The frame data as bytes
+            prompt: The prompt to use for analysis
+            previous_analysis: Optional previous batch analysis results
+
+        Returns:
+            str: Analysis result
+        """
+        try:
+            # Sort frames by path which should preserve temporal order
+            frames_data = sorted(frames_data, key=lambda x: x['path'])
+            self.logger.info(f"Analyzing {len(frames_data)} frames...")
+
+            # Process all frames
+            processed_frames = []
+            for frame in frames_data:
+                tensor = self.process_image(frame['data'])
+                processed_frames.append(tensor)
+
+            # If we have previous analysis, add it to the prompt
+            if previous_analysis:
+                previous_context = f"""
+                Previous Analysis Summary:
+                - Determination: {previous_analysis.get('shoplifting_determination', 'Unknown')}
+                - Confidence: {previous_analysis.get('confidence_level', '0%')}
+                - Key Behaviors: {', '.join(previous_analysis.get('key_behaviors', []))}
+                
+                Please analyze the following frames in context of these previous findings.
+                """
+                prompt = f"{previous_context}\n\n{prompt}"
+
+            # Create the formatted prompt
+            template = "<|im_start|>system\n{}\n<|im_end|>\n<|im_start|>user\n{}\n<|im_end|>\n<|im_start|>assistant\n"
+            formatted_prompt = template.format(self.system_prompt, prompt)
+
+            # Generate analysis for each frame
+            analyses = []
+            for frame_tensor in processed_frames:
+                result = self.pipeline.generate(formatted_prompt, image=frame_tensor, max_new_tokens=300)
+                analyses.append(str(result))
+
+            # Combine analyses
+            combined_analysis = "\n\n".join(analyses)
+
+            # Clean up the response
+            combined_analysis = combined_analysis.split("How to")[0].split("User:")[0].split("#")[0].strip()
+
+            return combined_analysis
+
+        except Exception as e:
+            self.logger.error(f"Error analyzing frames: {str(e)}")
+            return f"Error: {str(e)}"
+
+
 class ShopliftingAnalyzer:
-    def __init__(self):
-        """Initialize the ShopliftingAnalyzer with CV and Prompt models."""
+    def __init__(self, use_phi3: bool = False):
+        """
+        Initialize the ShopliftingAnalyzer with CV and Prompt models.
+        
+        Args:
+            use_phi3: If True, uses Phi3CVModel, otherwise uses Azure CVModel
+        """
         self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
         self.prompt_model = PromptModel(self.logger)
-        self.cv_model = CVModel(self.logger)
+        # Choose between Phi3CVModel and Azure CVModel
+        if use_phi3:
+            self.cv_model = Phi3CVModel(self.logger)
+        else:
+            self.cv_model = CVModel(self.logger)
         self.cached_prompt = None
 
     def get_prompt(self):

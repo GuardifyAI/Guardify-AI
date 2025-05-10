@@ -4,6 +4,11 @@ from pathlib import Path
 from data_science.src.azure.extract_frames import FrameExtractor
 from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
 import shutil
+import os
+import io
+import cv2
+from PIL import Image
+from typing import List, Optional, Dict
 
 # Test data paths
 TEST_DATASET_DIR = Path(__file__).parent.parent / "test_dataset"
@@ -128,3 +133,43 @@ def test_shoplifting_analysis(shoplifting_analyzer):
     if top_confidence_level != "N/A":
         top_confidence = float(top_confidence_level.rstrip('%'))
         assert 0 <= top_confidence <= 100, "Invalid confidence_level range at top level"
+
+def analyze_video_with_phi3(video_path: str, output_dir: str = None) -> Dict:
+    """
+    Analyze a video using Phi3CVModel.
+
+    Args:
+        video_path: Path to the video file
+        output_dir: Optional directory to save extracted frames
+
+    Returns:
+        Dict: Analysis results
+    """
+    try:
+        # Initialize analyzer with Phi3CVModel
+        analyzer = ShopliftingAnalyzer(use_phi3=True)
+
+        # Extract frames
+        frames_data = FrameExtractor(every_n_frames=10).extract_frames(video_path, str(TEST_FRAMES_DIR))
+
+        # Get the analysis prompt
+        prompt = analyzer.get_prompt()
+
+        # Analyze frames
+        result = analyzer.analyze_batch(frames_data, prompt)
+
+        return result
+
+    except Exception as e:
+        raise Exception(f"Error analyzing video: {str(e)}")
+
+def test_analyze_video_with_phi3():
+    video_files = sorted(
+        file
+        for ext in FrameExtractor.ALLOWED_VIDEO_EXTENSIONS
+        for file in TEST_DATASET_DIR.glob(f"**/*{ext}")
+    )
+
+    # Get the first video file, if any
+    first_video_path = str(video_files[0].resolve()) if video_files else None
+    analyze_video_with_phi3(first_video_path)
