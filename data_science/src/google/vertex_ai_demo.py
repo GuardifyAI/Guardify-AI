@@ -15,7 +15,7 @@ import pandas as pd
 
 def get_credentials() -> Credentials:
     # Search "How to Use Vertex AI API in Google Cloud" video in Youtube at timestamp 2:40 for tutorial how to download this json. provide the path of the downloaded json here.
-    service_account_json_path = "/home/yonatan.r/Desktop/CS/final_project/service_account.json"
+    service_account_json_path = "/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/google/guardifyai-9d87161cb8d0.json"
     credentials = Credentials.from_service_account_file(
         service_account_json_path,
         scopes=['https://www.googleapis.com/auth/cloud-platform']) # Fixed url, dont change !
@@ -64,7 +64,7 @@ def analyze_detection_results(confidence_levels: List[float], shoplifting_detect
     }
 
 def get_results_for_video(video_uri: str):
-    init_vertex_ai(project="astral-sunbeam-443219-p5", location="us-central1")
+    init_vertex_ai(project="guardifyai", location="us-central1")
     cv_model = ComputerVisionModel()
     prompt_model = PromptModel()
     analysis_model = AnalysisModel()
@@ -114,7 +114,7 @@ def get_results_for_video(video_uri: str):
 
 def get_videos_uris_and_names(bucket_name):
     # Initialize the Google Cloud Storage client
-    client = storage.Client(project="astral-sunbeam-443219-p5", credentials=get_credentials())
+    client = storage.Client(project="guardifyai", credentials=get_credentials())
     # Get the bucket object
     bucket = client.get_bucket(bucket_name)
     # List all objects in the bucket and filter by .mp4 extension
@@ -170,7 +170,7 @@ def load_pickle_files_from_directory(directory):
     return loaded_data
 
 def main():
-    uris, names = get_videos_uris_and_names("example_bucket_final_project")
+    uris, names = get_videos_uris_and_names("guardify-videos")
     final_predictions = {}
     for uri, name in zip(uris, names):
         result = get_results_for_video(uri)
