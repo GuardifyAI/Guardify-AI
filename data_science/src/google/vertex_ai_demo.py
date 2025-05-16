@@ -3,6 +3,7 @@ import os
 from data_science.src.azure.utils import load_env_variables
 load_env_variables()
 from ShopliftingAnalyzer import ShopliftingAnalyzer
+from PipelineManager import PipelineManager
 
 def main():
     # Initialize GoogleClient
@@ -12,13 +13,9 @@ def main():
         service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
     )
     shoplifting_analyzer = ShopliftingAnalyzer(detection_strictness=0.5)
-    # Get video URIs and names
-    uris, names = google_client.get_videos_uris_and_names_from_buckets("guardify-videos")
-    
-    final_predictions = {}
-    for uri, name in zip(uris, names):
-        result = shoplifting_analyzer.analyze_video_from_bucket(uri, pickle_analysis=True)
 
+    pipeline_manager = PipelineManager(google_client, shoplifting_analyzer)
+    pipeline_manager.analyze_all_videos_in_bucket("guardify-videos")
 
 if __name__ == "__main__":
     main()
