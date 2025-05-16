@@ -8,10 +8,13 @@ import pickle
 from ComputerVisionModel import ComputerVisionModel
 from PromptModel import PromptModel
 from AnalysisModel import AnalysisModel
+from GoogleClient import GoogleClient
 import datetime
 from google.cloud import storage
 import os
 import pandas as pd
+from data_science.src.azure.utils import load_env_variables
+load_env_variables()
 
 def get_credentials() -> Credentials:
     # Search "How to Use Vertex AI API in Google Cloud" video in Youtube at timestamp 2:40 for tutorial how to download this json. provide the path of the downloaded json here.
@@ -64,7 +67,6 @@ def analyze_detection_results(confidence_levels: List[float], shoplifting_detect
     }
 
 def get_results_for_video(video_uri: str):
-    init_vertex_ai(project="guardifyai", location="us-central1")
     cv_model = ComputerVisionModel()
     prompt_model = PromptModel()
     analysis_model = AnalysisModel()
@@ -112,19 +114,6 @@ def get_results_for_video(video_uri: str):
     print(f"Finished with {video_uri}, results saved to {pkl_path}")
     return result
 
-def get_videos_uris_and_names(bucket_name):
-    # Initialize the Google Cloud Storage client
-    client = storage.Client(project="guardifyai", credentials=get_credentials())
-    # Get the bucket object
-    bucket = client.get_bucket(bucket_name)
-    # List all objects in the bucket and filter by .mp4 extension
-    names_blobs = bucket.list_blobs()
-    uris_blobs = bucket.list_blobs()
-    names = [blob.name for blob in names_blobs if blob.name.endswith('.mp4') or blob.name.endswith('.MP4')]
-    uris = [f"gs://{bucket_name}/{blob.name}" for blob in uris_blobs if blob.name.endswith('.mp4') or blob.name.endswith('.MP4')]
-
-    return uris, names
-
 #TODO: make the algorithm better. make it take into account also the False results.
 #TODO: Make this into an AI model that gets results as number and output the prediction
 def determine_shoplifting_likelihood(results: dict):
@@ -170,7 +159,16 @@ def load_pickle_files_from_directory(directory):
     return loaded_data
 
 def main():
-    uris, names = get_videos_uris_and_names("guardify-videos")
+    # Initialize GoogleClient
+    google_client = GoogleClient(
+        project=os.getenv("GOOGLE_PROJECT_ID"),
+        location=os.getenv("GOOGLE_PROJECT_LOCATION"),
+        service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
+    )
+    
+    # Get video URIs and names
+    uris, names = google_client.get_videos_uris_and_names_from_buckets("guardify-videos")
+    
     final_predictions = {}
     for uri, name in zip(uris, names):
         result = get_results_for_video(uri)
