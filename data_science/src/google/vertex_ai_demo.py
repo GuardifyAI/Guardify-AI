@@ -15,7 +15,7 @@ import pandas as pd
 
 def get_credentials() -> Credentials:
     # Search "How to Use Vertex AI API in Google Cloud" video in Youtube at timestamp 2:40 for tutorial how to download this json. provide the path of the downloaded json here.
-    service_account_json_path = ""
+    service_account_json_path = "/home/yonatan.r/Desktop/CS/final_project/service_account.json"
     credentials = Credentials.from_service_account_file(
         service_account_json_path,
         scopes=['https://www.googleapis.com/auth/cloud-platform']) # Fixed url, dont change !

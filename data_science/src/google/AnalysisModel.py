@@ -41,7 +41,7 @@ class AnalysisModel(GenerativeModel):
     }
 
     def __init__(self,
-        model_name: str = "gemini-1.5-flash-002",
+        model_name: str = "gemini-2.0-flash-lite-001",
         *,
         generation_config: Optional[GenerationConfigType] = None,
         safety_settings: Optional[SafetySettingsType] = None,
