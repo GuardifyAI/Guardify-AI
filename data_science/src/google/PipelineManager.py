@@ -12,7 +12,9 @@ class PipelineManager:
 
         final_predictions = {}
         for uri, name in zip(uris, names):
-            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri, pickle_analysis=True)
+            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri,
+                                                                           max_api_calls=1,
+                                                                           pickle_analysis=True)
             final_predictions[name] = analysis
 
         return final_predictions

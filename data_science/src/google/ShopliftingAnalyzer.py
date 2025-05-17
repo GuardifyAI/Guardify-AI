@@ -1,4 +1,3 @@
-from PromptModel import PromptModel
 from AnalysisModel import AnalysisModel
 from ComputerVisionModel import ComputerVisionModel
 import logging
@@ -13,7 +12,7 @@ class ShopliftingAnalyzer:
     def __init__(self, detection_strictness: float, logger: logging.Logger = None):
         """
         Initializes the ShopliftingAnalyzer, which coordinates the end-to-end analysis of a single video
-        using prompt generation, computer vision, and analytical models to detect shoplifting behavior.
+        using computer vision and analytical models to detect shoplifting behavior.
 
         The analyzer iteratively calls GenAI-based components to improve confidence in detection results,
         and evaluates whether the confidence and consistency of results meet criteria to stop further analysis.
@@ -27,32 +26,29 @@ class ShopliftingAnalyzer:
             logger (logging.Logger, optional): A logger instance for logging messages. If None, a default logger is created.
         """
         self.cv_model = ComputerVisionModel()
-        self.prompt_model = PromptModel()
         self.analysis_model = AnalysisModel()
-        self.max_api_calls_per_video = 5
         self.current_confidence_levels = []
         self.current_shoplifting_detected_results = []
+        if detection_strictness < 0 or detection_strictness > 1:
+            raise ValueError("Detection strictness must be between 0 and 1.")
         self.shoplifting_detection_threshold = detection_strictness
         if logger is None:
             self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
 
-    def analyze_video_from_bucket(self, video_uri: str, pickle_analysis: bool = True) -> Dict:
-        prompt_model_responses = []
+    def analyze_video_from_bucket(self, video_uri: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
         cv_model_responses = []
         analysis_model_responses = []
 
-        while self.should_continue():
+        while self.should_continue(max_api_calls):
             video_file = Part.from_uri(uri=video_uri,
                                        mime_type="video/mp4")
-            prompt_model_response = self.prompt_model.generate_prompt(video_file)
-            cv_model_response = self.cv_model.analyze_video(video_file, prompt_model_response)
+            cv_model_response = self.cv_model.analyze_video(video_file)  # Using default prompt
             analysis_model_response, shoplifting_detected, confidence_level = self.analysis_model.analyze_video_observations(
                 video_file, cv_model_response)
             self.logger.debug(f"Shoplifting Detected: {shoplifting_detected}")
             self.logger.debug(f"Confidence Level: {confidence_level}")
             self.current_confidence_levels.append(confidence_level)
             self.current_shoplifting_detected_results.append(shoplifting_detected)
-            prompt_model_responses.append(prompt_model_response)
             cv_model_responses.append(cv_model_response)
             analysis_model_responses.append(analysis_model_response)
 
@@ -62,7 +58,6 @@ class ShopliftingAnalyzer:
             "video_uri": video_uri,
             "confidence_levels": self.current_confidence_levels,
             "shoplifting_detected_results": self.current_shoplifting_detected_results,
-            "prompt_model_responses": prompt_model_responses,
             "cv_model_responses": cv_model_responses,
             "analysis_model_responses": analysis_model_responses,
             "stats": stats,
@@ -76,9 +71,9 @@ class ShopliftingAnalyzer:
         self.current_shoplifting_detected_results = []
         return analysis
 
-    def should_continue(self) -> bool:
+    def should_continue(self, max_api_calls: int) -> bool:
         return (not self.current_confidence_levels or self.current_confidence_levels[-1] < 0.9) and len(
-            self.current_confidence_levels) < self.max_api_calls_per_video and not self.has_reached_plateau()
+            self.current_confidence_levels) < max_api_calls and not self.has_reached_plateau()
 
     def has_reached_plateau(self) -> bool:
         if len(self.current_confidence_levels) < 3:

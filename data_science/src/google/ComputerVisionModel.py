@@ -18,6 +18,32 @@ class ComputerVisionModel(GenerativeModel):
         "Your main responsibility is to monitor customer behavior and identify potential shoplifting activities.",
     ]
 
+    # Fixed prompt for all analyses
+    fixed_prompt = """
+    As a virtual security guard, your task is to observe the provided video and identify potential shoplifting activities. Please analyze the video following the steps below:
+    1. Initial Surveillance:
+   -   Scan the store layout, noting the placement of entrances, exits, aisles, and checkout areas.
+   -   Identify any customers present and observe their initial movements upon entering the store.
+
+    2. Detailed Observation:
+   -   Focus on any customer who may be exhibiting any behaviors that may be considered suspicious.
+   -   Note any instances of customers lingering in areas with merchandise without apparent intent to purchase.
+   -   Look for any customers handling items in a way that may indicate an attempt to conceal them.
+
+    3. Behavior Analysis:
+   -   Observe if any items are being hidden from view.
+   -   Note any attempts to alter the state of items, remove packaging.
+   -   Are any items being taken towards an exit?
+
+    4. Situation Assessment:
+   -   Combine the observed details to assess whether these behaviors cumulatively suggest a potential for shoplifting.
+
+    5. Reporting:
+   -   Describe in detail the specific behaviors, their exact locations within the store, and the exact time they happened.
+   -   Justify why these actions may suggest potential shoplifting.
+   -   Maintain a polite and professional tone, focusing on observed actions rather than making assumptions about intent.
+    """
+
     default_generation_config = GenerationConfig(
         temperature=0.9,
         top_p=1.0,
@@ -59,8 +85,11 @@ class ComputerVisionModel(GenerativeModel):
                          , system_instruction=system_instruction
                          , labels=labels)
 
-
-    def analyze_video(self, video_file: Part, prompt: str) -> str:
+    def analyze_video(self, video_file: Part, prompt: Optional[str] = None) -> str:
+        # Use the fixed prompt if no prompt is provided
+        if prompt is None:
+            prompt = self.fixed_prompt
+            
         # Set contents to send to the model
         contents = [video_file, prompt]
         # Prompt the model to generate content
