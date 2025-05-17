@@ -45,7 +45,7 @@ class ComputerVisionModel(GenerativeModel):
     """
 
     default_generation_config = GenerationConfig(
-        temperature=0.9,
+        temperature=0,
         top_p=1.0,
         top_k=32,
         candidate_count=1,

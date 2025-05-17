@@ -12,11 +12,6 @@ TEST_DATASET_DIR = Path(__file__).parent.parent / "test_dataset"
 TEST_FRAMES_DIR = Path(__file__).parent / "test_frames"
 TEST_ANALYSIS_DIR = Path(__file__).parent / "test_analysis"
 
-# Test video URIs - Replace these with your actual URIs
-NON_SHOPLIFTING_VIDEO_URI = "gs://guardify-test-videos/Shoplifting001_x264_4.mp4"
-SHOPLIFTING_VIDEO_URI = "gs://guardify-test-videos/Shoplifting001_x264_13.mp4"
-
-
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """Setup test environment by creating necessary directories"""
@@ -53,9 +48,10 @@ def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_ana
     Test analyzing a video that does not contain shoplifting.
     This test verifies that the analyzer correctly identifies a video without shoplifting activity.
     """
+    non_shoplifting_video_uri = "gs://guardify-test-videos/Shoplifting001_x264_4.mp4"
     # Analyze the video
     results = shoplifting_analyzer.analyze_video_from_bucket(
-        video_uri=NON_SHOPLIFTING_VIDEO_URI,
+        video_uri=non_shoplifting_video_uri,
         max_api_calls=1,
         pickle_analysis=False
     )
@@ -79,9 +75,10 @@ def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_a
     Test analyzing a video that contains shoplifting.
     This test verifies that the analyzer correctly identifies a video with shoplifting activity.
     """
+    shoplifting_video_uri = "gs://guardify-test-videos/43dd8387-28ad-4a64-bda1-9c566c526b82 (1).mp4"
     # Analyze the video
     results = shoplifting_analyzer.analyze_video_from_bucket(
-        video_uri=SHOPLIFTING_VIDEO_URI,
+        video_uri=shoplifting_video_uri,
         max_api_calls=1,
         pickle_analysis=False
     )
