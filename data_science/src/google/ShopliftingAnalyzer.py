@@ -10,6 +10,8 @@ import datetime
 import os
 
 class ShopliftingAnalyzer:
+    ALLOWED_LOCAL_VIDEO_EXTENSIONS = ('.mp4')
+
     def __init__(self, detection_strictness: float, logger: logging.Logger = None):
         """
         Initializes the ShopliftingAnalyzer, which coordinates the end-to-end analysis of a single video
@@ -70,8 +72,8 @@ class ShopliftingAnalyzer:
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found at path: {video_path}")
 
-        if not video_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-            raise ValueError(f"Unsupported video format. Supported formats are: .mp4, .avi, .mov, .mkv")
+        if not video_path.lower().endswith(self.ALLOWED_LOCAL_VIDEO_EXTENSIONS):
+            raise ValueError(f"Unsupported video format. Supported formats are: {self.ALLOWED_LOCAL_VIDEO_EXTENSIONS}")
 
         video_part = Part.from_data(
             mime_type="video/mp4",

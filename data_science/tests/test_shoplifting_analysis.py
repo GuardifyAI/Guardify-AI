@@ -102,3 +102,17 @@ def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_a
     # Additional assertions for shoplifting case
     assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
     assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
+
+def test_analyze_local_video(google_client, shoplifting_analyzer):
+    # Analyze the video
+    results = shoplifting_analyzer.analyze_local_video(
+        video_path=str(TEST_DATASET_DIR) + "/shop_video_2.mp4",
+        max_api_calls=1,
+        pickle_analysis=False
+    )
+    # Assert that we have the expected structure in the results
+    assert "confidence_levels" in results
+    assert "shoplifting_detected_results" in results
+    assert "cv_model_responses" in results
+    assert "analysis_model_responses" in results
+    assert "stats" in results
