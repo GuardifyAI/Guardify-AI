@@ -34,6 +34,7 @@ class ComputerVisionModel(GenerativeModel):
    -   Observe if any items are being hidden from view.
    -   Note any attempts to alter the state of items, remove packaging.
    -   Are any items being taken towards an exit?
+   -   Are any items being concealed under the clothing or in bags?
 
     4. Situation Assessment:
    -   Combine the observed details to assess whether these behaviors cumulatively suggest a potential for shoplifting.
