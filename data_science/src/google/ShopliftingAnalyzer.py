@@ -1,5 +1,5 @@
-from AnalysisModel import AnalysisModel
-from ComputerVisionModel import ComputerVisionModel
+from data_science.src.google.AnalysisModel import AnalysisModel
+from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
 from data_science.src.azure.utils import create_logger
 from vertexai.generative_models import Part
@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict
 import numpy as np
 import pickle
 import datetime
+import os
 
 class ShopliftingAnalyzer:
     def __init__(self, detection_strictness: float, logger: logging.Logger = None):
@@ -36,15 +37,68 @@ class ShopliftingAnalyzer:
             self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
 
     def analyze_video_from_bucket(self, video_uri: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+        """
+        Analyzes a video from Google Cloud Storage bucket.
+
+        Args:
+            video_uri (str): The GCS URI of the video
+            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
+            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+
+        Returns:
+            Dict: Analysis results including confidence levels, detection results, and model responses
+        """
+        video_part = Part.from_uri(uri=video_uri, mime_type="video/mp4")
+        return self.analyze_video(video_part, video_uri, max_api_calls, pickle_analysis)
+
+    def analyze_local_video(self, video_path: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+        """
+        Analyzes a local video file for shoplifting activity.
+
+        Args:
+            video_path (str): Path to the local video file
+            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
+            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+
+        Returns:
+            Dict: Analysis results including confidence levels, detection results, and model responses
+
+        Raises:
+            FileNotFoundError: If the video file doesn't exist
+            ValueError: If the file is not a valid video file
+        """
+        if not os.path.exists(video_path):
+            raise FileNotFoundError(f"Video file not found at path: {video_path}")
+
+        if not video_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+            raise ValueError(f"Unsupported video format. Supported formats are: .mp4, .avi, .mov, .mkv")
+
+        video_part = Part.from_data(
+            mime_type="video/mp4",
+            data=open(video_path, "rb").read()
+        )
+        return self.analyze_video(video_part, video_path, max_api_calls, pickle_analysis)
+
+    def analyze_video(self, video_part: Part, video_identifier: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+        """
+        Analyzes a video for shoplifting activity using the provided video Part.
+
+        Args:
+            video_part (Part): The video Part object to analyze
+            video_identifier (str): Identifier for the video (path or URI)
+            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
+            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+
+        Returns:
+            Dict: Analysis results including confidence levels, detection results, and model responses
+        """
         cv_model_responses = []
         analysis_model_responses = []
 
         while self.should_continue(max_api_calls):
-            video_file = Part.from_uri(uri=video_uri,
-                                       mime_type="video/mp4")
-            cv_model_response = self.cv_model.analyze_video(video_file)  # Using default prompt
+            cv_model_response = self.cv_model.analyze_video(video_part)  # Using default prompt
             analysis_model_response, shoplifting_detected, confidence_level = self.analysis_model.analyze_video_observations(
-                video_file, cv_model_response)
+                video_part, cv_model_response)
             self.logger.debug(f"Shoplifting Detected: {shoplifting_detected}")
             self.logger.debug(f"Confidence Level: {confidence_level}")
             self.current_confidence_levels.append(confidence_level)
@@ -55,7 +109,7 @@ class ShopliftingAnalyzer:
         stats = self.get_detection_stats_for_video()
         shoplifting_probability, shoplifting_determination = self.determine_shoplifting_from_stats(stats)
         analysis = {
-            "video_uri": video_uri,
+            "video_identifier": video_identifier,
             "confidence_levels": self.current_confidence_levels,
             "shoplifting_detected_results": self.current_shoplifting_detected_results,
             "cv_model_responses": cv_model_responses,
@@ -116,7 +170,7 @@ class ShopliftingAnalyzer:
         with open(pkl_path, 'wb') as file:
             pickle.dump(analysis, file)
 
-        self.logger.info(f"Finished with {analysis['video_uri']}, results saved to {pkl_path}")
+        self.logger.info(f"Finished with {analysis['video_identifier']}, results saved to {pkl_path}")
 
     # TODO: make the algorithm better. make it take into account also the False results.
     # TODO: Make this into an AI model that gets results as number and output the prediction
