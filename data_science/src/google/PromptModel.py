@@ -9,7 +9,9 @@ from vertexai.generative_models import (
 
 from typing import Dict, List, Optional, Union
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType
-
+import os
+from data_science.src.utils import load_env_variables
+load_env_variables()
 
 class PromptModel(GenerativeModel):
 
@@ -53,7 +55,7 @@ class PromptModel(GenerativeModel):
     }
 
     def __init__(self,
-        model_name: str = "gemini-2.0-flash-lite-001",
+        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
         *,
         generation_config: Optional[GenerationConfigType] = None,
         safety_settings: Optional[SafetySettingsType] = None,

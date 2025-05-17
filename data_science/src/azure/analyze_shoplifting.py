@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional, Dict
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from data_science.src.azure.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
+from data_science.src.utils import create_logger, restructure_analysis, encode_image_to_base64, load_env_variables
 
 # Load environment variables
 load_env_variables()

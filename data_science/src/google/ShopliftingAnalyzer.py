@@ -1,7 +1,7 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
-from data_science.src.azure.utils import create_logger
+from data_science.src.utils import create_logger
 from vertexai.generative_models import Part
 from typing import List, Tuple, Dict
 import numpy as np

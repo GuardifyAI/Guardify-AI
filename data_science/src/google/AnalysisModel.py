@@ -10,8 +10,10 @@ from vertexai.generative_models import (
 from typing import Dict, List, Optional, Union
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, GenerationResponse
 from typing import Tuple
-import re
+import os
 import json
+from data_science.src.utils import load_env_variables
+load_env_variables()
 
 class AnalysisModel(GenerativeModel):
 
@@ -66,7 +68,7 @@ class AnalysisModel(GenerativeModel):
     }
 
     def __init__(self,
-        model_name: str = "gemini-2.0-flash-lite-001",
+        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
         *,
         generation_config: Optional[GenerationConfigType] = None,
         safety_settings: Optional[SafetySettingsType] = None,

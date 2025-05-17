@@ -1,6 +1,6 @@
 from GoogleClient import GoogleClient
 import os
-from data_science.src.azure.utils import load_env_variables
+from data_science.src.utils import load_env_variables
 load_env_variables()
 from ShopliftingAnalyzer import ShopliftingAnalyzer
 from PipelineManager import PipelineManager
