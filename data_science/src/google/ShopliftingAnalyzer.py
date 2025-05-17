@@ -98,7 +98,9 @@ class ShopliftingAnalyzer:
         analysis_model_responses = []
 
         while self.should_continue(max_api_calls):
+            self.logger.info(f"Sending video '{video_identifier}' to CV model for video description")
             cv_model_response = self.cv_model.analyze_video(video_part)  # Using default prompt
+            self.logger.info(f"Sending video '{video_identifier}' to Analysis model for analysis of the video and results generation")
             analysis_model_response, shoplifting_detected, confidence_level = self.analysis_model.analyze_video_observations(
                 video_part, cv_model_response)
             self.logger.debug(f"Shoplifting Detected: {shoplifting_detected}")
@@ -107,6 +109,7 @@ class ShopliftingAnalyzer:
             self.current_shoplifting_detected_results.append(shoplifting_detected)
             cv_model_responses.append(cv_model_response)
             analysis_model_responses.append(analysis_model_response)
+            self.logger.info(f"Finished {len(self.current_confidence_levels)} iterations of analysis for video '{video_identifier}'")
 
         stats = self.get_detection_stats_for_video()
         shoplifting_probability, shoplifting_determination = self.determine_shoplifting_from_stats(stats)
@@ -125,6 +128,7 @@ class ShopliftingAnalyzer:
 
         self.current_confidence_levels = []
         self.current_shoplifting_detected_results = []
+        self.logger.info(f"Finished analysis for video '{video_identifier}'")
         return analysis
 
     def should_continue(self, max_api_calls: int) -> bool:
