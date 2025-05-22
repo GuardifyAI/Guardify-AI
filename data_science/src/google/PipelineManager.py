@@ -5,28 +5,32 @@ import datetime
 import os
 
 class PipelineManager:
+    MAX_API_CALLS = 2
+
     def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer):
         self.google_client = google_client
         self.shoplifting_analyzer = shoplifting_analyzer
 
-    def analyze_all_videos_in_bucket(self, bucket_name: str, export_results: bool = False):
+    def analyze_all_videos_in_bucket(self, bucket_name: str, max_api_calls_per_video: int = None, export_results: bool = False):
         """
         Analyze all videos in a specified bucket and optionally export results to CSV.
 
         Args:
             bucket_name (str): Name of the Google Cloud Storage bucket
+            max_api_calls_per_video (int, optional): Maximum number of API calls per video. Defaults to None.
             export_results (bool, optional): Whether to export results to CSV. Defaults to False.
 
         Returns:
             dict: Dictionary containing analysis results for each video
         """
+        max_api_calls_per_video = max_api_calls_per_video or self.MAX_API_CALLS
         # Get video URIs and names
         uris, names = self.google_client.get_videos_uris_and_names_from_buckets(bucket_name)
 
         final_predictions = {}
         for uri, name in zip(uris, names):
             analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri,
-                                                                           max_api_calls=2,
+                                                                           max_api_calls=max_api_calls_per_video,
                                                                            pickle_analysis=True)
             final_predictions[name] = analysis
 

@@ -19,7 +19,7 @@ def main():
                                                detection_strictness=0.5)
 
     pipeline_manager = PipelineManager(google_client, shoplifting_analyzer)
-    pipeline_manager.analyze_all_videos_in_bucket("guardify-videos", export_results=True)
+    pipeline_manager.analyze_all_videos_in_bucket(os.getenv("BUCKET_NAME"), export_results=True)
 
 if __name__ == "__main__":
     main()

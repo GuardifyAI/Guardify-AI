@@ -163,7 +163,7 @@ class ShopliftingAnalyzer:
         shoplifting_detected_results = np.array(self.current_shoplifting_detected_results)
 
         if confidence_levels.shape != shoplifting_detected_results.shape:
-            return "Invalid input: The sh2apes of confidence_levels and shoplifting_detected_results do not match."
+            return "Invalid input: The shapes of confidence_levels and shoplifting_detected_results do not match."
 
         true_count = np.sum(shoplifting_detected_results)
         false_count = shoplifting_detected_results.size - true_count
