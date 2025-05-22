@@ -100,10 +100,11 @@ def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_a
     assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
     assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
 
-def test_analyze_local_video(google_client, shoplifting_analyzer):
+@pytest.mark.parametrize("video_file", ["shop_video_2.mp4"])
+def test_analyze_local_video(google_client, shoplifting_analyzer, video_file):
     # Analyze the video
     results = shoplifting_analyzer.analyze_local_video(
-        video_path=str(TEST_DATASET_DIR) + "/shop_video_2.mp4",
+        video_path=str(TEST_DATASET_DIR) + "/" + video_file,
         max_api_calls=1,
         pickle_analysis=False
     )

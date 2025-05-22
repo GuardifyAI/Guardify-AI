@@ -1,7 +1,7 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
-from data_science.src.utils import create_logger
+from data_science.src.utils import create_logger, get_video_extension
 from vertexai.generative_models import Part
 from typing import List, Tuple, Dict
 import numpy as np
@@ -10,7 +10,11 @@ import datetime
 import os
 
 class ShopliftingAnalyzer:
-    ALLOWED_LOCAL_VIDEO_EXTENSIONS = ('.mp4')
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi'}
+    VIDEO_MIME_TYPES = {
+        "mp4": "video/mp4",
+        "avi": "video/x-msvideo",
+    }
 
     def __init__(self, detection_strictness: float, logger: logging.Logger = None):
         """
@@ -49,8 +53,15 @@ class ShopliftingAnalyzer:
 
         Returns:
             Dict: Analysis results including confidence levels, detection results, and model responses
+            
+        Raises:
+            ValueError: If the video URI has an invalid or unsupported extension
         """
-        video_part = Part.from_uri(uri=video_uri, mime_type="video/mp4")
+        # Validate video extension
+        extension = get_video_extension(video_uri)
+        if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
+            raise ValueError(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+        video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
         return self.analyze_video(video_part, video_uri, max_api_calls, pickle_analysis)
 
     def analyze_local_video(self, video_path: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
@@ -69,14 +80,15 @@ class ShopliftingAnalyzer:
             FileNotFoundError: If the video file doesn't exist
             ValueError: If the file is not a valid video file
         """
+        extension = get_video_extension(video_path)
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found at path: {video_path}")
 
-        if not video_path.lower().endswith(self.ALLOWED_LOCAL_VIDEO_EXTENSIONS):
-            raise ValueError(f"Unsupported video format. Supported formats are: {self.ALLOWED_LOCAL_VIDEO_EXTENSIONS}")
+        if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
+            raise ValueError(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
 
         video_part = Part.from_data(
-            mime_type="video/mp4",
+            mime_type=self.VIDEO_MIME_TYPES[extension],
             data=open(video_path, "rb").read()
         )
         return self.analyze_video(video_part, video_path, max_api_calls, pickle_analysis)
