@@ -146,16 +146,38 @@ class ShopliftingAnalyzer:
         return analysis
 
     def should_continue(self, max_api_calls: int) -> bool:
+        """
+        Determines whether the analysis should continue based on confidence levels, API call limits, and result plateau.
+
+        Args:
+            max_api_calls (int): The maximum number of API calls allowed.
+
+        Returns:
+                bool: True if the analysis should continue, False otherwise.
+        """
         return (not self.current_confidence_levels or self.current_confidence_levels[-1] < 0.9) and len(
             self.current_confidence_levels) < max_api_calls and not self.has_reached_plateau()
 
     def has_reached_plateau(self) -> bool:
+        """
+        Checks if the confidence levels have plateaued (no improvement over the last three iterations).
+
+        Returns:
+            bool: True if the confidence levels have plateaued, False otherwise.
+        """
         if len(self.current_confidence_levels) < 3:
             return False
         return self.current_confidence_levels[-1] == self.current_confidence_levels[-2] == self.current_confidence_levels[-3]
 
     # TODO: add tests for edge cases
     def get_detection_stats_for_video(self) -> Dict | str:
+        """
+        Computes statistical metrics for the analysis results, such as average and maximum confidence levels.
+
+        Returns:
+            Dict: A dictionary containing statistical metrics for true and false detections.
+            str: An error message if the input lists are invalid or misaligned.
+        """
         if not self.current_confidence_levels or not self.current_shoplifting_detected_results:
             return "Invalid input: One or both lists are empty."
 
@@ -184,6 +206,12 @@ class ShopliftingAnalyzer:
         }
 
     def save_analysis_to_pickle(self, analysis: Dict) -> None:
+        """
+        Saves the analysis results to a pickle file.
+
+        Args:
+            analysis (Dict): The analysis results to save.
+        """
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         pkl_path = f"video_analysis_{current_time}.pkl"
 
@@ -195,6 +223,15 @@ class ShopliftingAnalyzer:
     # TODO: make the algorithm better. make it take into account also the False results.
     # TODO: Make this into an AI model that gets results as number and output the prediction
     def determine_shoplifting_from_stats(self, stats: dict) -> Tuple[float, bool]:
+        """
+        Determines whether shoplifting is detected based on statistical metrics and a weighted scoring system.
+
+        Args:
+            stats (dict): A dictionary containing statistical metrics for the analysis.
+
+        Returns:
+            Tuple[float, bool]: The shoplifting probability and a boolean indicating whether shoplifting is detected.
+        """
         # Calculate the weighted score
         count_weight = 0.5
         average_confidence_weight = 0.3
