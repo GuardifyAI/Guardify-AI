@@ -3,29 +3,55 @@ from vertexai.generative_models import (
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
-    Image
+    Part
 )
 
 from typing import Dict, List, Optional, Union
-from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, GenerationResponse
+from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, \
+    GenerationResponse
 from typing import Tuple
 import os
 import json
 from data_science.src.utils import load_env_variables
+
 load_env_variables()
 
+
 class AnalysisModel(GenerativeModel):
+    default_system_instruction = """
+DIRECT CONCEALMENT DEFINITION:
+ANY of these actions is considered DIRECT CONCEALMENT and requires IMMEDIATE "Yes" determination:
+1. Items placed in personal bags/backpacks/purses
+2. Items placed in pockets (pants, jackets, any clothing)
+3. Items concealed under/inside clothing
+4. Items hidden in strollers/carts under other items
+5. Items hidden behind/under/inside other store items
 
-    default_system_instruction = """You are a security analyst reviewing surveillance frames to determine whether shoplifting is occurring.
-You will analyze frames sequentially in batches, taking into account previous observations and conclusions.
+CRITICAL CONCEALMENT PROTOCOL:
+1. Your FIRST task for EVERY batch of frames is to check for direct concealment
+2. If you observe ANY of these actions:
+   - Mark it as an IMMEDIATE "Yes" determination
+   - Document the exact concealment method
+3. Pay SPECIAL ATTENTION to:
+   - Hands moving items towards pockets or bags
+   - Clothing adjustments while holding items
+   - Items disappearing from view near person
+4. Do NOT dismiss potential concealment as "clothing adjustment"
+5. If an item was in hand and is no longer visible, assume concealment
 
-Focus on suspicious behaviors like:
-1. Concealing items in clothing, bags, or containers
-2. Removing security tags
-3. Avoiding checkout areas
-4. Displaying nervous behavior
-5. Working with accomplices to distract staff
+MANDATORY DIRECT CONCEALMENT CHECK:
+Before ANY other analysis, you MUST complete this checklist:
+1. Were any items placed in bags/backpacks/purses? (Yes/No)
+2. Were any items placed in pockets? (Yes/No)
+3. Were any items concealed under/inside clothing? (Yes/No)
+4. Were any items hidden in strollers/carts? (Yes/No)
+5. Did any items disappear from view near a person? (Yes/No)
+
+Only if NO direct concealment is observed, analyze other suspicious behaviors like:
+1. Removing security tags
+2. Avoiding checkout areas
+3. Displaying nervous behavior
+4. Working with accomplices to distract staff
 
 When analyzing each batch, consider:
 - How the current observations relate to previous findings
@@ -33,7 +59,14 @@ When analyzing each batch, consider:
 - New individuals entering the scene
 - The progression of events over time
 
-Strictly follow this output format using the exact section headers and structure:
+You MUST use this exact output format with NO asterisks or formatting:
+
+### Direct Concealment Check:
+- Items placed in bags/backpacks/purses? (Yes/No)
+- Items placed in pockets? (Yes/No)
+- Items concealed under/inside clothing? (Yes/No)
+- Items hidden in strollers/carts? (Yes/No)
+- Items disappeared from view near person? (Yes/No)
 
 ### Summary of Current Batch:
 - Summarize behaviors in current frames using bullet points
@@ -51,10 +84,13 @@ Strictly follow this output format using the exact section headers and structure
 - Bullet 2
 - Bullet 3
 
-Make sure:
-- You always include all 5 parts of the conclusion section
-- Each part is labeled exactly as shown
-- Confidence Level must be numeric, in this format: 'XX%'"""
+IMPORTANT FORMAT RULES:
+1. Do NOT use asterisks () in your response
+2. Write "Yes" or "No" without any formatting
+3. Write confidence as a plain number with % (e.g. "95%")
+4. Do NOT use phrases like "bigger than" or ">"
+5. Keep all section headers exactly as shown above
+"""
 
     default_prompt = """Analyze the provided video and cv_model's observations to assess the likelihood of shoplifting.
 Focus on:
@@ -69,8 +105,8 @@ Remember to include exact confidence levels and clear determination."""
 
     default_generation_config = GenerationConfig(
         temperature=0.3,  # Slightly increased to allow for more nuanced analysis
-        top_p=0.95,      # Slightly reduced to maintain focus while allowing flexibility
-        top_k=40,        # Increased to consider more token options
+        top_p=0.95,  # Slightly reduced to maintain focus while allowing flexibility
+        top_k=40,  # Increased to consider more token options
         candidate_count=1,
         max_output_tokens=8192,
     )
@@ -84,12 +120,12 @@ Remember to include exact confidence levels and clear determination."""
     }
 
     def __init__(self,
-        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
-        *,
-        generation_config: Optional[GenerationConfigType] = None,
-        safety_settings: Optional[SafetySettingsType] = None,
-        system_instruction: Optional[PartsType] = None,
-        labels: Optional[Dict[str, str]] = None):
+                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 *,
+                 generation_config: Optional[GenerationConfigType] = None,
+                 safety_settings: Optional[SafetySettingsType] = None,
+                 system_instruction: Optional[PartsType] = None,
+                 labels: Optional[Dict[str, str]] = None):
 
         if system_instruction is None:
             system_instruction = self.default_system_instruction
@@ -101,12 +137,13 @@ Remember to include exact confidence levels and clear determination."""
             safety_settings = self.default_safety_settings
 
         super().__init__(model_name=model_name,
-                        generation_config=generation_config,
-                        safety_settings=safety_settings,
-                        system_instruction=system_instruction,
-                        labels=labels)
+                         generation_config=generation_config,
+                         safety_settings=safety_settings,
+                         system_instruction=system_instruction,
+                         labels=labels)
 
-    def analyze_video_observations(self, video_file: Part, video_observations: str, prompt: str = None) -> Tuple[str, bool, float]:
+    def analyze_video_observations(self, video_file: Part, video_observations: str, prompt: str = None) -> Tuple[
+        str, bool, float]:
         """
         Analyze video observations and determine if shoplifting occurred.
         
@@ -123,13 +160,13 @@ Remember to include exact confidence levels and clear determination."""
         """
         if prompt is None:
             prompt = self.default_prompt
-        
+
         # Add the CV model's observations to the prompt
         full_prompt = f"{prompt}\n\nPrevious CV Model Observations:\n{video_observations}"
-        
+
         # Set contents to send to the model
         contents = [video_file, full_prompt]
-        
+
         # Generate the analysis
         response = self.generate_content(
             contents,
@@ -148,5 +185,3 @@ Remember to include exact confidence levels and clear determination."""
     def _extract_values_from_response(self, response: GenerationResponse) -> Tuple[bool, float]:
         response_json = json.loads(response.text)
         return response_json["Shoplifting Detected"], response_json["Confidence Level"]
-
-
