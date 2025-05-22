@@ -1,11 +1,13 @@
 from GoogleClient import GoogleClient
 import os
 from data_science.src.utils import load_env_variables
+
 load_env_variables()
 from ShopliftingAnalyzer import ShopliftingAnalyzer
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 from PipelineManager import PipelineManager
+
 
 def main():
     # Initialize GoogleClient
@@ -21,6 +23,6 @@ def main():
     pipeline_manager = PipelineManager(google_client, shoplifting_analyzer)
     pipeline_manager.analyze_all_videos_in_bucket(os.getenv("BUCKET_NAME"), export_results=True)
 
+
 if __name__ == "__main__":
     main()
-

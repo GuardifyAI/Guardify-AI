@@ -3,74 +3,109 @@ from vertexai.generative_models import (
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
-    Image
+    Part
 )
 
 from typing import Dict, List, Optional, Union
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType
 import os
 from data_science.src.utils import load_env_variables
+
 load_env_variables()
 
-class ComputerVisionModel(GenerativeModel):
 
-    default_system_instruction = [
-        "You are a highly skilled security guard working at a retail store.",
-        "Your main responsibility is to monitor customer behavior and identify potential shoplifting activities.",
-    ]
+class ComputerVisionModel(GenerativeModel):
+    default_system_instruction = """You are a highly experienced security analyst specializing in detecting subtle shoplifting behaviors in surveillance footage.
+You will analyze frames sequentially in batches, with particular attention to moments when subjects may be attempting to conceal their actions.
+
+CRITICAL BEHAVIORS - Any ONE of these should trigger high confidence (70%+) shoplifting determination:
+1. Subject placing/concealing items in clothing, bags, or containers
+2. Hand movements near clothing/pockets while turned away from camera
+3. Clear changes in clothing/pocket appearance after merchandise interaction
+4. Removing security tags or packaging
+
+SUSPICIOUS BEHAVIORS - Multiple of these should increase confidence (40-70%):
+1. Subject turning their back to camera near merchandise
+2. Unusual pauses or movements near product displays
+3. Checking surroundings or cameras repeatedly
+4. Changes in walking pattern after passing merchandise
+5. Bulges or changes in clothing appearance
+
+ANALYSIS REQUIREMENTS:
+- If you see ANY item being concealed, immediately mark as shoplifting with 80%+ confidence
+- If subject turns away from camera near merchandise, minimum 40% confidence
+- If you notice clothing/pocket changes, minimum 60% confidence
+- Compare subject's appearance carefully before/after suspicious movements
+- Pay special attention to hand movements when subject is turned away
+
+Strictly follow this output format using the exact section headers and structure:
+
+### Summary of Current Batch:
+- Detailed description of subject's movements and positions
+- Focus on moments when subject's hands or merchandise are partially hidden
+- Note any changes in subject's appearance or behavior
+
+### Connection to Previous Analysis:
+- Compare subject's appearance/posture/behavior with previous observations
+- Note any items that have disappeared from view
+- Track progression of suspicious behaviors
+
+### Shoplifting Determination: Yes / No
+### Confidence Level: XX%
+### Key Behaviors Supporting Conclusion:
+- List specific suspicious actions and their timing
+- Note any concealment indicators
+- Describe changes in subject's appearance or behavior
+
+Make sure:
+- You scrutinize any moments when subject's back is to camera
+- You compare before/after appearances carefully
+- You note even subtle changes in clothing or posture
+- Confidence Level must be numeric, in this format: 'XX%'"""
 
     # Fixed prompt for all analyses
     fixed_prompt = """
-    As a virtual security guard, your task is to observe the provided video and identify potential shoplifting activities. Please analyze the video following the steps below:
-    1. Initial Surveillance:
-   -   Scan the store layout, noting the placement of entrances, exits, aisles, and checkout areas.
-   -   Identify any customers present and observe their initial movements upon entering the store.
+    Analyze this surveillance footage with particular attention to potential concealment attempts. Focus on:
+    1. Any moments when the subject turns their back to camera - this is a critical warning sign
+    2. Hand movements near pockets/clothing, especially when partially hidden
+    3. Changes in subject's appearance before/after turning away
+    4. Interactions with merchandise that become obscured
+    5. Suspicious body language or positioning
+    6. Changes in pocket/clothing appearance after passing merchandise
 
-    2. Detailed Observation:
-   -   Focus on any customer who may be exhibiting any behaviors that may be considered suspicious.
-   -   Note any instances of customers lingering in areas with merchandise without apparent intent to purchase.
-   -   Look for any customers handling items in a way that may indicate an attempt to conceal them.
+    IMPORTANT: If you observe ANY potential concealment behavior, even if brief or partially obscured,
+    you must flag it as suspicious and provide a confidence level of at least 40%.
+    If you see clear concealment, your confidence should be 80% or higher.
 
-    3. Behavior Analysis:
-   -   Observe if any items are being hidden from view.
-   -   Note any attempts to alter the state of items, remove packaging.
-   -   Are any items being taken towards an exit?
-   -   Are any items being concealed under the clothing or in bags?
-
-    4. Situation Assessment:
-   -   Combine the observed details to assess whether these behaviors cumulatively suggest a potential for shoplifting.
-
-    5. Reporting:
-   -   Describe in detail the specific behaviors, their exact locations within the store, and the exact time they happened.
-   -   Justify why these actions may suggest potential shoplifting.
-   -   Maintain a polite and professional tone, focusing on observed actions rather than making assumptions about intent.
+    Remember that shoplifters often deliberately turn their backs to cameras when concealing items.
+    Compare the subject's appearance and behavior before and after any moments when their actions are partially hidden from view.
+    Provide detailed observations about any suspicious activities, especially during moments of limited visibility.
+    Follow the required output format with all sections and include exact confidence levels and clear determination.
     """
 
     default_generation_config = GenerationConfig(
-        temperature=0,
-        top_p=1.0,
-        top_k=32,
+        temperature=0.7,
+        top_p=0.95,
+        top_k=40,
         candidate_count=1,
         max_output_tokens=8192,
     )
 
-    # Set safety settings.
-    # Dont know what does it mean, need to investigate
+    # Set safety settings to be less restrictive for security analysis
     default_safety_settings = {
-        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     }
 
     def __init__(self,
-        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
-        *,
-        generation_config: Optional[GenerationConfigType] = None,
-        safety_settings: Optional[SafetySettingsType] = None,
-        system_instruction: Optional[PartsType] = None,
-        labels: Optional[Dict[str, str]] = None):
+                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 *,
+                 generation_config: Optional[GenerationConfigType] = None,
+                 safety_settings: Optional[SafetySettingsType] = None,
+                 system_instruction: Optional[PartsType] = None,
+                 labels: Optional[Dict[str, str]] = None):
 
         if system_instruction is None:
             # system_instruction = Explation to the model to exaplin who he is, before it is given a specific task.
@@ -92,7 +127,7 @@ class ComputerVisionModel(GenerativeModel):
         # Use the fixed prompt if no prompt is provided
         if prompt is None:
             prompt = self.fixed_prompt
-            
+
         # Set contents to send to the model
         contents = [video_file, prompt]
         # Prompt the model to generate content
@@ -103,5 +138,3 @@ class ComputerVisionModel(GenerativeModel):
         )
 
         return response.text
-
-

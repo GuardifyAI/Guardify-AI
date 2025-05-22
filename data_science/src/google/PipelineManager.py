@@ -5,7 +5,7 @@ import datetime
 import os
 
 class PipelineManager:
-    MAX_API_CALLS = 2
+    MAX_API_CALLS = 5
 
     def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer):
         self.google_client = google_client

@@ -201,3 +201,4 @@ data_science/src/azure/logs/
 *.mkv
 *.webm
 *.mpeg
+*.pkl
