@@ -16,7 +16,7 @@ class ShopliftingAnalyzer:
         "avi": "video/x-msvideo",
     }
 
-    def __init__(self, detection_strictness: float, logger: logging.Logger = None):
+    def __init__(self, cv_model: ComputerVisionModel, analysis_model: AnalysisModel, detection_strictness: float, logger: logging.Logger = None):
         """
         Initializes the ShopliftingAnalyzer, which coordinates the end-to-end analysis of a single video
         using computer vision and analytical models to detect shoplifting behavior.
@@ -25,6 +25,8 @@ class ShopliftingAnalyzer:
         and evaluates whether the confidence and consistency of results meet criteria to stop further analysis.
 
         Args:
+            cv_model (ComputerVisionModel): The computer vision model for video analysis.
+            analysis_model (AnalysisModel): The analysis model for interpreting video observations.
             detection_strictness (float): A threshold between 0 and 1 indicating the minimum required
                                                     confidence level to classify the video as containing shoplifting.
                                                     Higher values make the analyzer stricter (fewer false positives,
@@ -32,8 +34,8 @@ class ShopliftingAnalyzer:
                                                     (may detect more true positives, but at risk of false positives).
             logger (logging.Logger, optional): A logger instance for logging messages. If None, a default logger is created.
         """
-        self.cv_model = ComputerVisionModel()
-        self.analysis_model = AnalysisModel()
+        self.cv_model = cv_model
+        self.analysis_model = analysis_model
         self.current_confidence_levels = []
         self.current_shoplifting_detected_results = []
         if detection_strictness < 0 or detection_strictness > 1:

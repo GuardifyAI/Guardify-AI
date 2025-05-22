@@ -1,6 +1,8 @@
 import pytest
 from pathlib import Path
 from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer
+from data_science.src.google.AnalysisModel import AnalysisModel
+from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 from data_science.src.google.GoogleClient import GoogleClient
 import shutil
 import os
@@ -33,7 +35,9 @@ def setup_test_environment():
 @pytest.fixture(scope="session")
 def shoplifting_analyzer():
     """Fixture to create a ShopliftingAnalyzer instance"""
-    return ShopliftingAnalyzer(detection_strictness=0.7)
+    return ShopliftingAnalyzer(cv_model=ComputerVisionModel(),
+                               analysis_model=AnalysisModel(),
+                               detection_strictness=0.7)
 
 @pytest.fixture(scope="session")
 def google_client():
