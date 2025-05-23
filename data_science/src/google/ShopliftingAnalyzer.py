@@ -15,6 +15,16 @@ class ShopliftingAnalyzer:
         "mp4": "video/mp4",
         "avi": "video/x-msvideo",
     }
+    ANALYSIS_DICT = {
+        "video_identifier": str(),
+        "confidence_levels": list(),
+        "shoplifting_detected_results": list(),
+        "cv_model_responses": list(),
+        "analysis_model_responses": list(),
+        "stats": dict(),
+        "shoplifting_probability": float(),
+        "shoplifting_determination": bool()
+    }
 
     def __init__(self, cv_model: ComputerVisionModel, analysis_model: AnalysisModel, detection_strictness: float, logger: logging.Logger = None):
         """
@@ -62,7 +72,8 @@ class ShopliftingAnalyzer:
         # Validate video extension
         extension = get_video_extension(video_uri)
         if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
-            raise ValueError(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+            self.logger.error(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+            return self.ANALYSIS_DICT
         video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
         return self.analyze_video(video_part, video_uri, max_api_calls, pickle_analysis)
 
@@ -84,10 +95,12 @@ class ShopliftingAnalyzer:
         """
         extension = get_video_extension(video_path)
         if not os.path.exists(video_path):
-            raise FileNotFoundError(f"Video file not found at path: {video_path}")
+            self.logger.error(f"Video file not found at path: {video_path}")
+            return self.ANALYSIS_DICT
 
         if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
-            raise ValueError(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+            self.logger.error(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+            return self.ANALYSIS_DICT
 
         video_part = Part.from_data(
             mime_type=self.VIDEO_MIME_TYPES[extension],
@@ -127,16 +140,16 @@ class ShopliftingAnalyzer:
 
         stats = self.get_detection_stats_for_video()
         shoplifting_probability, shoplifting_determination = self.determine_shoplifting_from_stats(stats)
-        analysis = {
-            "video_identifier": video_identifier,
-            "confidence_levels": self.current_confidence_levels,
-            "shoplifting_detected_results": self.current_shoplifting_detected_results,
-            "cv_model_responses": cv_model_responses,
-            "analysis_model_responses": analysis_model_responses,
-            "stats": stats,
-            "shoplifting_probability": shoplifting_probability,
-            "shoplifting_determination": shoplifting_determination
-        }
+        analysis = self.ANALYSIS_DICT.copy()
+        analysis["video_identifier"] = video_identifier
+        analysis["confidence_levels"] = self.current_confidence_levels
+        analysis["shoplifting_detected_results"] = self.current_shoplifting_detected_results
+        analysis["cv_model_responses"] = cv_model_responses
+        analysis["analysis_model_responses"] = analysis_model_responses
+        analysis["stats"] = stats
+        analysis["shoplifting_probability"] = shoplifting_probability
+        analysis["shoplifting_determination"] = shoplifting_determination
+
         if pickle_analysis:
             self.save_analysis_to_pickle(analysis)
 
