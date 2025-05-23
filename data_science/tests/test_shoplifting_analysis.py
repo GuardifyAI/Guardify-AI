@@ -1,15 +1,18 @@
 import pytest
-import cv2
 from pathlib import Path
-from data_science.src.azure.extract_frames import FrameExtractor
-from data_science.src.azure.analyze_shoplifting import ShopliftingAnalyzer
+from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer
+from data_science.src.google.AnalysisModel import AnalysisModel
+from data_science.src.google.ComputerVisionModel import ComputerVisionModel
+from data_science.src.google.GoogleClient import GoogleClient
 import shutil
+import os
+from data_science.src.utils import load_env_variables
+load_env_variables()
 
 # Test data paths
 TEST_DATASET_DIR = Path(__file__).parent.parent / "test_dataset"
 TEST_FRAMES_DIR = Path(__file__).parent / "test_frames"
 TEST_ANALYSIS_DIR = Path(__file__).parent / "test_analysis"
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
@@ -29,102 +32,88 @@ def setup_test_environment():
     if TEST_ANALYSIS_DIR.exists():
         shutil.rmtree(TEST_ANALYSIS_DIR)
 
-
-@pytest.fixture(scope="session")
-def frames_extractor():
-    """Fixture to create a FrameExtractor instance"""
-    return FrameExtractor(every_n_frames=5)
-
-
 @pytest.fixture(scope="session")
 def shoplifting_analyzer():
     """Fixture to create a ShopliftingAnalyzer instance"""
-    return ShopliftingAnalyzer()
+    return ShopliftingAnalyzer(cv_model=ComputerVisionModel(),
+                               analysis_model=AnalysisModel(),
+                               detection_strictness=0.7)
 
-
-def test_frame_extraction(frames_extractor):
-    """Test that video frames are correctly extracted from test test_dataset"""
-    # Process all videos in the test test_dataset
-    video_files = sorted(
-        file
-        for ext in frames_extractor.ALLOWED_VIDEO_EXTENSIONS
-        for file in TEST_DATASET_DIR.glob(f"**/*{ext}")
+@pytest.fixture(scope="session")
+def google_client():
+    return GoogleClient(
+        project=os.getenv("GOOGLE_PROJECT_ID"),
+        location=os.getenv("GOOGLE_PROJECT_LOCATION"),
+        service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
     )
 
-    # Get the first video file, if any
-    first_video_path = str(video_files[0].resolve()) if video_files else None
-    frames_extractor.extract_frames(first_video_path, str(TEST_FRAMES_DIR))
-    # Check that frames were created
-    frame_files = list(TEST_FRAMES_DIR.glob("**/*.jpg"))
-    assert len(frame_files) > 0, "No frames were extracted"
+@pytest.mark.parametrize("non_shoplifting_video_uri", ["gs://guardify-test-videos/Shoplifting001_x264_4.mp4"])
+def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_analyzer, non_shoplifting_video_uri):
+    """
+    Test analyzing a video that does not contain shoplifting.
+    This test verifies that the analyzer correctly identifies a video without shoplifting activity.
+    """
+    # Analyze the video
+    results = shoplifting_analyzer.analyze_video_from_bucket(
+        video_uri=non_shoplifting_video_uri,
+        max_api_calls=1,
+        pickle_analysis=False
+    )
 
-    # Verify frame content
-    for frame_path in frame_files:
-        img = cv2.imread(str(frame_path))
-        assert img is not None, f"Could not read frame {frame_path}"
-        assert len(img.shape) == 3, f"Frame {frame_path} should have 3 channels (RGB)"
-        assert img.shape[2] == 3, f"Frame {frame_path} should have 3 channels (RGB)"
+    # Assert that shoplifting was not detected
+    assert not results["shoplifting_determination"], "Shoplifting was incorrectly detected in a video without shoplifting"
+    
+    # Assert that the probability is low
+    assert results["shoplifting_probability"] < 0.5, "Shoplifting probability should be low for a video without shoplifting"
+    
+    # Assert that we have the expected structure in the results
+    assert "confidence_levels" in results
+    assert "shoplifting_detected_results" in results
+    assert "cv_model_responses" in results
+    assert "analysis_model_responses" in results
+    assert "stats" in results
 
+@pytest.mark.parametrize("shoplifting_video_uri", ["gs://guardify-test-videos/43dd8387-28ad-4a64-bda1-9c566c526b82 (1).mp4"])
+def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_analyzer, shoplifting_video_uri):
+    """
+    Test analyzing a video that contains shoplifting.
+    This test verifies that the analyzer correctly identifies a video with shoplifting activity.
+    """
+    # Analyze the video
+    results = shoplifting_analyzer.analyze_video_from_bucket(
+        video_uri=shoplifting_video_uri,
+        max_api_calls=1,
+        pickle_analysis=False
+    )
 
-def test_shoplifting_analysis(shoplifting_analyzer):
-    """Test that shoplifting analysis produces valid JSON output with enhanced checks."""
-    # Analyze the extracted frames
-    video_analysis = shoplifting_analyzer.analyze_single_video("test_frames", str(Path(__file__).parent))
+    # Assert that shoplifting was detected
+    assert results["shoplifting_determination"], "Shoplifting was not detected in a video with shoplifting"
+    
+    # Assert that the probability is high
+    assert results["shoplifting_probability"] > 0.7, "Shoplifting probability should be high for a video with shoplifting"
+    
+    # Assert that we have the expected structure in the results
+    assert "confidence_levels" in results
+    assert "shoplifting_detected_results" in results
+    assert "cv_model_responses" in results
+    assert "analysis_model_responses" in results
+    assert "stats" in results
+    
+    # Additional assertions for shoplifting case
+    assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
+    assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
 
-    # New top-level required fields
-    top_level_fields = [
-        "sequence_name",
-        "total_batches_analyzed",
-        "shoplifting_determination",
-        "confidence_level",
-        "shoplifting_probability",
-        "total_summary",
-        "batch_results"
-    ]
-
-    for field in top_level_fields:
-        assert field in video_analysis, f"Missing top-level required field: {field}"
-
-    # Validate field types and formats at top-level
-    assert isinstance(video_analysis["sequence_name"], str)
-    assert isinstance(video_analysis["total_batches_analyzed"], int)
-    assert video_analysis["shoplifting_determination"] in ["Yes", "No", "Inconclusive", "N/A"]
-    assert isinstance(video_analysis["confidence_level"], str)
-    assert video_analysis["confidence_level"].endswith("%") or video_analysis["confidence_level"] == "N/A"
-    assert isinstance(video_analysis["shoplifting_probability"], str)
-    assert isinstance(video_analysis["total_summary"], str)
-    assert isinstance(video_analysis["batch_results"], list)
-
-    # Validate batch_results structure
-    for batch in video_analysis["batch_results"]:
-        required_batch_fields = [
-            "confidence_level",
-            "key_behaviors",
-            "summary_of_video",
-            "shoplifting_determination",
-            "sequence_name"
-        ]
-        for field in required_batch_fields:
-            assert field in batch, f"Missing batch required field: {field}"
-
-        # Validate field types within each batch
-        assert isinstance(batch["confidence_level"], str)
-        assert batch["confidence_level"].endswith("%") or batch["confidence_level"] == "N/A"
-        assert isinstance(batch["key_behaviors"], str)
-        assert isinstance(batch["summary_of_video"], str)
-        assert batch["shoplifting_determination"] in ["Yes", "No", "Inconclusive", "N/A"]
-        assert isinstance(batch["sequence_name"], str)
-
-    # Additional logical consistency checks
-    assert video_analysis["total_batches_analyzed"] == len(video_analysis["batch_results"]), \
-        "Mismatch in total_batches_analyzed and actual batch_results count"
-
-    # Probability checks
-    probability = float(video_analysis["shoplifting_probability"])
-    assert 0.0 <= probability <= 100.0, "Invalid shoplifting_probability range"
-
-    # Ensure confidence_level percentages are valid
-    top_confidence_level = video_analysis["confidence_level"]
-    if top_confidence_level != "N/A":
-        top_confidence = float(top_confidence_level.rstrip('%'))
-        assert 0 <= top_confidence <= 100, "Invalid confidence_level range at top level"
+@pytest.mark.parametrize("video_file", ["outputavi.avi", "shop_video_2.mp4"])
+def test_analyze_local_video(google_client, shoplifting_analyzer, video_file):
+    # Analyze the video
+    results = shoplifting_analyzer.analyze_local_video(
+        video_path=str(TEST_DATASET_DIR) + "/" + video_file,
+        max_api_calls=1,
+        pickle_analysis=False
+    )
+    # Assert that we have the expected structure in the results
+    assert "confidence_levels" in results
+    assert "shoplifting_detected_results" in results
+    assert "cv_model_responses" in results
+    assert "analysis_model_responses" in results
+    assert "stats" in results

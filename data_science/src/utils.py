@@ -2,7 +2,7 @@ import os
 import logging
 import base64
 import re
-from typing import Dict
+from typing import Dict, Optional
 from dotenv import load_dotenv
 
 
@@ -107,3 +107,27 @@ def restructure_analysis(analysis_text: str, video_name: str = None) -> dict:
             result["key_behaviors"] = behaviors
 
     return result
+
+
+def get_video_extension(video_path_or_uri: str) -> str:
+    """
+    Extract the video extension from a file path or URI.
+    
+    Args:
+        video_path_or_uri (str): The full path or URI of the video file
+        
+    Returns:
+        str: The video extension without the dot (e.g., 'mp4', 'avi')
+        
+    Examples:
+        >>> get_video_extension('/path/to/video.mp4')
+        'mp4'
+        >>> get_video_extension('gs://bucket/video.avi')
+        'avi'
+        >>> get_video_extension('inalid_file')
+        raises value error
+    """
+    extension = os.path.splitext(video_path_or_uri)[1].lower().lstrip('.')
+    if not extension:
+        raise ValueError(f"Invalid video path in: {video_path_or_uri}")
+    return extension

@@ -2,7 +2,7 @@ import os
 import cv2
 import tempfile
 from io import BytesIO
-from data_science.src.azure.utils import create_logger
+from data_science.src.utils import create_logger
 
 
 class FrameExtractor:

@@ -177,3 +177,27 @@ cython_debug/
 # Ignore logs
 data_science/src/azure/logs/
 *.log
+
+# JSON files
+*.json
+
+# Photos and Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.svg
+*.tiff
+*.ico
+*.webp
+
+# Video files
+*.mp4
+*.mov
+*.avi
+*.wmv
+*.flv
+*.mkv
+*.webm
+*.mpeg
