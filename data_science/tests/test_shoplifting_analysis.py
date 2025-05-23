@@ -47,12 +47,12 @@ def google_client():
         service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
     )
 
-def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_analyzer):
+@pytest.mark.parametrize("non_shoplifting_video_uri", ["gs://guardify-test-videos/Shoplifting001_x264_4.mp4"])
+def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_analyzer, non_shoplifting_video_uri):
     """
     Test analyzing a video that does not contain shoplifting.
     This test verifies that the analyzer correctly identifies a video without shoplifting activity.
     """
-    non_shoplifting_video_uri = "gs://guardify-test-videos/Shoplifting001_x264_4.mp4"
     # Analyze the video
     results = shoplifting_analyzer.analyze_video_from_bucket(
         video_uri=non_shoplifting_video_uri,
@@ -73,13 +73,12 @@ def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_ana
     assert "analysis_model_responses" in results
     assert "stats" in results
 
-
-def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_analyzer):
+@pytest.mark.parametrize("shoplifting_video_uri", ["gs://guardify-test-videos/43dd8387-28ad-4a64-bda1-9c566c526b82 (1).mp4"])
+def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_analyzer, shoplifting_video_uri):
     """
     Test analyzing a video that contains shoplifting.
     This test verifies that the analyzer correctly identifies a video with shoplifting activity.
     """
-    shoplifting_video_uri = "gs://guardify-test-videos/43dd8387-28ad-4a64-bda1-9c566c526b82 (1).mp4"
     # Analyze the video
     results = shoplifting_analyzer.analyze_video_from_bucket(
         video_uri=shoplifting_video_uri,
@@ -104,7 +103,7 @@ def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_a
     assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
     assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
 
-@pytest.mark.parametrize("video_file", ["COUNTING_20250403130713.avi", "shop_video_2.mp4"])
+@pytest.mark.parametrize("video_file", ["outputavi.avi", "shop_video_2.mp4"])
 def test_analyze_local_video(google_client, shoplifting_analyzer, video_file):
     # Analyze the video
     results = shoplifting_analyzer.analyze_local_video(
