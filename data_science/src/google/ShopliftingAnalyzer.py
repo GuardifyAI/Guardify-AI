@@ -240,7 +240,7 @@ class ShopliftingAnalyzer:
     # ===== UNIFIED STRATEGY METHODS (TRUE SINGLE MODEL) =====
 
     def analyze_video_unified(self, video_part: Part, video_identifier: str, iterations: int,
-                               pickle_analysis: bool = True) -> Dict:
+                              pickle_analysis: bool = True) -> Dict:
         """
         TRUE UNIFIED strategy analysis method using UnifiedShopliftingModel.
 
@@ -264,18 +264,16 @@ class ShopliftingAnalyzer:
         all_detections = []
 
         for i in range(iterations):
-            self.logger.info(f"Iteration {i+1}/{iterations}")
+            self.logger.info(f"Iteration {i + 1}/{iterations}")
 
             # Single unified model call - direct video→detection!
-            full_response, detected, confidence, detailed_analysis = self.unified_model.analyze_video_unified(video_part)
-
-            # Keep original confidence - no recalibration needed for true unified model
-            original_confidence = confidence
+            full_response, detected, confidence, detailed_analysis = self.unified_model.analyze_video_unified(
+                video_part)
 
             self.logger.info(f"[CONFIDENCE] Using original unified model confidence: {confidence:.3f}")
 
             # ENHANCED DIAGNOSTIC LOGGING
-            self.logger.info(f"=== ENHANCED DIAGNOSTIC ANALYSIS - Iteration {i+1} ===")
+            self.logger.info(f"=== ENHANCED DIAGNOSTIC ANALYSIS - Iteration {i + 1} ===")
             self.logger.info(f"Video: {video_identifier}")
             self.logger.info(f"Detected: {detected}")
             self.logger.info(f"Confidence: {confidence:.3f}")
@@ -323,12 +321,13 @@ class ShopliftingAnalyzer:
                     self.logger.info(f"[MIXED SIGNALS] Not detected but moderate confidence")
 
             # Flag potential missed thefts on shoplifting videos
-            if confidence <= 0.3 and ('shop_lifter' in video_identifier.lower() and 'shop_lifter_n' not in video_identifier.lower()):
+            if confidence <= 0.3 and (
+                    'shop_lifter' in video_identifier.lower() and 'shop_lifter_n' not in video_identifier.lower()):
                 self.logger.warning(f"[POTENTIAL MISSED THEFT] Shoplifting video with very low confidence")
                 self.logger.warning(f"  This may indicate the model is missing behavioral patterns")
                 self.logger.warning(f"  Review: Does the reasoning show theft patterns that were dismissed?")
 
-            self.logger.info(f"=== END ENHANCED DIAGNOSTIC - Iteration {i+1} ===")
+            self.logger.info(f"=== END ENHANCED DIAGNOSTIC - Iteration {i + 1} ===")
 
             # Store iteration results
             iteration_result = {
@@ -394,7 +393,8 @@ class ShopliftingAnalyzer:
 
         return analysis_results
 
-    def _make_surveillance_realistic_decision_unified(self, confidences: List[float], detections: List[bool], iteration_results: List[Dict]) -> Tuple[float, bool, str]:
+    def _make_surveillance_realistic_decision_unified(self, confidences: List[float], detections: List[bool],
+                                                      iteration_results: List[Dict]) -> Tuple[float, bool, str]:
         """
         SURVEILLANCE-REALISTIC DECISION LOGIC for unified model - Balance theft detection with false positive avoidance
         """
@@ -405,7 +405,7 @@ class ShopliftingAnalyzer:
         total_iterations = len(detections)
 
         self.logger.info(f"UNIFIED DECISION inputs: avg_conf={avg_confidence:.3f}, max_conf={max_confidence:.3f}, "
-                        f"detections={detection_count}/{total_iterations}")
+                         f"detections={detection_count}/{total_iterations}")
 
         # Case 1: No detection by model - likely normal behavior
         if detection_count == 0:
@@ -415,7 +415,8 @@ class ShopliftingAnalyzer:
 
         # Case 2: Model detected theft - but carefully examine if it's actually normal behavior
         else:
-            # IMPROVED OVERRIDE LOGIC: Only apply normal shopping override if confidence is already low or context suggests normal behavior
+            # IMPROVED OVERRIDE LOGIC: Only apply normal shopping override if confidence is already low or context
+            # suggests normal behavior
             normal_shopping_indicators = []
             strong_theft_evidence = []
 
@@ -557,7 +558,7 @@ class ShopliftingAnalyzer:
     # ===== HYBRID STRATEGY METHODS =====
 
     def analyze_video_hybrid(self, video_part: Part, video_identifier: str, iterations: int = 3,
-                              pickle_analysis: bool = True) -> Dict:
+                             pickle_analysis: bool = True) -> Dict:
         """
         Hybrid strategy analysis method: CV observations → Analysis decision.
 

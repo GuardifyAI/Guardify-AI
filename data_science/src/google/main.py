@@ -1,16 +1,17 @@
 from GoogleClient import GoogleClient
 import os
 import sys
+
 # Add the project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, project_root)
 
 from data_science.src.utils import load_env_variables, create_logger
+
 load_env_variables()
 from PipelineManager import PipelineManager
-from typing import List, Dict
-import numpy as np
 import argparse
+
 
 def main():
     """
@@ -37,24 +38,24 @@ def main():
     python main.py --strategy hybrid    # Use hybrid two-model approach
     python main.py --strategy both      # Compare both approaches (diagnostic)
     """
-    
+
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Shoplifting Detection Analysis System')
-    parser.add_argument('--strategy', choices=['unified', 'hybrid', 'both'], 
-                       default='unified', help='Analysis strategy to use')
-    parser.add_argument('--max-videos', type=int, default=20, 
-                       help='Maximum number of videos to analyze')
-    parser.add_argument('--iterations', type=int, default=2, 
-                       help='Number of analysis iterations per video')
-    parser.add_argument('--threshold', type=float, default=0.45, 
-                       help='Detection confidence threshold')
-    parser.add_argument('--diagnostic', action='store_true', 
-                       help='Enable diagnostic mode with enhanced logging', default=True)
-    parser.add_argument('--export', action='store_true', 
-                       help='Export results to CSV')
-    
+    parser.add_argument('--strategy', choices=['unified', 'hybrid', 'both'],
+                        default='unified', help='Analysis strategy to use')
+    parser.add_argument('--max-videos', type=int, default=20,
+                        help='Maximum number of videos to analyze')
+    parser.add_argument('--iterations', type=int, default=2,
+                        help='Number of analysis iterations per video')
+    parser.add_argument('--threshold', type=float, default=0.45,
+                        help='Detection confidence threshold')
+    parser.add_argument('--diagnostic', action='store_true',
+                        help='Enable diagnostic mode with enhanced logging', default=True)
+    parser.add_argument('--export', action='store_true',
+                        help='Export results to CSV')
+
     args = parser.parse_args()
-    
+
     # Create logger for debugging
     logger = create_logger('AdvancedShopliftingAnalysis', 'advanced_main_analysis.log')
     logger.info(f"Starting ADVANCED DUAL-STRATEGY shoplifting analysis pipeline")
@@ -63,45 +64,45 @@ def main():
     logger.info(f"Iterations: {args.iterations}")
     logger.info(f"Threshold: {args.threshold}")
     logger.info(f"Diagnostic mode: {args.diagnostic}")
-    
+
     # Initialize GoogleClient with your existing authentication
     google_client = GoogleClient(
         project=os.getenv("GOOGLE_PROJECT_ID"),
         location=os.getenv("GOOGLE_PROJECT_LOCATION"),
         service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
     )
-    
+
     # Get bucket name
     bucket_name = os.getenv("BUCKET_NAME")
     logger.info(f"[TARGET] Starting analysis of videos in bucket: {bucket_name}")
-    
+
     # Create consolidated pipeline manager for both strategies
     pipeline_manager = PipelineManager(google_client, logger=logger)
-    
+
     # Execute based on strategy using consolidated manager
     if args.strategy == 'unified':
         logger.info("[UNIFIED] Using enhanced unified single-model approach")
         results = pipeline_manager.run_unified_analysis(
-            bucket_name, args.max_videos, args.iterations, 
+            bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export
         )
-        
+
     elif args.strategy == 'hybrid':
         logger.info("[HYBRID] Using enhanced hybrid two-model approach")
         results = pipeline_manager.run_hybrid_analysis(
-            bucket_name, args.max_videos, args.iterations, 
+            bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export
         )
-        
+
     elif args.strategy == 'both':
         logger.info("[COMPARISON] Running both strategies for comparative analysis")
         results = pipeline_manager.run_comparative_analysis(
-            bucket_name, args.max_videos, args.iterations, 
+            bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export
         )
-    
+
     logger.info("[SUCCESS] Advanced pipeline analysis completed successfully!")
+
 
 if __name__ == "__main__":
     main()
-

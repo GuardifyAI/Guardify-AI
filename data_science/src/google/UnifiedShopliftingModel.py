@@ -8,11 +8,14 @@ from vertexai.generative_models import (
 )
 
 from typing import Dict, List, Optional, Union, Tuple
-from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, GenerationResponse
+from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, \
+    GenerationResponse
 import os
 import json
 from data_science.src.utils import load_env_variables
+
 load_env_variables()
+
 
 class UnifiedShopliftingModel(GenerativeModel):
     """
@@ -22,7 +25,7 @@ class UnifiedShopliftingModel(GenerativeModel):
     This model combines video analysis and shoplifting detection in a single step,
     eliminating information loss and using few-shot learning with real examples.
     """
-    
+
     default_system_instruction = [
         "You are an elite retail loss prevention expert with 15+ years of experience in shoplifting detection.",
         "You have analyzed thousands of surveillance videos and can instantly recognize theft patterns.",
@@ -129,7 +132,7 @@ class UnifiedShopliftingModel(GenerativeModel):
         },
         "required": [
             "Observed_Behavior",
-            "Shoplifting_Detected", 
+            "Shoplifting_Detected",
             "Confidence_Level",
             "Reasoning"
         ]
@@ -137,8 +140,8 @@ class UnifiedShopliftingModel(GenerativeModel):
 
     default_generation_config = GenerationConfig(
         temperature=0.05,  # Much lower for more consistent, conservative responses
-        top_p=0.7,         # More focused on high-probability responses
-        top_k=10,          # Even more focused responses
+        top_p=0.7,  # More focused on high-probability responses
+        top_k=10,  # Even more focused responses
         candidate_count=1,
         max_output_tokens=8192,
         response_mime_type="application/json",
@@ -153,12 +156,12 @@ class UnifiedShopliftingModel(GenerativeModel):
     }
 
     def __init__(self,
-        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
-        *,
-        generation_config: Optional[GenerationConfigType] = None,
-        safety_settings: Optional[SafetySettingsType] = None,
-        system_instruction: Optional[PartsType] = None,
-        labels: Optional[Dict[str, str]] = None):
+                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 *,
+                 generation_config: Optional[GenerationConfigType] = None,
+                 safety_settings: Optional[SafetySettingsType] = None,
+                 system_instruction: Optional[PartsType] = None,
+                 labels: Optional[Dict[str, str]] = None):
 
         if system_instruction is None:
             system_instruction = self.default_system_instruction
@@ -184,37 +187,37 @@ class UnifiedShopliftingModel(GenerativeModel):
         """
         if prompt is None:
             prompt = self.unified_prompt
-            
+
         contents = [video_file, prompt]
-        
+
         # Single model call - no information loss!
         response = self.generate_content(
             contents,
             generation_config=self._generation_config,
-            safety_settings=self._safety_settings,
+            safety_settings=self._safety_settings
         )
-        
+
         # Extract structured results
         detected, confidence, analysis = self._extract_unified_response(response)
-        
+
         return response.text, detected, confidence, analysis
 
     def _extract_unified_response(self, response: GenerationResponse) -> Tuple[bool, float, dict]:
         """Extract detection results from unified model response."""
         try:
             response_json = json.loads(response.text)
-            
+
             detected = response_json["Shoplifting_Detected"]
             confidence = response_json["Confidence_Level"]
-            
+
             # Full analysis details
             analysis = {
                 "observed_behavior": response_json.get("Observed_Behavior", ""),
                 "reasoning": response_json.get("Reasoning", ""),
             }
-            
+
             return detected, confidence, analysis
-            
+
         except (json.JSONDecodeError, KeyError) as e:
             # Fallback for malformed responses
-            return False, 0.0, {"error": f"Response parsing failed: {e}"} 
+            return False, 0.0, {"error": f"Response parsing failed: {e}"}
