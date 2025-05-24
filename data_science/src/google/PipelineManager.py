@@ -39,12 +39,13 @@ class PipelineManager:
 
         return final_predictions
 
-    def _export_results(self, final_predictions: dict) -> str:
+    def _export_results(self, final_predictions: dict, labels_csv_path: str = None) -> str:
         """
         Export analysis results to a CSV file.
 
         Args:
             final_predictions (dict): Dictionary containing analysis results for each video
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels
 
         Returns:
             str: Path to the exported CSV file
@@ -59,6 +60,31 @@ class PipelineManager:
             })
 
         df = pd.DataFrame(results_data)
+        match_percentage = None
+
+        # Try to compare with labels if provided
+        if labels_csv_path:
+            try:
+                labels_df = pd.read_csv(labels_csv_path)
+                required_columns = ['video_name', 'shoplifting_determination']
+                
+                if all(col in labels_df.columns for col in required_columns):
+                    # Merge predictions with labels
+                    merged_df = pd.merge(
+                        df,
+                        labels_df[required_columns],
+                        on='video_name',
+                        how='inner',
+                        suffixes=('_predicted', '_actual')
+                    )
+                    
+                    # Add correctness column
+                    df['prediction_correct'] = merged_df['shoplifting_determination_actual'] == merged_df['shoplifting_determination_predicted']
+                    
+                    # Calculate match percentage
+                    match_percentage = (df['prediction_correct']).mean() * 100
+            except:
+                pass
 
         # Create timestamp for unique filename
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -70,6 +96,13 @@ class PipelineManager:
 
         # Save to CSV
         csv_path = os.path.join(results_dir, csv_filename)
+        
+        # Write the main results
         df.to_csv(csv_path, index=False)
+        
+        # Append match percentage if available
+        if match_percentage is not None:
+            with open(csv_path, 'a') as f:
+                f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
 
         return csv_path
