@@ -3,6 +3,9 @@ from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
 from typing import List, Tuple
 from google.cloud import storage
+import tempfile
+import subprocess
+import os
 
 class GoogleClient:
     def __init__(self, project: str, location: str, service_account_json_path: str):
@@ -54,4 +57,41 @@ class GoogleClient:
         names = [blob.name for blob in names_blobs if blob.name.endswith('.mp4') or blob.name.endswith('.MP4')]
         uris = [f"gs://{bucket_name}/{blob.name}" for blob in uris_blobs if blob.name.endswith('.mp4') or blob.name.endswith('.MP4')]
 
-        return uris, names 
+        return uris, names
+
+    def convert_all_videos_in_bucket_to_mp4(self, bucket_name: str, extensions: List[str] = None):
+        """
+        Convert all videos with specified extensions in the given bucket to MP4.
+        The original video files will be replaced by their MP4 versions.
+
+        Args:
+            bucket_name: Name of the Google Cloud Storage bucket
+            extensions: List of video file extensions to convert (default ["avi"])
+        """
+        extensions = extensions or ["avi"]
+        bucket = self.storage_client.bucket(bucket_name)
+        blobs = bucket.list_blobs()
+
+        for blob in blobs:
+            if any(blob.name.lower().endswith(ext.lower()) for ext in extensions):
+                print(f"Converting: {blob.name}")
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    local_original_path = os.path.join(tmpdir, os.path.basename(blob.name))
+                    local_converted_path = os.path.join(tmpdir,
+                                                        os.path.splitext(os.path.basename(blob.name))[0] + ".mp4")
+
+                    # Download original file
+                    blob.download_to_filename(local_original_path)
+
+                    # Convert to MP4 using ffmpeg
+                    subprocess.run(["ffmpeg", "-i", local_original_path, local_converted_path], check=True)
+
+                    # Upload converted file
+                    new_blob_name = os.path.splitext(blob.name)[0] + ".mp4"
+                    new_blob = bucket.blob(new_blob_name)
+                    new_blob.upload_from_filename(local_converted_path)
+
+                    # Delete original file
+                    blob.delete()
+
+                    print(f"Converted and replaced: {blob.name} with {new_blob_name}")

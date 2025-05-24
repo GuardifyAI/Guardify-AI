@@ -11,7 +11,11 @@ class PipelineManager:
         self.google_client = google_client
         self.shoplifting_analyzer = shoplifting_analyzer
 
-    def analyze_all_videos_in_bucket(self, bucket_name: str, max_api_calls_per_video: int = None, export_results: bool = False):
+    def analyze_all_videos_in_bucket(self,
+                                     bucket_name: str,
+                                     max_api_calls_per_video: int = None,
+                                     export_results: bool = False,
+                                     labels_csv_path: str = None):
         """
         Analyze all videos in a specified bucket and optionally export results to CSV.
 
@@ -19,7 +23,7 @@ class PipelineManager:
             bucket_name (str): Name of the Google Cloud Storage bucket
             max_api_calls_per_video (int, optional): Maximum number of API calls per video. Defaults to None.
             export_results (bool, optional): Whether to export results to CSV. Defaults to False.
-
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
         Returns:
             dict: Dictionary containing analysis results for each video
         """
@@ -35,16 +39,17 @@ class PipelineManager:
             final_predictions[name] = analysis
 
         if export_results:
-            self._export_results(final_predictions)
+            self._export_results(final_predictions, labels_csv_path)
 
         return final_predictions
 
-    def _export_results(self, final_predictions: dict) -> str:
+    def _export_results(self, final_predictions: dict, labels_csv_path: str = None) -> str:
         """
         Export analysis results to a CSV file.
 
         Args:
             final_predictions (dict): Dictionary containing analysis results for each video
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
 
         Returns:
             str: Path to the exported CSV file
@@ -53,12 +58,17 @@ class PipelineManager:
         results_data = []
         for name, analysis in final_predictions.items():
             results_data.append({
-                'video_uri': analysis['video_identifier'],
+                'video_identifier': analysis['video_identifier'],
                 'video_name': name,
                 'shoplifting_determination': analysis['shoplifting_determination']
             })
 
         df = pd.DataFrame(results_data)
+        match_percentage = None
+
+        # Compare with labels if provided
+        if labels_csv_path:
+            df, match_percentage = self._compare_with_labels(df, labels_csv_path)
 
         # Create timestamp for unique filename
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -70,6 +80,50 @@ class PipelineManager:
 
         # Save to CSV
         csv_path = os.path.join(results_dir, csv_filename)
+        
+        # Write the main results
         df.to_csv(csv_path, index=False)
+        
+        # Append match percentage if available
+        if match_percentage is not None:
+            with open(csv_path, 'a') as f:
+                f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
 
         return csv_path
+
+    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[pd.DataFrame, float]:
+        """
+        Compare predictions with ground truth labels and calculate match percentage.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing predictions
+            labels_csv_path (str): Path to CSV file containing ground truth labels
+
+        Returns:
+            tuple[pd.DataFrame, float]: Updated DataFrame with correctness column and match percentage
+        """
+        original_df = df.copy()
+        try:
+            labels_df = pd.read_csv(labels_csv_path)
+            required_columns = ['video_name', 'shoplifting_determination']
+
+            if all(col in labels_df.columns for col in required_columns):
+                # Merge predictions with labels
+                merged_df = pd.merge(
+                    df,
+                    labels_df[required_columns],
+                    on='video_name',
+                    how='inner',
+                    suffixes=('_predicted', '_actual')
+                )
+
+                # Add correctness column
+                df['prediction_correct'] = merged_df['shoplifting_determination_actual'] == merged_df[
+                    'shoplifting_determination_predicted']
+
+                # Calculate match percentage
+                match_percentage = (df['prediction_correct']).mean() * 100
+                return df, match_percentage
+        except:
+            pass
+        return original_df, None

@@ -35,8 +35,10 @@ def setup_test_environment():
 @pytest.fixture(scope="session")
 def shoplifting_analyzer():
     """Fixture to create a ShopliftingAnalyzer instance"""
-    return ShopliftingAnalyzer(cv_model=ComputerVisionModel(),
-                               analysis_model=AnalysisModel(),
+    cv_model = ComputerVisionModel()
+    analysis_model = AnalysisModel(model_name="projects/397795663248/locations/us-central1/endpoints/2744395316580057088")
+    return ShopliftingAnalyzer(cv_model=cv_model,
+                               analysis_model=analysis_model,
                                detection_strictness=0.7)
 
 @pytest.fixture(scope="session")
@@ -103,7 +105,7 @@ def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_a
     assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
     assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
 
-@pytest.mark.parametrize("video_file", ["outputavi.avi", "shop_video_2.mp4"])
+@pytest.mark.parametrize("video_file", ["shop_video_2.mp4", "outputavi.avi"])
 def test_analyze_local_video(google_client, shoplifting_analyzer, video_file):
     # Analyze the video
     results = shoplifting_analyzer.analyze_local_video(

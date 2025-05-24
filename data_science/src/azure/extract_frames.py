@@ -109,13 +109,15 @@ class FrameExtractor:
             return
 
         frame_idx = 0
+        saved_frame_idx = 0
         success, frame = cap.read()
 
         while success:
             if frame_idx % self.every_n_frames == 0:
-                frame_filename = f"frame_{frame_idx:04d}.jpg"
+                frame_filename = f"{saved_frame_idx}.png"
                 frame_path = os.path.join(output_folder, frame_filename)
                 cv2.imwrite(frame_path, frame)
+                saved_frame_idx += 1
 
             frame_idx += 1
             success, frame = cap.read()
