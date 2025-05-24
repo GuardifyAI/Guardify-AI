@@ -226,7 +226,7 @@ class ShopliftingAnalyzer:
             analysis (Dict): The analysis results to save.
         """
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        pkl_path = f"video_analysis_{current_time}.pkl"
+        pkl_path = f"{analysis['video_identifier']}_analysis_{current_time}.pkl"
 
         with open(pkl_path, 'wb') as file:
             pickle.dump(analysis, file)

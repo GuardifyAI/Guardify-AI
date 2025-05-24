@@ -53,7 +53,7 @@ class PipelineManager:
         results_data = []
         for name, analysis in final_predictions.items():
             results_data.append({
-                'video_uri': analysis['video_identifier'],
+                'video_identifier': analysis['video_identifier'],
                 'video_name': name,
                 'shoplifting_determination': analysis['shoplifting_determination']
             })
