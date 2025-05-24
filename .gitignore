@@ -201,3 +201,23 @@ data_science/src/azure/logs/
 *.mkv
 *.webm
 *.mpeg
+
+# node modules
+node_modules/
+
+# vite build output
+dist/
+
+# local env files
+.env
+.env.*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# editor files
+.vscode/
+.DS_Store
+Thumbs.db
