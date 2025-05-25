@@ -2,20 +2,9 @@ import { useState } from 'react';
 import './styles.css';
 import ShopsBarChart from './components/ShopsBarChart';
 import EventsLineChart from './components/EventsLineChart';
-
-type Shop = {
-  id: string;
-  name: string;
-  incidents: number;
-};
-
-type Event = {
-  id: string;
-  shopId: string;
-  shopName: string;
-  date: string;
-  description: string;
-};
+import ShopPage from './pages/ShopPage';
+import type { Event, Shop } from './types';
+import EventCard from './components/EventCard';
 
 const shops: Shop[] = [
   { id: 'shop1', name: 'Tel Aviv', incidents: 13 },
@@ -24,13 +13,19 @@ const shops: Shop[] = [
 ];
 
 const events: Event[] = [
-  { id: 'e1', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-20T14:30:00', description: 'Shoplifting detected by Camera Y' },
-  { id: 'e2', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-22T11:10:00', description: 'Suspicious activity at entrance' },
-  { id: 'e3', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-20T16:45:00', description: 'Shoplifting detected by Camera Z' },
-  { id: 'e4', shopId: 'shop3', shopName: 'Eilat', date: '2025-05-20T09:20:00', description: 'Attempted theft, staff intervened' },
-  { id: 'e5', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-19T13:00:00', description: 'Shoplifting detected by Camera Y' },
-  { id: 'e6', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-18T17:30:00', description: 'Suspicious bag left unattended' },
-  { id: 'e7', shopId: 'shop3', shopName: 'Eilat', date: '2025-05-17T10:15:00', description: 'Shoplifting detected by Camera 2' },
+  { id: 'e1', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-20T14:30:00', description: 'Shoplifting detected by Camera Y', cameraId: 'cam2', cameraName: 'Camera Y' },
+  { id: 'e2', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-22T11:10:00', description: 'Suspicious activity at entrance', cameraId: 'cam1', cameraName: 'Entrance Camera' },
+  { id: 'e3', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-20T16:45:00', description: 'Shoplifting detected by Camera Z', cameraId: 'cam3', cameraName: 'Camera Z' },
+  { id: 'e4', shopId: 'shop3', shopName: 'Eilat', date: '2025-05-20T09:20:00', description: 'Attempted theft, staff intervened', cameraId: 'cam5', cameraName: 'Back Entrance' },
+  { id: 'e5', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-19T13:00:00', description: 'Shoplifting detected by Camera Y', cameraId: 'cam2', cameraName: 'Camera Y' },
+  { id: 'e6', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-18T17:30:00', description: 'Suspicious bag left unattended', cameraId: 'cam1', cameraName: 'Entrance Camera' },
+  { id: 'e7', shopId: 'shop3', shopName: 'Eilat', date: '2025-05-17T10:15:00', description: 'Shoplifting detected by Camera 2', cameraId: 'cam4', cameraName: 'Camera 2' },
+  { id: 'e8', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-21T15:20:00', description: 'Customer acting suspiciously near register', cameraId: 'cam6', cameraName: 'Register Cam' },
+  { id: 'e9', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-20T12:40:00', description: 'Unusual crowd gathering at front', cameraId: 'cam1', cameraName: 'Entrance Camera' },
+  { id: 'e10', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-21T08:50:00', description: 'Suspicious motion after closing time', cameraId: 'cam3', cameraName: 'Camera Z' },
+  { id: 'e11', shopId: 'shop3', shopName: 'Eilat', date: '2025-05-22T13:05:00', description: 'Back door opened unexpectedly', cameraId: 'cam5', cameraName: 'Back Entrance' },
+  { id: 'e12', shopId: 'shop1', shopName: 'Tel Aviv', date: '2025-05-22T19:30:00', description: 'Shoplifting attempt stopped by staff', cameraId: 'cam1', cameraName: 'Entrance Camera' },
+  { id: 'e13', shopId: 'shop2', shopName: 'Haifa', date: '2025-05-23T10:00:00', description: 'Customer running out with unpaid item', cameraId: 'cam2', cameraName: 'Camera Y' }
 ];
 
 export default function App() {
@@ -123,15 +118,7 @@ export default function App() {
               <h2>All Events (Sorted by Date)</h2>
               <div className="events-grid">
                 {sortedEvents.map(event => (
-                  <div key={event.id} className={`event-card shop-${event.shopId}`}>
-                    <div className="event-date">{new Date(event.date).toLocaleString()}</div>
-                    <div className="event-shop">
-                      <span className={`shop-badge shop-${event.shopId}`}>
-                        {event.shopName}
-                      </span>
-                    </div>
-                    <div className="event-desc">{event.description}</div>
-                  </div>
+                  <EventCard key={event.id} event={event} />
                 ))}
               </div>
             </section>
@@ -140,8 +127,10 @@ export default function App() {
 
         {activeTab === 'shop' && selectedShop && (
           <section className="selected-shop">
-            <h2>Statistics for {shops.find(s => s.id === selectedShop)?.name}</h2>
-            <p>Coming soon...</p>
+            <ShopPage
+              shop={shops.find(s => s.id === selectedShop)!}
+              events={events}
+            />
           </section>
         )}
       </main>

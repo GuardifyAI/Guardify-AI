@@ -1,13 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-
-type Event = {
-  id: string;
-  shopId: string;
-  shopName: string;
-  date: string;
-  description: string;
-};
+import type { Event } from '../types';
 
 export default function EventsLineChart({ events }: { events: Event[] }) {
   const chartRef = useRef<HTMLCanvasElement>(null);

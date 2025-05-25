@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
+import type { Shop } from '../types';
 
-type Shop = { id: string; name: string; incidents: number; };
 
 export default function ShopsBarChart({ shops }: { shops: Shop[] }) {
   const chartRef = useRef<HTMLCanvasElement>(null);
