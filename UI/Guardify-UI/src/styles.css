@@ -5,12 +5,10 @@
 }
 
 .user-info {
-    font-size: 14px;
-    color: #cbd5e1;
-    text-align: center;
-  }
-  
-  
+  font-size: 14px;
+  color: #cbd5e1;
+  text-align: center;
+}
   
 body {
   margin: 0;
@@ -18,6 +16,7 @@ body {
   background-color: #f8f9fb;
   min-height: 100vh;
   overflow-y: auto;
+  justify-content: space-evenly;
 }
   
 .dashboard {
