@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import Chart from 'chart.js/auto';
-import { useEffect, useRef } from 'react';
 import './styles.css';
+import ShopsBarChart from './components/ShopsBarChart';
+import EventsLineChart from './components/EventsLineChart';
 
 type Shop = {
   id: string;
@@ -35,81 +35,9 @@ const events: Event[] = [
 
 export default function App() {
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('dashboard'); // NEW: track active tab
-  const shopCanvasRef = useRef<HTMLCanvasElement>(null);
-  const eventsLineRef = useRef<HTMLCanvasElement>(null);
-  const chartInstance = useRef<Chart | null>(null);
-  const lineChartInstance = useRef<Chart | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  // Sort events by date descending
   const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
-
-  // Prepare data for line chart: count events per day
-  const eventDates = events
-    .map(e => e.date.slice(0, 10))
-    .sort();
-  const uniqueDates = Array.from(new Set(eventDates));
-  const eventsPerDay = uniqueDates.map(date =>
-    events.filter(e => e.date.startsWith(date)).length
-  );
-
-  useEffect(() => {
-    // Bar chart for shop events
-    if (shopCanvasRef.current) {
-      if (chartInstance.current) chartInstance.current.destroy();
-
-      chartInstance.current = new Chart(shopCanvasRef.current, {
-        type: 'bar',
-        data: {
-          labels: shops.map(s => s.name),
-          datasets: [{
-            label: 'Total Events',
-            data: shops.map(s => s.incidents),
-            backgroundColor: '#30B3E1'
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          responsive: true,
-        }
-      });
-    }
-
-    // Line chart for events over time
-    if (eventsLineRef.current) {
-      if (lineChartInstance.current) lineChartInstance.current.destroy();
-
-      lineChartInstance.current = new Chart(eventsLineRef.current, {
-        type: 'line',
-        data: {
-          labels: uniqueDates,
-          datasets: [{
-            label: 'Events per Day',
-            data: eventsPerDay,
-            borderColor: '#30B3E1',
-            backgroundColor: 'rgba(48,179,225,0.15)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointBackgroundColor: '#30B3E1'
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          responsive: true,
-          scales: {
-            x: {
-              title: { display: true, text: 'Date' }
-            },
-            y: {
-              title: { display: true, text: 'Events' },
-              beginAtZero: true,
-            }
-          }
-        }
-      });
-    }
-  }, [shops, events]);
 
   return (
     <div className="dashboard">
@@ -175,40 +103,42 @@ export default function App() {
       <main className="main">
         <header className="header">
           <h1>Guardify AI Dashboard</h1>
-          <p>All Shops Statistics</p>
+          <p>{selectedShop ? `Shop: ${shops.find(s => s.id === selectedShop)?.name}` : 'All Shops Statistics'}</p>
         </header>
 
-        {/* Statistics Graphs */}
-        <section className="tiles">
-          <div className="tile">
-            <h2>Shops Events Overview</h2>
-            <canvas ref={shopCanvasRef} width="300" height="200"></canvas>
-          </div>
-          <div className="tile">
-            <h2>Events Trend Over Time</h2>
-            <canvas ref={eventsLineRef} width="300" height="200"></canvas>
-          </div>
-        </section>
-
-        {/* All Events Table */}
-        <section className="events-table-section">
-          <h2>All Events (Sorted by Date)</h2>
-          <div className="events-grid">
-            {sortedEvents.map(event => (
-              <div key={event.id} className={`event-card shop-${event.shopId}`}>
-                <div className="event-date">{new Date(event.date).toLocaleString()}</div>
-                <div className="event-shop">
-                  <span className={`shop-badge shop-${event.shopId}`}>
-                    {event.shopName}
-                  </span>
-                </div>
-                <div className="event-desc">{event.description}</div>
+        {activeTab === 'dashboard' && (
+          <>
+            <section className="tiles">
+              <div className="tile">
+                <h2>Shops Events Overview</h2>
+                <ShopsBarChart shops={shops} />
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="tile">
+                <h2>Events Trend Over Time</h2>
+                <EventsLineChart events={events} />
+              </div>
+            </section>
 
-        {selectedShop && (
+            <section className="events-table-section">
+              <h2>All Events (Sorted by Date)</h2>
+              <div className="events-grid">
+                {sortedEvents.map(event => (
+                  <div key={event.id} className={`event-card shop-${event.shopId}`}>
+                    <div className="event-date">{new Date(event.date).toLocaleString()}</div>
+                    <div className="event-shop">
+                      <span className={`shop-badge shop-${event.shopId}`}>
+                        {event.shopName}
+                      </span>
+                    </div>
+                    <div className="event-desc">{event.description}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        {activeTab === 'shop' && selectedShop && (
           <section className="selected-shop">
             <h2>Statistics for {shops.find(s => s.id === selectedShop)?.name}</h2>
             <p>Coming soon...</p>
