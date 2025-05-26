@@ -185,3 +185,8 @@ header p {
   background: #273043;
   color: #fff;
 }
+
+.event-card-link {
+  text-decoration: none;
+  color: inherit;
+}

@@ -11,8 +11,9 @@ export type Event = {
   date: string;
   description: string;
   cameraId: string;
-  cameraName: string
-}
+  cameraName: string;
+  videoUrl: string;
+};
 
 export type User = {
   id: string;

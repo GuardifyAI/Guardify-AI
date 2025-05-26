@@ -1,0 +1,34 @@
+/* EventPage.css */
+
+.event-page {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.event-page h2 {
+  margin-top: 0;
+  color: #334155;
+}
+
+.event-page p {
+  margin: 0.5rem 0;
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.video-container {
+  margin-top: 20px;
+  background-color: #e5e7eb;
+  height: 300px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-weight: bold;
+}

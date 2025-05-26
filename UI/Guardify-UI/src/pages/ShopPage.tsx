@@ -28,7 +28,7 @@ export default function ShopPage({ shop, events }: Props) {
         <h2>Events in {shop.name}</h2>
         <div className="events-grid">
             {sortedEvents.map(event => (
-            <EventCard key={event.id} event={event} />
+              <EventCard event={event} />
             ))}
         </div>
       </section>
