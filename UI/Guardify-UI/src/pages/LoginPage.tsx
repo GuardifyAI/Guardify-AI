@@ -12,7 +12,7 @@ export default function LoginPage() {
 
 const handleLogin = (e: React.FormEvent) => {
   e.preventDefault();
-  if (email === 'admin@guardify.com' && password === '1234') {
+  if (email === 'guardifyai@gmail.com' && password === '1234') {
     navigate('/dashboard');
   } else {
     setError('Incorrect email or password.');

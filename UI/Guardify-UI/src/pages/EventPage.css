@@ -32,3 +32,10 @@
   color: #6b7280;
   font-weight: bold;
 }
+
+.video-container video {
+  max-height: 300px;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
