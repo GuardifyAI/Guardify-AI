@@ -221,3 +221,6 @@ yarn-error.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Ignore all videos inside the public/videos folder
+/public/videos/
