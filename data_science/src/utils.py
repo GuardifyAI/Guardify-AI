@@ -1,9 +1,13 @@
 import os
 import logging
 import base64
-import re
-from typing import Dict, Optional
 from dotenv import load_dotenv
+
+
+# options for a strategy to run
+UNIFIED_MODEL = "unified"
+AGENTIC_MODEL = "agentic"
+BOTH_MODELS = "both"
 
 
 def create_logger(name: str, log_file: str) -> logging.Logger:
