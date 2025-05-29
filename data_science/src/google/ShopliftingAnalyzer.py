@@ -1,7 +1,7 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
-from data_science.src.utils import create_logger, get_video_extension
+from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL
 from vertexai.generative_models import Part, GenerationConfig
 from typing import List, Tuple, Dict, Any
 import numpy as np
@@ -17,8 +17,8 @@ class ShopliftingAnalyzer:
     =======================================================
 
     This analyzer supports both:
-    1. UNIFIED STRATEGY: True single-model direct analysis using UnifiedShopliftingModel
-    2. HYBRID STRATEGY: Two-step enhanced pipeline (ComputerVisionModel → AnalysisModel)
+    1. SINGLE STRATEGY: True single-model direct analysis using UnifiedShopliftingModel
+    2. AGENTIC STRATEGY: Two-step enhanced pipeline (ComputerVisionModel → AnalysisModel)
 
     Eliminates code duplication by consolidating video processing, validation,
     statistical analysis, and file operations into shared methods.
@@ -45,26 +45,26 @@ class ShopliftingAnalyzer:
                  detection_strictness: float = 0.45, logger: logging.Logger = None,
                  strategy: str = "unified"):
         """
-        Initialize the ShopliftingAnalyzer with support for both unified and hybrid strategies.
+        Initialize the ShopliftingAnalyzer with support for both unified and agentic strategies.
 
         Args:
             cv_model (ComputerVisionModel, optional): Computer vision model for video analysis
             analysis_model (AnalysisModel, optional): Analysis model for interpreting observations
             detection_strictness (float): Confidence threshold (0-1) for shoplifting detection
             logger (logging.Logger, optional): Logger instance
-            strategy (str): "unified" or "hybrid" analysis strategy
+            strategy (str): "unified" or AGENTIC_MODEL analysis strategy
         """
         self.strategy = strategy
 
         # Initialize models based on strategy
         if strategy == "unified":
             # Import here to avoid circular imports
-            from UnifiedShopliftingModel import UnifiedShopliftingModel
+            from SingleShopliftingModel import UnifiedShopliftingModel
             self.unified_model = UnifiedShopliftingModel()
             self.cv_model = None
             self.analysis_model = None
         else:
-            # Hybrid strategy uses separate models
+            # Agentic strategy uses separate models
             self.cv_model = cv_model or ComputerVisionModel()
             self.analysis_model = analysis_model or AnalysisModel()
             self.unified_model = None
@@ -81,7 +81,7 @@ class ShopliftingAnalyzer:
         else:
             self.logger = logger
 
-        # Set logger on analysis model for enhanced debugging (hybrid only)
+        # Set logger on analysis model for enhanced debugging (agentic only)
         if self.analysis_model and hasattr(self.analysis_model, 'logger'):
             self.analysis_model.logger = self.logger
 
@@ -113,21 +113,21 @@ class ShopliftingAnalyzer:
         )
 
     @classmethod
-    def create_hybrid_analyzer(cls, detection_threshold: float = 0.50, logger: logging.Logger = None):
+    def create_agentic_analyzer(cls, detection_threshold: float = 0.50, logger: logging.Logger = None):
         """
-        Factory method to create a hybrid strategy analyzer.
+        Factory method to create an agentic strategy analyzer.
 
         Args:
             detection_threshold (float): Detection confidence threshold
             logger (logging.Logger, optional): Logger instance
 
         Returns:
-            ShopliftingAnalyzer: Configured for hybrid strategy
+            ShopliftingAnalyzer: Configured for agentic strategy
         """
         return cls(
             detection_strictness=detection_threshold,
             logger=logger,
-            strategy="hybrid"
+            strategy=AGENTIC_MODEL
         )
 
     # ===== SHARED VIDEO PROCESSING METHODS =====
@@ -159,7 +159,7 @@ class ShopliftingAnalyzer:
         Args:
             video_uri (str): GCS URI of the video
             max_api_calls (int, optional): Maximum API calls (unified strategy)
-            iterations (int, optional): Number of iterations (hybrid strategy)
+            iterations (int, optional): Number of iterations (agentic strategy)
             pickle_analysis (bool): Whether to save analysis results
 
         Returns:
@@ -171,9 +171,9 @@ class ShopliftingAnalyzer:
             video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
 
             # Route to appropriate analysis method
-            if self.strategy == "hybrid":
+            if self.strategy == AGENTIC_MODEL:
                 iterations = iterations or 2
-                return self.analyze_video_hybrid(video_part, video_uri, iterations, pickle_analysis)
+                return self.analyze_video_agentic(video_part, video_uri, iterations, pickle_analysis)
             else:
                 iterations = iterations or 2  # Unified uses iterations, not max_api_calls
                 return self.analyze_video_unified(video_part, video_uri, iterations, pickle_analysis)
@@ -190,7 +190,7 @@ class ShopliftingAnalyzer:
         Args:
             video_path (str): Path to local video file
             max_api_calls (int, optional): Maximum API calls (unified strategy)
-            iterations (int, optional): Number of iterations (hybrid strategy)
+            iterations (int, optional): Number of iterations (agentic strategy)
             pickle_analysis (bool): Whether to save analysis results
 
         Returns:
@@ -210,9 +210,9 @@ class ShopliftingAnalyzer:
         )
 
         # Route to appropriate analysis method
-        if self.strategy == "hybrid":
+        if self.strategy == AGENTIC_MODEL:
             iterations = iterations or 3
-            return self.analyze_video_hybrid(video_part, video_path, iterations, pickle_analysis)
+            return self.analyze_video_agentic(video_part, video_path, iterations, pickle_analysis)
         else:
             iterations = iterations or 3  # Unified uses iterations
             return self.analyze_video_unified(video_part, video_path, iterations, pickle_analysis)
@@ -555,12 +555,12 @@ class ShopliftingAnalyzer:
         # Simplified legacy return
         return 0.5, False
 
-    # ===== HYBRID STRATEGY METHODS =====
+    # ===== AGENTIC STRATEGY METHODS =====
 
-    def analyze_video_hybrid(self, video_part: Part, video_identifier: str, iterations: int = 3,
-                             pickle_analysis: bool = True) -> Dict:
+    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = 3,
+                              pickle_analysis: bool = True) -> Dict:
         """
-        Hybrid strategy analysis method: CV observations → Analysis decision.
+        Agentic strategy analysis method: CV observations → Analysis decision.
 
         Args:
             video_part (Part): Video part object
@@ -571,10 +571,10 @@ class ShopliftingAnalyzer:
         Returns:
             Dict: Comprehensive analysis results
         """
-        if self.strategy != "hybrid" or not self.cv_model or not self.analysis_model:
-            raise ValueError("Hybrid analysis requires hybrid strategy and both CV and Analysis models")
+        if self.strategy != AGENTIC_MODEL or not self.cv_model or not self.analysis_model:
+            raise ValueError("Agentic analysis requires agentic strategy and both CV and Analysis models")
 
-        self.logger.info(f"Starting hybrid analysis of '{video_identifier}' with {iterations} iterations")
+        self.logger.info(f"Starting agentic analysis of '{video_identifier}' with {iterations} iterations")
 
         # Store results from multiple iterations
         iteration_results = []
@@ -584,7 +584,7 @@ class ShopliftingAnalyzer:
         analysis_details = []
 
         for i in range(iterations):
-            self.logger.info(f"=== HYBRID ITERATION {i + 1}/{iterations} ===")
+            self.logger.info(f"=== AGENTIC ITERATION {i + 1}/{iterations} ===")
 
             # Step 1: Computer Vision Model - Get detailed observations
             self.logger.info(f"Step 1: Getting detailed observations from CV model...")
@@ -650,7 +650,7 @@ class ShopliftingAnalyzer:
         # Compile comprehensive results
         results = {
             "video_identifier": video_identifier,
-            "analysis_approach": "HYBRID_ENHANCED",
+            "analysis_approach": "AGENTIC_ENHANCED",
             "iterations": iterations,
             "detection_threshold": self.shoplifting_detection_threshold,
 
@@ -681,7 +681,7 @@ class ShopliftingAnalyzer:
             self._save_analysis_to_pickle(results)
 
         # Performance summary
-        self.logger.info(f"=== HYBRID ANALYSIS COMPLETE ===")
+        self.logger.info(f"=== AGENTIC ANALYSIS COMPLETE ===")
         self.logger.info(f"Video: {video_identifier}")
         self.logger.info(f"Iterations: {iterations}")
         self.logger.info(f"Confidence Range: {min(all_confidences):.3f} - {max(all_confidences):.3f}")
@@ -690,7 +690,7 @@ class ShopliftingAnalyzer:
 
         return results
 
-    # ===== HYBRID STRATEGY SUMMARY METHODS =====
+    # ===== AGENTIC STRATEGY SUMMARY METHODS =====
 
     def _summarize_cv_observations(self, observations: List[str]) -> Dict[str, Any]:
         """

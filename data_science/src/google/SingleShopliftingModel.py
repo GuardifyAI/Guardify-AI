@@ -3,8 +3,7 @@ from vertexai.generative_models import (
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
-    Image
+    Part
 )
 
 from typing import Dict, List, Optional, Union, Tuple

@@ -3,22 +3,23 @@ from vertexai.generative_models import (
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
-    Image
+    Part
 )
 
 from typing import Dict, List, Optional, Union
-from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, GenerationResponse
+from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, \
+    GenerationResponse
 from typing import Tuple
 import os
 import json
-import re
 from data_science.src.utils import load_env_variables
+
 load_env_variables()
+
 
 class AnalysisModel(GenerativeModel):
     """
-    ENHANCED ANALYSIS MODEL FOR HYBRID ARCHITECTURE
+    ENHANCED ANALYSIS MODEL FOR AGENTIC ARCHITECTURE
     ===============================================
     
     This upgraded Analysis model processes detailed CV observations to make 
@@ -31,7 +32,7 @@ class AnalysisModel(GenerativeModel):
     - Contextual override protection for strong evidence
     - Balanced approach preventing both false positives and false negatives
     """
-    
+
     default_system_instruction = [
         "You are an elite retail security analyst with 15+ years of specialized experience in shoplifting detection.",
         "Your expertise lies in analyzing detailed surveillance observations to make accurate theft determinations.",
@@ -195,7 +196,7 @@ class AnalysisModel(GenerativeModel):
                 "description": "List of key behavioral indicators observed"
             },
             "Concealment Actions": {
-                "type": "array", 
+                "type": "array",
                 "items": {"type": "string"},
                 "description": "Specific concealment behaviors identified"
             },
@@ -222,8 +223,8 @@ class AnalysisModel(GenerativeModel):
 
     default_generation_config = GenerationConfig(
         temperature=0.05,  # Very low for consistent, analytical decisions
-        top_p=0.8,         # Focused responses for decision-making
-        top_k=20,          # Conservative vocabulary for analytical precision
+        top_p=0.8,  # Focused responses for decision-making
+        top_k=20,  # Conservative vocabulary for analytical precision
         candidate_count=1,
         max_output_tokens=8192,
         response_mime_type="application/json",
@@ -239,12 +240,12 @@ class AnalysisModel(GenerativeModel):
     }
 
     def __init__(self,
-        model_name: str = os.getenv("DEFAULT_MODEL_ID"),
-        *,
-        generation_config: Optional[GenerationConfigType] = None,
-        safety_settings: Optional[SafetySettingsType] = None,
-        system_instruction: Optional[PartsType] = None,
-        labels: Optional[Dict[str, str]] = None):
+                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 *,
+                 generation_config: Optional[GenerationConfigType] = None,
+                 safety_settings: Optional[SafetySettingsType] = None,
+                 system_instruction: Optional[PartsType] = None,
+                 labels: Optional[Dict[str, str]] = None):
 
         if system_instruction is None:
             system_instruction = self.default_system_instruction
@@ -275,12 +276,12 @@ class AnalysisModel(GenerativeModel):
         """
         if prompt is None:
             prompt = self.enhanced_analysis_prompt
-            
+
         # Enhanced prompt with structured observations
         enhanced_prompt = prompt + "\n\nDETAILED SURVEILLANCE OBSERVATIONS TO ANALYZE:\n" + video_observations
-        
+
         contents = [video_file, enhanced_prompt]
-        
+
         # Generate analysis decision
         analysis_response = self.generate_content(
             contents,
@@ -291,7 +292,8 @@ class AnalysisModel(GenerativeModel):
         shoplifting_detected, confidence_level = self._extract_values_from_response(analysis_response)
         return analysis_response.text, shoplifting_detected, confidence_level
 
-    def analyze_structured_observations(self, video_file: Part, structured_observations: Dict[str, str]) -> Tuple[str, bool, float, Dict]:
+    def analyze_structured_observations(self, video_file: Part, structured_observations: Dict[str, str]) -> Tuple[
+        str, bool, float, Dict]:
         """
         Analyze structured observations from enhanced CV model.
         
@@ -304,12 +306,12 @@ class AnalysisModel(GenerativeModel):
         """
         # Format structured observations for analysis
         formatted_observations = self._format_structured_observations(structured_observations)
-        
+
         # Use enhanced analysis prompt with formatted observations
         enhanced_prompt = self.enhanced_analysis_prompt + "\n\nSTRUCTURED SURVEILLANCE OBSERVATIONS:\n" + formatted_observations
-        
+
         contents = [video_file, enhanced_prompt]
-        
+
         # Generate analysis
         response = self.generate_content(
             contents,
@@ -319,7 +321,7 @@ class AnalysisModel(GenerativeModel):
 
         # Extract detailed results
         detected, confidence, detailed_analysis = self._extract_enhanced_response(response)
-        
+
         return response.text, detected, confidence, detailed_analysis
 
     def _format_structured_observations(self, structured_obs: Dict[str, str]) -> str:
@@ -333,23 +335,23 @@ class AnalysisModel(GenerativeModel):
             str: Formatted observations text
         """
         formatted = []
-        
+
         section_mapping = {
             "person_description": "PERSON DESCRIPTION & MOVEMENTS",
-            "item_interactions": "ITEM INTERACTION ANALYSIS", 
+            "item_interactions": "ITEM INTERACTION ANALYSIS",
             "hand_movements": "HAND MOVEMENT & BODY BEHAVIOR",
             "behavioral_sequence": "BEHAVIORAL SEQUENCE DOCUMENTATION",
             "environmental_context": "ENVIRONMENTAL CONTEXT",
             "suspicious_indicators": "SUSPICIOUS BEHAVIOR INDICATORS",
             "normal_indicators": "NORMAL SHOPPING INDICATORS"
         }
-        
+
         for key, section_title in section_mapping.items():
             if key in structured_obs and structured_obs[key] != "Not found in observations":
                 formatted.append(f"**{section_title}:**")
                 formatted.append(structured_obs[key])
                 formatted.append("")
-        
+
         return "\n".join(formatted)
 
     def _extract_values_from_response(self, response: GenerationResponse) -> Tuple[bool, float]:
@@ -366,20 +368,21 @@ class AnalysisModel(GenerativeModel):
             response_json = json.loads(response.text)
             shoplifting_detected = response_json["Shoplifting Detected"]
             confidence_level = response_json["Confidence Level"]
-            
+
             # Enhanced logging if logger is available
             if hasattr(self, 'logger') and self.logger:
                 evidence_tier = response_json.get("Evidence Tier", "UNKNOWN")
                 key_behaviors = response_json.get("Key Behaviors Observed", [])
                 concealment_actions = response_json.get("Concealment Actions", [])
-                
-                self.logger.debug(f"Analysis Result: detected={shoplifting_detected}, confidence={confidence_level:.3f}")
+
+                self.logger.debug(
+                    f"Analysis Result: detected={shoplifting_detected}, confidence={confidence_level:.3f}")
                 self.logger.debug(f"Evidence Tier: {evidence_tier}")
                 self.logger.debug(f"Key Behaviors: {key_behaviors}")
                 self.logger.debug(f"Concealment Actions: {concealment_actions}")
-            
+
             return shoplifting_detected, confidence_level
-            
+
         except (json.JSONDecodeError, KeyError) as e:
             if hasattr(self, 'logger') and self.logger:
                 self.logger.error(f"Failed to parse analysis response: {e}")
@@ -398,10 +401,10 @@ class AnalysisModel(GenerativeModel):
         """
         try:
             response_json = json.loads(response.text)
-            
+
             detected = response_json["Shoplifting Detected"]
             confidence = response_json["Confidence Level"]
-            
+
             detailed_analysis = {
                 "evidence_tier": response_json.get("Evidence Tier", "UNKNOWN"),
                 "key_behaviors": response_json.get("Key Behaviors Observed", []),
@@ -409,13 +412,13 @@ class AnalysisModel(GenerativeModel):
                 "risk_assessment": response_json.get("Risk Assessment", ""),
                 "decision_reasoning": response_json.get("Decision Reasoning", "")
             }
-            
+
             return detected, confidence, detailed_analysis
-            
+
         except (json.JSONDecodeError, KeyError) as e:
             if hasattr(self, 'logger') and self.logger:
                 self.logger.error(f"Failed to parse enhanced response: {e}")
-            
+
             # Return conservative defaults
             return False, 0.1, {
                 "evidence_tier": "ERROR",
@@ -425,8 +428,8 @@ class AnalysisModel(GenerativeModel):
                 "decision_reasoning": f"Response parsing error: {e}"
             }
 
-    def make_surveillance_realistic_decision(self, confidences: List[float], detections: List[bool], 
-                                           detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
+    def make_surveillance_realistic_decision(self, confidences: List[float], detections: List[bool],
+                                             detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
         """
         Enhanced decision-making logic with protection for strong theft evidence.
         
@@ -440,61 +443,61 @@ class AnalysisModel(GenerativeModel):
         """
         if not confidences:
             return 0.1, False, "No analysis results available"
-            
+
         avg_confidence = sum(confidences) / len(confidences)
         detection_count = sum(detections)
         detection_rate = detection_count / len(detections)
-        
+
         # Check for strong theft evidence that should be protected from override
         strong_theft_evidence = False
         if detailed_analyses:
             # Look for clear theft patterns in reasoning
             theft_patterns = [
-                "classic", "grab and stuff", "concealment", "theft pattern", 
+                "classic", "grab and stuff", "concealment", "theft pattern",
                 "clear concealment", "definitive", "obvious", "pocket", "bag", "hidden"
             ]
-            
+
             for analysis in detailed_analyses:
                 reasoning = analysis.get("decision_reasoning", "").lower()
                 concealment_actions = analysis.get("concealment_actions", [])
                 evidence_tier = analysis.get("evidence_tier", "")
-                
+
                 # Strong evidence indicators
-                if (any(pattern in reasoning for pattern in theft_patterns) or 
-                    concealment_actions or 
-                    evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]):
+                if (any(pattern in reasoning for pattern in theft_patterns) or
+                        concealment_actions or
+                        evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]):
                     strong_theft_evidence = True
                     break
-        
+
         # Enhanced decision logic
         if detection_rate >= 0.8 and avg_confidence >= 0.6:
             # High consistency and confidence - likely theft
             final_confidence = min(avg_confidence, 0.9)
             final_detection = True
             reasoning = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
-            
+
         elif detection_rate >= 0.6 and avg_confidence >= 0.5:
             # Moderate consistency - likely theft but with some uncertainty
             final_confidence = avg_confidence * 0.9  # Slight reduction for uncertainty
             final_detection = True
             reasoning = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
-            
+
         elif strong_theft_evidence and avg_confidence >= 0.4:
             # Strong theft evidence should not be overridden by low consistency
             final_confidence = avg_confidence
             final_detection = avg_confidence >= 0.5
             reasoning = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
-            
+
         elif detection_rate <= 0.3 and avg_confidence <= 0.4:
             # Low detection rate and confidence - likely normal behavior
             final_confidence = min(avg_confidence, 0.3)
             final_detection = False
             reasoning = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
-            
+
         else:
             # Mixed signals - use average confidence with conservative approach
             final_confidence = avg_confidence * 0.8  # Conservative adjustment
             final_detection = final_confidence >= 0.5
             reasoning = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
-        
+
         return final_confidence, final_detection, reasoning

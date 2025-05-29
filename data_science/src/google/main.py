@@ -6,7 +6,7 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, project_root)
 
-from data_science.src.utils import load_env_variables, create_logger
+from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL, BOTH_MODELS
 
 load_env_variables()
 from PipelineManager import PipelineManager
@@ -26,7 +26,7 @@ def main():
     - Faster processing with direct confidence assessment
     - Uses few-shot learning with real theft examples
     
-    **HYBRID STRATEGY:**
+    **AGENTIC STRATEGY:**
     - Two-step Enhanced CV→Analysis pipeline
     - Detailed observational layer with specialized decision layer
     - Enhanced debugging and transparency
@@ -35,13 +35,13 @@ def main():
     
     USAGE:
     python main.py --strategy unified   # Use unified single-model approach
-    python main.py --strategy hybrid    # Use hybrid two-model approach
+    python main.py --strategy agentic    # Use agentic model approach
     python main.py --strategy both      # Compare both approaches (diagnostic)
     """
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Shoplifting Detection Analysis System')
-    parser.add_argument('--strategy', choices=['unified', 'hybrid', 'both'],
+    parser.add_argument('--strategy', choices=[UNIFIED_MODEL, AGENTIC_MODEL, BOTH_MODELS],
                         default='unified', help='Analysis strategy to use')
     parser.add_argument('--max-videos', type=int, default=20,
                         help='Maximum number of videos to analyze')
@@ -80,22 +80,22 @@ def main():
     pipeline_manager = PipelineManager(google_client, logger=logger)
 
     # Execute based on strategy using consolidated manager
-    if args.strategy == 'unified':
-        logger.info("[UNIFIED] Using enhanced unified single-model approach")
+    if args.strategy == UNIFIED_MODEL:
+        logger.info(f"[{UNIFIED_MODEL.upper()}] Using enhanced unified single-model approach")
         results = pipeline_manager.run_unified_analysis(
             bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export
         )
 
-    elif args.strategy == 'hybrid':
-        logger.info("[HYBRID] Using enhanced hybrid two-model approach")
-        results = pipeline_manager.run_hybrid_analysis(
+    elif args.strategy == AGENTIC_MODEL:
+        logger.info(f"[{AGENTIC_MODEL.upper()}] Using enhanced agentic model approach")
+        results = pipeline_manager.run_agentic_analysis(
             bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export
         )
 
-    elif args.strategy == 'both':
-        logger.info("[COMPARISON] Running both strategies for comparative analysis")
+    elif args.strategy == BOTH_MODELS:
+        logger.info(f"[{BOTH_MODELS.upper()}] Running both strategies for comparative analysis")
         results = pipeline_manager.run_comparative_analysis(
             bucket_name, args.max_videos, args.iterations,
             args.threshold, args.diagnostic, args.export

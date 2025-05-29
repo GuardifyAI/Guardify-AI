@@ -3,11 +3,10 @@ from vertexai.generative_models import (
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
-    Image
+    Part
 )
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType
 import os
 from data_science.src.utils import load_env_variables
@@ -15,7 +14,7 @@ load_env_variables()
 
 class ComputerVisionModel(GenerativeModel):
     """
-    ENHANCED COMPUTER VISION MODEL FOR HYBRID ARCHITECTURE
+    ENHANCED COMPUTER VISION MODEL FOR AGENTIC ARCHITECTURE
     ======================================================
     
     This upgraded CV model provides detailed, structured observations specifically 
@@ -145,7 +144,7 @@ class ComputerVisionModel(GenerativeModel):
         top_p=0.9,        # Slightly broader vocabulary for detailed descriptions
         top_k=40,         # Expanded vocabulary for rich descriptions
         candidate_count=1,
-        max_output_tokens=8192,
+        max_output_tokens=8192
     )
 
     # Set safety settings.
