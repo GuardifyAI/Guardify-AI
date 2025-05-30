@@ -1,10 +1,12 @@
-from GoogleClient import GoogleClient
 import os
 import sys
 
-# Add the project root to Python path
+# Add the project root to Python path FIRST
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, project_root)
+
+from GoogleClient import GoogleClient
+from ShopliftingAnalyzer import create_unified_analyzer, create_agentic_analyzer
 
 from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL, BOTH_MODELS
 
@@ -80,22 +82,37 @@ def main():
     bucket_name = os.getenv("BUCKET_NAME")
     logger.info(f"[TARGET] Starting analysis of videos in bucket: {bucket_name}")
 
-    # Create consolidated pipeline manager for both strategies
-    pipeline_manager = PipelineManager(google_client, logger=logger)
-
     # Execute based on strategy using consolidated manager
     if args.strategy == UNIFIED_MODEL:
         logger.info(f"[{UNIFIED_MODEL.upper()}] Using enhanced unified single-model approach")
+        
+        # Create unified analyzer
+        shoplifting_analyzer = create_unified_analyzer(
+            detection_threshold=args.threshold,
+            logger=logger
+        )
+        
+        # Create pipeline manager
+        pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+        
         results = pipeline_manager.run_unified_analysis(
-            bucket_name, args.max_videos, args.iterations,
-            args.threshold, args.diagnostic, args.export, args.labels_csv_path
+            bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
         )
 
     elif args.strategy == AGENTIC_MODEL:
         logger.info(f"[{AGENTIC_MODEL.upper()}] Using enhanced agentic model approach")
+        
+        # Create agentic analyzer
+        shoplifting_analyzer = create_agentic_analyzer(
+            detection_threshold=args.threshold,
+            logger=logger
+        )
+        
+        # Create pipeline manager
+        pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+        
         results = pipeline_manager.run_agentic_analysis(
-            bucket_name, args.max_videos, args.iterations,
-            args.threshold, args.diagnostic, args.export, args.labels_csv_path
+            bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
         )
 
     logger.info("[SUCCESS] Advanced pipeline analysis completed successfully!")

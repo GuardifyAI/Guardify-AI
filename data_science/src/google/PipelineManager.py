@@ -22,7 +22,7 @@ class PipelineManager:
     Consolidates all pipeline management functionality in one place.
     """
 
-    def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer = None,
+    def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer,
                  logger: logging.Logger = None):
         """
         Initialize unified pipeline manager.
@@ -33,7 +33,7 @@ class PipelineManager:
             logger (logging.Logger, optional): Logger instance
         """
         self.google_client = google_client
-        self.shoplifting_analyzer = shoplifting_analyzer  # For backward compatibility
+        self.shoplifting_analyzer = shoplifting_analyzer
         self.logger = logger
 
     def analyze_all_videos_in_bucket(self,
@@ -64,8 +64,8 @@ class PipelineManager:
 
         return final_predictions
 
-    def run_unified_analysis(self, bucket_name: str, max_videos: int, iterations: int,
-                             threshold: float, diagnostic: bool, export: bool, labels_csv_path: str = None) -> List[Dict]:
+    def run_unified_analysis(self, bucket_name: str, max_videos: int, iterations: int, diagnostic: bool, export: bool,
+                             labels_csv_path: str = None) -> List[Dict]:
         """
         Run unified analysis strategy.
         
@@ -73,7 +73,6 @@ class PipelineManager:
             bucket_name (str): GCS bucket containing videos
             max_videos (int): Maximum number of videos to analyze
             iterations (int): Number of analysis iterations
-            threshold (float): Detection confidence threshold
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
             labels_csv_path (str, optional): Path to CSV file containing ground truth labels
@@ -83,15 +82,13 @@ class PipelineManager:
         """
         self.logger.info("=== INITIALIZING UNIFIED STRATEGY ===")
 
-        # Use consolidated ShopliftingAnalyzer with unified strategy
-        unified_analyzer = ShopliftingAnalyzer.create_unified_analyzer(
-            detection_threshold=threshold,
-            logger=self.logger
-        )
+        # Validate analyzer strategy
+        if self.shoplifting_analyzer.strategy != "unified":
+            raise ValueError("Analyzer must be configured for unified strategy")
 
         # Run analysis
         results = self._analyze_videos_with_strategy(
-            unified_analyzer, bucket_name, max_videos, iterations,
+            self.shoplifting_analyzer, bucket_name, max_videos, iterations,
             diagnostic, export, UNIFIED_MODEL.upper(), labels_csv_path
         )
 
@@ -99,8 +96,8 @@ class PipelineManager:
 
         return results
 
-    def run_agentic_analysis(self, bucket_name: str, max_videos: int, iterations: int,
-                             threshold: float, diagnostic: bool, export: bool, labels_csv_path: str = None) -> List[Dict]:
+    def run_agentic_analysis(self, bucket_name: str, max_videos: int, iterations: int, diagnostic: bool, export: bool,
+                             labels_csv_path: str = None) -> List[Dict]:
         """
         Run agentic analysis strategy.
         
@@ -108,7 +105,6 @@ class PipelineManager:
             bucket_name (str): GCS bucket containing videos
             max_videos (int): Maximum number of videos to analyze
             iterations (int): Number of analysis iterations
-            threshold (float): Detection confidence threshold
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
             labels_csv_path (str, optional): Path to CSV file containing ground truth labels
@@ -118,15 +114,13 @@ class PipelineManager:
         """
         self.logger.info("=== INITIALIZING AGENTIC STRATEGY ===")
 
-        # Create agentic analyzer directly in ShopliftingAnalyzer
-        agentic_analyzer = ShopliftingAnalyzer.create_agentic_analyzer(
-            detection_threshold=threshold,
-            logger=self.logger
-        )
+        # Validate analyzer strategy
+        if self.shoplifting_analyzer.strategy != AGENTIC_MODEL:
+            raise ValueError("Analyzer must be configured for agentic strategy")
 
         # Run analysis
         results = self._analyze_videos_with_strategy(
-            agentic_analyzer, bucket_name, max_videos, iterations,
+            self.shoplifting_analyzer, bucket_name, max_videos, iterations,
             diagnostic, export, AGENTIC_MODEL.upper(), labels_csv_path
         )
 

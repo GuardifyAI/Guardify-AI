@@ -1,13 +1,49 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
-from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL
+from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
 from vertexai.generative_models import Part
 from typing import List, Tuple, Dict, Any
 import numpy as np
 import pickle
 import datetime
 import os
+
+
+def create_unified_analyzer(detection_threshold: float = 0.45, logger: logging.Logger = None):
+    """
+    Factory function to create a unified strategy analyzer.
+
+    Args:
+        detection_threshold (float): Detection confidence threshold
+        logger (logging.Logger, optional): Logger instance
+
+    Returns:
+        ShopliftingAnalyzer: Configured for unified strategy
+    """
+    return ShopliftingAnalyzer(
+        detection_strictness=detection_threshold,
+        logger=logger,
+        strategy=UNIFIED_MODEL
+    )
+
+
+def create_agentic_analyzer(detection_threshold: float = 0.50, logger: logging.Logger = None):
+    """
+    Factory function to create an agentic strategy analyzer.
+
+    Args:
+        detection_threshold (float): Detection confidence threshold
+        logger (logging.Logger, optional): Logger instance
+
+    Returns:
+        ShopliftingAnalyzer: Configured for agentic strategy
+    """
+    return ShopliftingAnalyzer(
+        detection_strictness=detection_threshold,
+        logger=logger,
+        strategy=AGENTIC_MODEL
+    )
 
 
 class ShopliftingAnalyzer:
@@ -92,44 +128,6 @@ class ShopliftingAnalyzer:
 
         self.logger.info(
             f"Initialized ShopliftingAnalyzer with {strategy.upper()} strategy, threshold: {detection_strictness}")
-
-    # ===== FACTORY METHODS =====
-
-    @classmethod
-    def create_unified_analyzer(cls, detection_threshold: float = 0.45, logger: logging.Logger = None):
-        """
-        Factory method to create a unified strategy analyzer.
-
-        Args:
-            detection_threshold (float): Detection confidence threshold
-            logger (logging.Logger, optional): Logger instance
-
-        Returns:
-            ShopliftingAnalyzer: Configured for unified strategy
-        """
-        return cls(
-            detection_strictness=detection_threshold,
-            logger=logger,
-            strategy="unified"
-        )
-
-    @classmethod
-    def create_agentic_analyzer(cls, detection_threshold: float = 0.50, logger: logging.Logger = None):
-        """
-        Factory method to create an agentic strategy analyzer.
-
-        Args:
-            detection_threshold (float): Detection confidence threshold
-            logger (logging.Logger, optional): Logger instance
-
-        Returns:
-            ShopliftingAnalyzer: Configured for agentic strategy
-        """
-        return cls(
-            detection_strictness=detection_threshold,
-            logger=logger,
-            strategy=AGENTIC_MODEL
-        )
 
     # ===== SHARED VIDEO PROCESSING METHODS =====
 
@@ -252,7 +250,7 @@ class ShopliftingAnalyzer:
         Returns:
             Dict: Analysis results
         """
-        self.logger.info(f"Starting TRUE UNIFIED analysis of '{video_identifier}' with {iterations} iterations")
+        self.logger.info(f"Starting UNIFIED analysis of '{video_identifier}' with {iterations} iterations")
 
         if self.strategy != "unified" or not self.unified_model:
             raise ValueError("Unified analysis requires unified strategy and UnifiedShopliftingModel")
