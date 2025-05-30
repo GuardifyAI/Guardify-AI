@@ -16,19 +16,17 @@ class PipelineManager:
     """
     PIPELINE MANAGER FOR DUAL-STRATEGY SYSTEM
     ==================================================
-
+    
     This manager handles both unified and agentic analysis strategies,
     providing flexible execution with comprehensive result comparison.
     Consolidates all pipeline management functionality in one place.
     """
 
-    MAX_API_CALLS = 2
-
     def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer,
                  logger: logging.Logger = None):
         """
         Initialize unified pipeline manager.
-
+        
         Args:
             google_client (GoogleClient): Google Cloud client for video access
             shoplifting_analyzer (ShopliftingAnalyzer, optional): Legacy analyzer for compatibility
@@ -40,7 +38,6 @@ class PipelineManager:
 
     def analyze_all_videos_in_bucket(self,
                                      bucket_name: str,
-                                     max_api_calls_per_video: int = None,
                                      export_results: bool = False,
                                      labels_csv_path: str = None):
         """
@@ -48,21 +45,18 @@ class PipelineManager:
 
         Args:
             bucket_name (str): Name of the Google Cloud Storage bucket
-            max_api_calls_per_video (int, optional): Maximum number of API calls per video. Defaults to None.
             export_results (bool, optional): Whether to export results to CSV. Defaults to False.
             labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
         Returns:
             dict: Dictionary containing analysis results for each video
         """
-        max_api_calls_per_video = max_api_calls_per_video or self.MAX_API_CALLS
+
         # Get video URIs and names
         uris, names = self.google_client.get_videos_uris_and_names_from_buckets(bucket_name)
 
         final_predictions = {}
         for uri, name in zip(uris, names):
-            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri,
-                                                                           max_api_calls=max_api_calls_per_video,
-                                                                           pickle_analysis=True)
+            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri, pickle_analysis=True)
             final_predictions[name] = analysis
 
         if export_results:
@@ -70,59 +64,11 @@ class PipelineManager:
 
         return final_predictions
 
-    def _export_results(self, final_predictions: dict, labels_csv_path: str = None) -> str:
-        """
-        Export analysis results to a CSV file.
-
-        Args:
-            final_predictions (dict): Dictionary containing analysis results for each video
-            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
-
-        Returns:
-            str: Path to the exported CSV file
-        """
-        # Create DataFrame from results
-        results_data = []
-        for name, analysis in final_predictions.items():
-            results_data.append({
-                'video_identifier': analysis['video_identifier'],
-                'video_name': name,
-                'shoplifting_determination': analysis['shoplifting_determination']
-            })
-
-        df = pd.DataFrame(results_data)
-        match_percentage = None
-
-        # Compare with labels if provided
-        if labels_csv_path:
-            df, match_percentage = self._compare_with_labels(df, labels_csv_path)
-
-        # Create timestamp for unique filename
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        csv_filename = f"shoplifting_analysis_{timestamp}.csv"
-
-        # Create results directory if it doesn't exist
-        results_dir = "analysis_results"
-        os.makedirs(results_dir, exist_ok=True)
-
-        # Save to CSV
-        csv_path = os.path.join(results_dir, csv_filename)
-
-        # Write the main results
-        df.to_csv(csv_path, index=False)
-
-        # Append match percentage if available
-        if match_percentage is not None:
-            with open(csv_path, 'a') as f:
-                f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
-
-        return csv_path
-
     def run_unified_analysis(self, bucket_name: str, max_videos: int, iterations: int, diagnostic: bool, export: bool,
                              labels_csv_path: str = None) -> List[Dict]:
         """
         Run unified analysis strategy.
-
+        
         Args:
             bucket_name (str): GCS bucket containing videos
             max_videos (int): Maximum number of videos to analyze
@@ -130,7 +76,7 @@ class PipelineManager:
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
             labels_csv_path (str, optional): Path to CSV file containing ground truth labels
-
+            
         Returns:
             List[Dict]: Analysis results
         """
@@ -154,7 +100,7 @@ class PipelineManager:
                              labels_csv_path: str = None) -> List[Dict]:
         """
         Run agentic analysis strategy.
-
+        
         Args:
             bucket_name (str): GCS bucket containing videos
             max_videos (int): Maximum number of videos to analyze
@@ -162,7 +108,7 @@ class PipelineManager:
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
             labels_csv_path (str, optional): Path to CSV file containing ground truth labels
-
+            
         Returns:
             List[Dict]: Analysis results
         """
@@ -361,7 +307,7 @@ class PipelineManager:
     def _export_strategy_results(self, results: List[Dict], strategy_name: str, labels_csv_path: str = None):
         """
         Export strategy-specific analysis results to CSV with optional ground truth comparison.
-
+        
         Args:
             results (List[Dict]): Analysis results from strategy
             strategy_name (str): Name of the strategy (UNIFIED/AGENTIC)
@@ -370,7 +316,7 @@ class PipelineManager:
         try:
             # Convert results to the format expected by _export_results
             final_predictions = {}
-
+            
             for result in results:
                 # Extract video name from identifier (remove gs://bucket/ prefix)
                 video_identifier = result.get('video_identifier', '')
@@ -378,7 +324,7 @@ class PipelineManager:
                     video_name = video_identifier.split('/')[-1]
                 else:
                     video_name = video_identifier
-
+                
                 # Create analysis dict in legacy format for compatibility
                 analysis = {
                     'video_identifier': video_identifier,
@@ -391,7 +337,7 @@ class PipelineManager:
                     'error': result.get('error', ''),
                     'analysis_timestamp': result.get('analysis_timestamp', '')
                 }
-
+                
                 # Add strategy-specific data
                 if strategy_name == AGENTIC_MODEL.upper():
                     if 'cv_observations_summary' in result:
@@ -404,7 +350,7 @@ class PipelineManager:
                         analysis_summary = result['analysis_summary']
                         analysis['most_common_evidence_tier'] = analysis_summary.get('most_common_tier', '')
                         analysis['has_concealment_evidence'] = analysis_summary.get('has_concealment_evidence', False)
-
+                
                 final_predictions[video_name] = analysis
 
             self._export_results(final_predictions, labels_csv_path)
@@ -412,7 +358,59 @@ class PipelineManager:
         except Exception as e:
             self.logger.error(f"Failed to export {strategy_name} results: {e}")
 
-    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[pd.DataFrame, float]:
+    def _export_results(self, final_predictions: dict, labels_csv_path: str = None) -> str:
+        """
+        Export analysis results to a CSV file.
+
+        Args:
+            final_predictions (dict): Dictionary containing analysis results for each video
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
+
+        Returns:
+            str: Path to the exported CSV file
+        """
+        # Create DataFrame from results
+        results_data = []
+        for name, analysis in final_predictions.items():
+            results_data.append({
+                'video_identifier': analysis['video_identifier'],
+                'video_name': name,
+                'shoplifting_determination': analysis['shoplifting_determination']
+            })
+
+        df = pd.DataFrame(results_data)
+        match_percentage = None
+
+        # Compare with labels if provided
+        if labels_csv_path:
+            df, match_percentage = self._compare_with_labels(df, labels_csv_path)
+
+        # Create timestamp for unique filename
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f"shoplifting_analysis_{timestamp}.csv"
+
+        # Create results directory if it doesn't exist
+        results_dir = "analysis_results"
+        os.makedirs(results_dir, exist_ok=True)
+
+        # Save to CSV
+        csv_path = os.path.join(results_dir, csv_filename)
+
+        # Write the main results with better CSV formatting
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig', sep=',', quoting=1)
+
+        # Append match percentage if available
+        if match_percentage is not None:
+            with open(csv_path, 'a', encoding='utf-8-sig') as f:
+                f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
+            self.logger.info(
+                f"[EXPORT] results exported to: {csv_path} (Accuracy: {match_percentage:.2f}%)")
+        else:
+            self.logger.info(f"[EXPORT] results exported to: {csv_path}")
+
+        return csv_path
+
+    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[DataFrame, float]:
         """
         Compare predictions with ground truth labels and calculate match percentage.
 
@@ -434,17 +432,23 @@ class PipelineManager:
                     df,
                     labels_df[required_columns],
                     on='video_name',
-                    how='inner',
+                    how='left',  # Use left join to keep all analyzed videos
                     suffixes=('_predicted', '_actual')
                 )
 
-                # Add correctness column
-                df['prediction_correct'] = merged_df['shoplifting_determination_actual'] == merged_df[
-                    'shoplifting_determination_predicted']
+                # Add correctness column - only for videos that have labels
+                df['prediction_correct'] = merged_df.apply(
+                    lambda row: row['shoplifting_determination_actual'] == row['shoplifting_determination_predicted'] 
+                    if pd.notna(row['shoplifting_determination_actual']) else None, axis=1
+                )
 
-                # Calculate match percentage
-                match_percentage = (df['prediction_correct']).mean() * 100
-                return df, match_percentage
-        except:
-            pass
+                # Calculate match percentage only for videos with labels
+                valid_comparisons = df['prediction_correct'].dropna()
+                if len(valid_comparisons) > 0:
+                    match_percentage = valid_comparisons.mean() * 100
+                    return df, match_percentage
+                
+        except Exception as e:
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.warning(f"Could not compare with labels: {e}")
         return original_df, None

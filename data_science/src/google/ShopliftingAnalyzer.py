@@ -178,7 +178,7 @@ class ShopliftingAnalyzer:
         try:
             extension = self._validate_video_format(video_uri)
             video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
-            self._analyze_video(video_uri, video_part, iterations, pickle_analysis)
+            return self._analyze_video(video_uri, video_part, iterations, pickle_analysis)
 
         except Exception as e:
             self.logger.error(f"Failed to analyze {video_uri}: {e}")
@@ -206,7 +206,7 @@ class ShopliftingAnalyzer:
             # Validate video format
             extension = self._validate_video_format(video_path)
             video_part = Part.from_data(mime_type=self.VIDEO_MIME_TYPES[extension], data=open(video_path, "rb").read())
-            self._analyze_video(video_path, video_part, iterations, pickle_analysis)
+            return self._analyze_video(video_path, video_part, iterations, pickle_analysis)
 
         except Exception as e:
             self.logger.error(f"Failed to analyze {video_path}: {e}")
