@@ -8,7 +8,7 @@ export default function EventCard({ event }: { event: Event }) {
         <div className="event-date">{new Date(event.date).toLocaleString()}</div>
         <div className="event-shop">
           <span className={`shop-badge shop-${event.shopId}`}>
-            {event.shopName} – {event.cameraName}
+            {event.shopName} – {event.  cameraName}
           </span>
         </div>
         <div className="event-desc">{event.description}</div>

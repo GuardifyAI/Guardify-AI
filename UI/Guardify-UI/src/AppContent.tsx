@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import './styles.css';
-import { EventsContext } from './context/EventsContext';
 import ShopsBarChart from './components/ShopsBarChart';
 import EventsLineChart from './components/EventsLineChart';
 import ShopPage from './pages/ShopPage';
+import Sidebar from './components/Sidebar'; 
 
-import type { Event, Shop } from './types';
+import type { Shop } from './types';
 import EventCard from './components/EventCard';
 import { useEvents } from './context/EventsContext';
 
@@ -24,65 +24,15 @@ export default function AppContent() {
   const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
+    <div className="page-layout">
     <div className="dashboard">
-      <aside className="sidebar">
-        <img src="/images/logo.png" alt="Guardify Logo" className="logo" />
-        <div className="user-info">
-          <strong>John Doe</strong>
-          <p>Guardify Manager</p>
-        </div>
-        <nav>
-          <ul className="sidebar-tabs">
-            <li>
-              <button
-                className={`sidebar-tab${activeTab === 'dashboard' ? ' active' : ''}`}
-                onClick={() => {
-                  setActiveTab('dashboard');
-                  setSelectedShop(null);
-                }}
-              >
-                All Shops Statistics
-              </button>
-            </li>
-            {shops.map(shop => (
-              <li key={shop.id}>
-                <button
-                  className={`sidebar-tab${selectedShop === shop.id ? ' active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('shop');
-                    setSelectedShop(shop.id);
-                  }}
-                >
-                  {shop.name}
-                </button>
-              </li>
-            ))}
-            <li>
-              <button
-                className={`sidebar-tab${activeTab === 'settings' ? ' active' : ''}`}
-                onClick={() => {
-                  setActiveTab('settings');
-                  setSelectedShop(null);
-                }}
-              >
-                Settings
-              </button>
-            </li>
-            <li>
-              <button
-                className={`sidebar-tab${activeTab === 'logout' ? ' active' : ''}`}
-                onClick={() => {
-                  setActiveTab('logout');
-                  setSelectedShop(null);
-                  // Add logout logic here if needed
-                }}
-              >
-                Logout
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </aside>
+      <Sidebar
+        shops={shops}
+        selectedShop={selectedShop}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setSelectedShop={setSelectedShop}
+      />
 
       <main className="main">
         <header className="header">
@@ -114,15 +64,17 @@ export default function AppContent() {
           </>
         )}
 
-        {activeTab === 'shop' && selectedShop && (
-          <section className="selected-shop">
-            <ShopPage
-              shop={shops.find(s => s.id === selectedShop)!}
-              events={events}
-            />
-          </section>
-        )}
+      {selectedShop && ['statistics', 'events', 'cameras'].includes(activeTab) && (
+        <section className="selected-shop">
+          <ShopPage
+            shop={shops.find(s => s.id === selectedShop)!}
+            events={events}
+            tab={activeTab as 'statistics' | 'events' | 'cameras'}
+          />
+        </section>
+      )}
       </main>
+    </div>
     </div>
   );
 }

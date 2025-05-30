@@ -20,3 +20,11 @@ export type User = {
   name: string;
   role: 'manager' | 'guard';
 };
+
+export type SidebarProps = {
+  shops: Shop[];
+  selectedShop: string | null;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  setSelectedShop: (shopId: string | null) => void;
+};

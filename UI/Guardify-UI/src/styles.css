@@ -5,7 +5,7 @@
 }
 
 .user-info {
-  font-size: 14px;
+  font-size: 14px;  
   color: #cbd5e1;
   text-align: center;
 }
@@ -19,9 +19,13 @@ body {
   justify-content: space-evenly;
 }
   
+.page-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
 .dashboard {
-  display: flex;
-  min-height: 100vh;    
+  display: grid;
+  grid-template-columns: auto 1fr;
 }
   
   /* Sidebar styles */
@@ -96,7 +100,7 @@ header p {
 
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -140,6 +144,7 @@ header p {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 700px;
   }
   
   .header h1 {

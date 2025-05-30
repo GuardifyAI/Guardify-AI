@@ -14,6 +14,7 @@ export default function EventPage() {
   }
 
   return (
+    <div className="page-layout">
     <div className="event-page">
       <h2>Event Details</h2>
       <p><strong>Date:</strong> {new Date(event.date).toLocaleString()}</p>
@@ -27,6 +28,7 @@ export default function EventPage() {
           Your browser does not support the video tag.
         </video>
       </div>
+    </div>
     </div>
   );
 }
