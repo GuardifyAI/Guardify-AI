@@ -1,5 +1,5 @@
-import EventsLineChart from '../components/EventsLineChart';
-import CameraStats from '../components/CameraStats';
+import EventsOverTime from '../components/Stats/EventsOverTime';
+// import CameraStats from '../components/CameraStats';
 import type { Event, Shop } from '../types';
 import EventCard from '../components/EventCard';
 
@@ -19,9 +19,9 @@ export default function ShopPage({ shop, events, tab }: Props) {
         <section className="tiles">
           <div className="tile">
             <h2>Events Trend Over Time</h2>
-            <EventsLineChart events={filteredEvents} />
+            <EventsOverTime events={filteredEvents} />
           </div>
-          <CameraStats events={filteredEvents} />
+          {/* <CameraStats events={filteredEvents} /> */}
         </section>
       )}
 

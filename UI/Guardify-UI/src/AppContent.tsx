@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import './styles.css';
-import ShopsBarChart from './components/ShopsBarChart';
-import EventsLineChart from './components/EventsLineChart';
+import EventCountBarChart from './components/Stats/EventCountBarChart';
+import EventsOverTime from './components/Stats/EventsOverTime';
+import EventsByHour from './components/Stats/EventsByHour';
+import MostActiveCamera from './components/Stats/MostActiveCamera';
 import ShopPage from './pages/ShopPage';
 import Sidebar from './components/Sidebar'; 
 
@@ -43,14 +45,14 @@ export default function AppContent() {
         {activeTab === 'dashboard' && (
           <>
             <section className="tiles">
-              <div className="tile">
-                <h2>Shops Events Overview</h2>
-                <ShopsBarChart shops={shops} />
-              </div>
-              <div className="tile">
-                <h2>Events Trend Over Time</h2>
-                <EventsLineChart events={events} />
-              </div>
+              <EventsOverTime events={events} />
+              <EventsByHour events={events} />
+              <MostActiveCamera events={events} />
+              <EventCountBarChart
+                events={events}
+                groupBy="shopId"
+                title="Shops Events Overview"
+              />
             </section>
 
             <section className="events-table-section">
