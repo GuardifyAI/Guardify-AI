@@ -83,7 +83,7 @@ class PipelineManager:
         self.logger.info("=== INITIALIZING UNIFIED STRATEGY ===")
 
         # Validate analyzer strategy
-        if self.shoplifting_analyzer.strategy != "unified":
+        if self.shoplifting_analyzer.strategy != UNIFIED_MODEL:
             raise ValueError("Analyzer must be configured for unified strategy")
 
         # Run analysis

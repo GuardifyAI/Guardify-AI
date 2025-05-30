@@ -1,6 +1,0 @@
-video_identifier,analysis_approach,final_detection,final_confidence,decision_reasoning,iterations,detection_threshold,error,analysis_timestamp,cv_behavioral_tone,cv_suspicious_indicators,cv_normal_indicators,most_common_evidence_tier,has_concealment_evidence
-gs://michal-kaggle-normal-dataset/shop_lifter_n_0.mp4,AGENTIC_ENHANCED,False,0.125,Low detection rate (0.0%) and confidence (0.125) - normal behavior,2,0.45,,2025-05-29T12:44:17.096564,suspicious,9,7,NORMAL_BEHAVIOR,False
-gs://michal-kaggle-normal-dataset/shop_lifter_n_0_1.mp4,AGENTIC_ENHANCED,False,0.175,Low detection rate (0.0%) and confidence (0.175) - normal behavior,2,0.45,,2025-05-29T12:46:24.663932,suspicious,8,6,NORMAL_BEHAVIOR,False
-gs://michal-kaggle-normal-dataset/shop_lifter_n_1.mp4,AGENTIC_ENHANCED,False,0.15,Low detection rate (0.0%) and confidence (0.150) - normal behavior,2,0.45,,2025-05-29T12:48:34.655168,suspicious,9,6,NORMAL_BEHAVIOR,False
-gs://michal-kaggle-normal-dataset/shop_lifter_n_10.mp4,AGENTIC_ENHANCED,False,0.125,Low detection rate (0.0%) and confidence (0.125) - normal behavior,2,0.45,,2025-05-29T12:50:32.881940,suspicious,8,7,NORMAL_BEHAVIOR,False
-gs://michal-kaggle-normal-dataset/shop_lifter_n_100.mp4,AGENTIC_ENHANCED,False,0.175,Low detection rate (0.0%) and confidence (0.175) - normal behavior,2,0.45,,2025-05-29T12:52:27.958544,suspicious,9,7,NORMAL_BEHAVIOR,False

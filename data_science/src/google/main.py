@@ -8,7 +8,7 @@ sys.path.insert(0, project_root)
 from GoogleClient import GoogleClient
 from ShopliftingAnalyzer import create_unified_analyzer, create_agentic_analyzer
 
-from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL, BOTH_MODELS
+from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL
 
 load_env_variables()
 from PipelineManager import PipelineManager
@@ -43,8 +43,8 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Shoplifting Detection Analysis System')
-    parser.add_argument('--strategy', choices=[UNIFIED_MODEL, AGENTIC_MODEL, BOTH_MODELS],
-                        default='unified', help='Analysis strategy to use')
+    parser.add_argument('--strategy', choices=[UNIFIED_MODEL, AGENTIC_MODEL],
+                        default=UNIFIED_MODEL, help='Analysis strategy to use')
     parser.add_argument('--max-videos', type=int, default=20,
                         help='Maximum number of videos to analyze')
     parser.add_argument('--iterations', type=int, default=3,
