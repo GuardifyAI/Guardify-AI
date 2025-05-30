@@ -6,7 +6,7 @@ from vertexai.generative_models import (
     Part
 )
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, \
     GenerationResponse
 from typing import Tuple
@@ -37,8 +37,10 @@ class AnalysisModel(GenerativeModel):
         "You are an elite retail security analyst with 15+ years of specialized experience in shoplifting detection.",
         "Your expertise lies in analyzing detailed surveillance observations to make accurate theft determinations.",
         "You excel at distinguishing between normal shopping behaviors and genuine theft patterns.",
-        "You understand that surveillance videos capture partial sequences and you can assess risk from behavioral evidence.",
-        "Your decisions are based on proven behavioral indicators and you balance security needs with customer experience.",
+        "You understand that surveillance videos capture partial sequences and you can assess risk from behavioral "
+        "evidence.",
+        "Your decisions are based on proven behavioral indicators and you balance security needs with customer "
+        "experience.",
         "You provide confidence-based assessments that help security teams make informed intervention decisions.",
         "Your goal is accurate threat assessment that minimizes both false positives and false negatives.",
         "You understand the difference between brief normal interactions and deliberate concealment behaviors."
@@ -172,6 +174,7 @@ class AnalysisModel(GenerativeModel):
     Remember: Your analysis affects real people. False positives harm innocent customers; false negatives allow theft to continue. Focus on clear evidence and proven behavioral patterns for accurate assessment.
     """
 
+    # Enhanced structured response schema for JSON output
     enhanced_response_schema = {
         "type": "object",
         "properties": {
@@ -228,7 +231,7 @@ class AnalysisModel(GenerativeModel):
         candidate_count=1,
         max_output_tokens=8192,
         response_mime_type="application/json",
-        response_schema=enhanced_response_schema
+        response_schema=enhanced_response_schema  # Output response schema of the generated candidate text
     )
 
     # Set safety settings.
@@ -256,46 +259,16 @@ class AnalysisModel(GenerativeModel):
         if safety_settings is None:
             safety_settings = self.default_safety_settings
 
-        super().__init__(model_name=model_name
-                         , generation_config=generation_config
-                         , safety_settings=safety_settings
-                         , system_instruction=system_instruction
-                         , labels=labels)
-
-    def analyze_video_observations(self, video_file: Part, video_observations: str, prompt: str = None) -> Tuple[str, bool, float]:
-        """
-        Enhanced analysis method that processes detailed CV observations.
-        
-        Args:
-            video_file (Part): Video file part object
-            video_observations (str): Detailed observations from CV model
-            prompt (str, optional): Custom analysis prompt
-            
-        Returns:
-            Tuple[str, bool, float]: (full_response, shoplifting_detected, confidence_level)
-        """
-        if prompt is None:
-            prompt = self.enhanced_analysis_prompt
-
-        # Enhanced prompt with structured observations
-        enhanced_prompt = prompt + "\n\nDETAILED SURVEILLANCE OBSERVATIONS TO ANALYZE:\n" + video_observations
-
-        contents = [video_file, enhanced_prompt]
-
-        # Generate analysis decision
-        analysis_response = self.generate_content(
-            contents,
-            generation_config=self._generation_config,
-            safety_settings=self._safety_settings,
-        )
-
-        shoplifting_detected, confidence_level = self._extract_values_from_response(analysis_response)
-        return analysis_response.text, shoplifting_detected, confidence_level
+        super().__init__(model_name=model_name,
+                         generation_config=generation_config,
+                         safety_settings=safety_settings,
+                         system_instruction=system_instruction,
+                         labels=labels)
 
     def analyze_structured_observations(self, video_file: Part, structured_observations: Dict[str, str]) -> Tuple[
         str, bool, float, Dict]:
         """
-        Analyze structured observations from enhanced CV model.
+        The main analyzer function - analyze structured observations from enhanced CV model.
         
         Args:
             video_file (Part): Video file part object
@@ -308,7 +281,8 @@ class AnalysisModel(GenerativeModel):
         formatted_observations = self._format_structured_observations(structured_observations)
 
         # Use enhanced analysis prompt with formatted observations
-        enhanced_prompt = self.enhanced_analysis_prompt + "\n\nSTRUCTURED SURVEILLANCE OBSERVATIONS:\n" + formatted_observations
+        enhanced_prompt = (self.enhanced_analysis_prompt + "\n\nSTRUCTURED SURVEILLANCE OBSERVATIONS:\n"
+                           + formatted_observations)
 
         contents = [video_file, enhanced_prompt]
 
@@ -319,17 +293,17 @@ class AnalysisModel(GenerativeModel):
             safety_settings=self._safety_settings,
         )
 
-        # Extract detailed results
+        # Extract detailed results from model
         detected, confidence, detailed_analysis = self._extract_enhanced_response(response)
 
         return response.text, detected, confidence, detailed_analysis
 
-    def _format_structured_observations(self, structured_obs: Dict[str, str]) -> str:
+    def _format_structured_observations(self, cv_structured_obs: Dict[str, str]) -> str:
         """
         Format structured observations for analysis prompt.
         
         Args:
-            structured_obs (Dict): Structured observations from CV model
+            cv_structured_obs (Dict): Structured observations from CV model
             
         Returns:
             str: Formatted observations text
@@ -347,60 +321,39 @@ class AnalysisModel(GenerativeModel):
         }
 
         for key, section_title in section_mapping.items():
-            if key in structured_obs and structured_obs[key] != "Not found in observations":
+            if key in cv_structured_obs and cv_structured_obs[key] != "Not found in observations":
                 formatted.append(f"**{section_title}:**")
-                formatted.append(structured_obs[key])
+
+                # Handle array fields (suspicious_indicators, normal_indicators) properly
+                if key in ["suspicious_indicators", "normal_indicators"]:
+                    value = cv_structured_obs[key]
+                    if isinstance(value, list):
+                        if value:  # Non-empty list
+                            formatted.append("\n".join(f"- {item}" for item in value))
+                        else:  # Empty list
+                            formatted.append("None observed")
+                    else:  # Fallback for string representation
+                        formatted.append(str(value))
+                else:
+                    # Handle string fields normally
+                    formatted.append(str(cv_structured_obs[key]))
+
                 formatted.append("")
 
         return "\n".join(formatted)
 
-    def _extract_values_from_response(self, response: GenerationResponse) -> Tuple[bool, float]:
+    def _extract_enhanced_response(self, model_response: GenerationResponse) -> Tuple[bool, float, Dict]:
         """
-        Extract basic values from analysis response.
+        Extract enhanced response with detailed analysis from model response.
         
         Args:
-            response (GenerationResponse): Model response
-            
-        Returns:
-            Tuple[bool, float]: (shoplifting_detected, confidence_level)
-        """
-        try:
-            response_json = json.loads(response.text)
-            shoplifting_detected = response_json["Shoplifting Detected"]
-            confidence_level = response_json["Confidence Level"]
-
-            # Enhanced logging if logger is available
-            if hasattr(self, 'logger') and self.logger:
-                evidence_tier = response_json.get("Evidence Tier", "UNKNOWN")
-                key_behaviors = response_json.get("Key Behaviors Observed", [])
-                concealment_actions = response_json.get("Concealment Actions", [])
-
-                self.logger.debug(
-                    f"Analysis Result: detected={shoplifting_detected}, confidence={confidence_level:.3f}")
-                self.logger.debug(f"Evidence Tier: {evidence_tier}")
-                self.logger.debug(f"Key Behaviors: {key_behaviors}")
-                self.logger.debug(f"Concealment Actions: {concealment_actions}")
-
-            return shoplifting_detected, confidence_level
-
-        except (json.JSONDecodeError, KeyError) as e:
-            if hasattr(self, 'logger') and self.logger:
-                self.logger.error(f"Failed to parse analysis response: {e}")
-            # Return conservative defaults on parsing failure
-            return False, 0.1
-
-    def _extract_enhanced_response(self, response: GenerationResponse) -> Tuple[bool, float, Dict]:
-        """
-        Extract enhanced response with detailed analysis.
-        
-        Args:
-            response (GenerationResponse): Model response
+            model_response (GenerationResponse): Model response
             
         Returns:
             Tuple[bool, float, Dict]: (detected, confidence, detailed_analysis)
         """
         try:
-            response_json = json.loads(response.text)
+            response_json = json.loads(model_response.text)
 
             detected = response_json["Shoplifting Detected"]
             confidence = response_json["Confidence Level"]

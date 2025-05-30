@@ -6,7 +6,7 @@ from vertexai.generative_models import (
     Part
 )
 
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, Optional, Tuple
 from vertexai.generative_models._generative_models import PartsType, GenerationConfigType, SafetySettingsType, \
     GenerationResponse
 import os
@@ -98,11 +98,20 @@ class UnifiedShopliftingModel(GenerativeModel):
     3. **Consider context** - hand to pocket AFTER handling items vs. general browsing
     4. **Behavioral evidence** is valid even if item visibility is limited
 
-    🎯 CONFIDENCE CALIBRATION:
-    • 0.1-0.2: Normal shopping, hand movements for comfort/convenience
-    • 0.4-0.5: Suspicious sequence but concealment unclear
-    • 0.6-0.7: Strong behavioral pattern suggesting concealment
-    • 0.8-0.9: Clear concealment sequence with strong theft indicators
+    🎯 EVIDENCE TIER CLASSIFICATION:
+    • **TIER_1_HIGH**: Clear concealment sequence with strong theft indicators (0.75-0.95)
+    • **TIER_2_MODERATE**: Strong behavioral pattern suggesting concealment (0.55-0.75)
+    • **TIER_3_LOW**: Limited evidence suggesting possible concealment (0.35-0.55)
+    • **NORMAL_BEHAVIOR**: Normal shopping behavior patterns (0.05-0.35)
+
+    📊 STRUCTURED RESPONSE REQUIREMENTS:
+    • **Shoplifting Detected**: True/False based on evidence
+    • **Confidence Level**: Precise 0.0-1.0 rating
+    • **Evidence Tier**: Classification based on strength of evidence
+    • **Key Behaviors Observed**: List specific behavioral indicators you noticed
+    • **Concealment Actions**: List any specific concealment behaviors (if observed)
+    • **Risk Assessment**: Brief summary of the security risk level
+    • **Decision Reasoning**: Detailed explanation of your analysis and decision
 
     Focus on BEHAVIORAL PATTERNS that indicate theft intention, not just perfect visual evidence of concealment.
     """
@@ -110,30 +119,49 @@ class UnifiedShopliftingModel(GenerativeModel):
     default_response_schema = {
         "type": "object",
         "properties": {
-            "Observed_Behavior": {
-                "type": "string",
-                "description": "What you observed happening in the video"
-            },
-            "Shoplifting_Detected": {
+            "Shoplifting Detected": {
                 "type": "boolean",
-                "description": "Whether shoplifting occurred (true/false)"
+                "description": "Whether shoplifting behavior was detected (true/false)"
             },
-            "Confidence_Level": {
+            "Confidence Level": {
                 "type": "number",
                 "minimum": 0.0,
                 "maximum": 1.0,
-                "description": "Confidence level (0.0-1.0)"
+                "description": "Confidence level from 0.0 to 1.0"
             },
-            "Reasoning": {
+            "Evidence Tier": {
                 "type": "string",
-                "description": "Brief explanation of your reasoning"
+                "enum": ["TIER_1_HIGH", "TIER_2_MODERATE", "TIER_3_LOW", "NORMAL_BEHAVIOR"],
+                "description": "Classification of evidence strength"
+            },
+            "Key Behaviors Observed": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of key behavioral indicators observed"
+            },
+            "Concealment Actions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Specific concealment behaviors identified"
+            },
+            "Risk Assessment": {
+                "type": "string",
+                "maxLength": 300,
+                "description": "Summary risk assessment and reasoning"
+            },
+            "Decision Reasoning": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Detailed explanation of the decision logic"
             }
         },
         "required": [
-            "Observed_Behavior",
-            "Shoplifting_Detected",
-            "Confidence_Level",
-            "Reasoning"
+            "Shoplifting Detected",
+            "Confidence Level",
+            "Evidence Tier",
+            "Key Behaviors Observed",
+            "Risk Assessment",
+            "Decision Reasoning"
         ]
     }
 
@@ -206,13 +234,16 @@ class UnifiedShopliftingModel(GenerativeModel):
         try:
             response_json = json.loads(response.text)
 
-            detected = response_json["Shoplifting_Detected"]
-            confidence = response_json["Confidence_Level"]
+            detected = response_json["Shoplifting Detected"]
+            confidence = response_json["Confidence Level"]
 
             # Full analysis details
             analysis = {
-                "observed_behavior": response_json.get("Observed_Behavior", ""),
-                "reasoning": response_json.get("Reasoning", ""),
+                "evidence_tier": response_json.get("Evidence Tier", ""),
+                "key_behaviors_observed": response_json.get("Key Behaviors Observed", []),
+                "concealment_actions": response_json.get("Concealment Actions", []),
+                "risk_assessment": response_json.get("Risk Assessment", ""),
+                "decision_reasoning": response_json.get("Decision Reasoning", ""),
             }
 
             return detected, confidence, analysis

@@ -45,7 +45,7 @@ def main():
                         default='unified', help='Analysis strategy to use')
     parser.add_argument('--max-videos', type=int, default=20,
                         help='Maximum number of videos to analyze')
-    parser.add_argument('--iterations', type=int, default=2,
+    parser.add_argument('--iterations', type=int, default=3,
                         help='Number of analysis iterations per video')
     parser.add_argument('--threshold', type=float, default=0.45,
                         help='Detection confidence threshold')
@@ -53,6 +53,8 @@ def main():
                         help='Enable diagnostic mode with enhanced logging', default=True)
     parser.add_argument('--export', action='store_true',
                         help='Export results to CSV')
+    parser.add_argument('--labels-csv-path', type=str, default=None,
+                        help='Path to CSV file containing ground truth labels for accuracy comparison')
 
     args = parser.parse_args()
 
@@ -64,6 +66,8 @@ def main():
     logger.info(f"Iterations: {args.iterations}")
     logger.info(f"Threshold: {args.threshold}")
     logger.info(f"Diagnostic mode: {args.diagnostic}")
+    logger.info(
+        f"Ground truth labels: {args.labels_csv_path if args.labels_csv_path else 'None (no accuracy comparison)'}")
 
     # Initialize GoogleClient with your existing authentication
     google_client = GoogleClient(
@@ -84,21 +88,14 @@ def main():
         logger.info(f"[{UNIFIED_MODEL.upper()}] Using enhanced unified single-model approach")
         results = pipeline_manager.run_unified_analysis(
             bucket_name, args.max_videos, args.iterations,
-            args.threshold, args.diagnostic, args.export
+            args.threshold, args.diagnostic, args.export, args.labels_csv_path
         )
 
     elif args.strategy == AGENTIC_MODEL:
         logger.info(f"[{AGENTIC_MODEL.upper()}] Using enhanced agentic model approach")
         results = pipeline_manager.run_agentic_analysis(
             bucket_name, args.max_videos, args.iterations,
-            args.threshold, args.diagnostic, args.export
-        )
-
-    elif args.strategy == BOTH_MODELS:
-        logger.info(f"[{BOTH_MODELS.upper()}] Running both strategies for comparative analysis")
-        results = pipeline_manager.run_comparative_analysis(
-            bucket_name, args.max_videos, args.iterations,
-            args.threshold, args.diagnostic, args.export
+            args.threshold, args.diagnostic, args.export, args.labels_csv_path
         )
 
     logger.info("[SUCCESS] Advanced pipeline analysis completed successfully!")

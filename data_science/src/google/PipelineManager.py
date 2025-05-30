@@ -1,3 +1,5 @@
+from pandas import DataFrame
+
 from GoogleClient import GoogleClient
 from ShopliftingAnalyzer import ShopliftingAnalyzer
 import pandas as pd
@@ -12,15 +14,13 @@ from data_science.src.utils import UNIFIED_MODEL, AGENTIC_MODEL
 
 class PipelineManager:
     """
-    UNIFIED PIPELINE MANAGER FOR DUAL-STRATEGY SYSTEM
+    PIPELINE MANAGER FOR DUAL-STRATEGY SYSTEM
     ==================================================
     
     This manager handles both unified and agentic analysis strategies,
     providing flexible execution with comprehensive result comparison.
     Consolidates all pipeline management functionality in one place.
     """
-
-    MAX_API_CALLS = 3
 
     def __init__(self, google_client: GoogleClient, shoplifting_analyzer: ShopliftingAnalyzer = None,
                  logger: logging.Logger = None):
@@ -36,33 +36,36 @@ class PipelineManager:
         self.shoplifting_analyzer = shoplifting_analyzer  # For backward compatibility
         self.logger = logger
 
-    # ===== LEGACY COMPATIBILITY METHOD =====
-    def analyze_all_videos_in_bucket(self, bucket_name: str, max_api_calls_per_video: int = None,
-                                     export_results: bool = False):
+    def analyze_all_videos_in_bucket(self,
+                                     bucket_name: str,
+                                     export_results: bool = False,
+                                     labels_csv_path: str = None):
         """
-        Legacy method for backward compatibility.
         Analyze all videos in a specified bucket and optionally export results to CSV.
+
+        Args:
+            bucket_name (str): Name of the Google Cloud Storage bucket
+            export_results (bool, optional): Whether to export results to CSV. Defaults to False.
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
+        Returns:
+            dict: Dictionary containing analysis results for each video
         """
-        max_api_calls_per_video = max_api_calls_per_video or self.MAX_API_CALLS
+
         # Get video URIs and names
         uris, names = self.google_client.get_videos_uris_and_names_from_buckets(bucket_name)
 
         final_predictions = {}
         for uri, name in zip(uris, names):
-            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri,
-                                                                           max_api_calls=max_api_calls_per_video,
-                                                                           pickle_analysis=True)
+            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri, pickle_analysis=True)
             final_predictions[name] = analysis
 
         if export_results:
-            self._export_results(final_predictions)
+            self._export_results(final_predictions, labels_csv_path)
 
         return final_predictions
 
-    # ===== ADVANCED PIPELINE MANAGEMENT =====
-
     def run_unified_analysis(self, bucket_name: str, max_videos: int, iterations: int,
-                             threshold: float, diagnostic: bool, export: bool) -> List[Dict]:
+                             threshold: float, diagnostic: bool, export: bool, labels_csv_path: str = None) -> List[Dict]:
         """
         Run unified analysis strategy.
         
@@ -73,6 +76,7 @@ class PipelineManager:
             threshold (float): Detection confidence threshold
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels
             
         Returns:
             List[Dict]: Analysis results
@@ -88,14 +92,15 @@ class PipelineManager:
         # Run analysis
         results = self._analyze_videos_with_strategy(
             unified_analyzer, bucket_name, max_videos, iterations,
-            diagnostic, export, UNIFIED_MODEL.upper()
+            diagnostic, export, UNIFIED_MODEL.upper(), labels_csv_path
         )
 
         self._log_strategy_summary(UNIFIED_MODEL.upper(), results)
+
         return results
 
     def run_agentic_analysis(self, bucket_name: str, max_videos: int, iterations: int,
-                             threshold: float, diagnostic: bool, export: bool) -> List[Dict]:
+                             threshold: float, diagnostic: bool, export: bool, labels_csv_path: str = None) -> List[Dict]:
         """
         Run agentic analysis strategy.
         
@@ -106,6 +111,7 @@ class PipelineManager:
             threshold (float): Detection confidence threshold
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels
             
         Returns:
             List[Dict]: Analysis results
@@ -121,60 +127,15 @@ class PipelineManager:
         # Run analysis
         results = self._analyze_videos_with_strategy(
             agentic_analyzer, bucket_name, max_videos, iterations,
-            diagnostic, export, AGENTIC_MODEL.upper()
+            diagnostic, export, AGENTIC_MODEL.upper(), labels_csv_path
         )
 
         self._log_strategy_summary(AGENTIC_MODEL.upper(), results)
         return results
 
-    def run_comparative_analysis(self, bucket_name: str, max_videos: int, iterations: int,
-                                 threshold: float, diagnostic: bool, export: bool) -> Dict:
-        """
-        Run both strategies for comparative analysis.
-        
-        Args:
-            bucket_name (str): GCS bucket containing videos
-            max_videos (int): Maximum number of videos to analyze
-            iterations (int): Number of analysis iterations
-            threshold (float): Detection confidence threshold
-            diagnostic (bool): Enable diagnostic mode
-            export (bool): Export results to CSV
-            
-        Returns:
-            Dict: Comparative analysis results
-        """
-        self.logger.info("=== RUNNING COMPARATIVE ANALYSIS ===")
-
-        # Run unified analysis
-        self.logger.info("--- Running Unified Analysis ---")
-        unified_results = self.run_unified_analysis(
-            bucket_name, max_videos, iterations, threshold, diagnostic, False
-        )
-
-        # Run agentic analysis
-        self.logger.info("--- Running Agentic Analysis ---")
-        agentic_results = self.run_agentic_analysis(
-            bucket_name, max_videos, iterations, threshold, diagnostic, False
-        )
-
-        # Compare results
-        comparison = self._compare_strategies(unified_results, agentic_results)
-
-        # Export comparison if requested
-        if export:
-            self._export_comparative_results(comparison)
-
-        return {
-            "unified_results": unified_results,
-            "agentic_results": agentic_results,
-            "comparison": comparison
-        }
-
-    # ===== CORE ANALYSIS ENGINE =====
-
     def _analyze_videos_with_strategy(self, analyzer, bucket_name: str, max_videos: int,
                                       iterations: int, diagnostic: bool, export: bool,
-                                      strategy_name: str) -> List[Dict]:
+                                      strategy_name: str, labels_csv_path: str = None) -> List[Dict]:
         """
         Core analysis engine that works with any analyzer strategy.
 
@@ -186,6 +147,7 @@ class PipelineManager:
             diagnostic (bool): Enable diagnostic mode
             export (bool): Export results to CSV
             strategy_name (str): Name of the strategy for logging
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels
 
         Returns:
             List[Dict]: Analysis results
@@ -262,107 +224,9 @@ class PipelineManager:
 
         # Export results if requested
         if export and all_results:
-            self._export_strategy_results(all_results, strategy_name)
+            self._export_strategy_results(all_results, strategy_name, labels_csv_path)
 
         return all_results
-
-    # ===== COMPARISON AND ANALYSIS =====
-
-    def _compare_strategies(self, unified_results: List[Dict], agentic_results: List[Dict]) -> Dict:
-        """
-        Compare results between unified and agentic strategies.
-        """
-        self.logger.info("=== STRATEGY COMPARISON ANALYSIS ===")
-
-        # Create video-based comparison
-        comparison = {
-            "total_videos": len(unified_results),
-            "agreement_analysis": {},
-            "performance_comparison": {},
-            "confidence_analysis": {},
-            "detailed_comparisons": []
-        }
-
-        agreements = 0
-        disagreements = 0
-        unified_detections = 0
-        agentic_detections = 0
-
-        unified_confidences = []
-        agentic_confidences = []
-
-        for i, (unified, agentic) in enumerate(zip(unified_results, agentic_results)):
-            # Skip error results
-            if 'error' in unified or 'error' in agentic:
-                continue
-
-            unified_detected = unified.get('final_detection', False)
-            agentic_detected = agentic.get('final_detection', False)
-            unified_conf = unified.get('final_confidence', 0.0)
-            agentic_conf = agentic.get('final_confidence', 0.0)
-
-            unified_confidences.append(unified_conf)
-            agentic_confidences.append(agentic_conf)
-
-            if unified_detected:
-                unified_detections += 1
-            if agentic_detected:
-                agentic_detections += 1
-
-            if unified_detected == agentic_detected:
-                agreements += 1
-                agreement_type = "agree_detected" if unified_detected else "agree_normal"
-            else:
-                disagreements += 1
-                agreement_type = "disagree"
-
-            # Detailed comparison for each video
-            video_comparison = {
-                "video": unified.get('video_identifier', f'video_{i}'),
-                "unified_detected": unified_detected,
-                "agentic_detected": agentic_detected,
-                "unified_confidence": unified_conf,
-                "agentic_confidence": agentic_conf,
-                "confidence_diff": abs(unified_conf - agentic_conf),
-                "agreement": agreement_type
-            }
-            comparison["detailed_comparisons"].append(video_comparison)
-
-        # Agreement analysis
-        total_valid = agreements + disagreements
-        comparison["agreement_analysis"] = {
-            "total_agreements": agreements,
-            "total_disagreements": disagreements,
-            "agreement_rate": agreements / total_valid if total_valid > 0 else 0,
-            "disagreement_rate": disagreements / total_valid if total_valid > 0 else 0
-        }
-
-        # Performance comparison
-        comparison["performance_comparison"] = {
-            "unified_detection_rate": unified_detections / total_valid if total_valid > 0 else 0,
-            "agentic_detection_rate": agentic_detections / total_valid if total_valid > 0 else 0,
-            "unified_total_detections": unified_detections,
-            "agentic_total_detections": agentic_detections
-        }
-
-        # Confidence analysis
-        if unified_confidences and agentic_confidences:
-            comparison["confidence_analysis"] = {
-                "unified_avg_confidence": np.mean(unified_confidences),
-                "agentic_avg_confidence": np.mean(agentic_confidences),
-                "unified_confidence_std": np.std(unified_confidences),
-                "agentic_confidence_std": np.std(agentic_confidences),
-                "avg_confidence_difference": np.mean(
-                    [abs(u - h) for u, h in zip(unified_confidences, agentic_confidences)])
-            }
-
-        # Log comparison summary
-        self.logger.info(f"Strategy Agreement Rate: {comparison['agreement_analysis']['agreement_rate']:.1%}")
-        self.logger.info(
-            f"Unified Detection Rate: {comparison['performance_comparison']['unified_detection_rate']:.1%}")
-        self.logger.info(f"Agentic Detection Rate: {comparison['performance_comparison']['agentic_detection_rate']:.1%}")
-
-        return comparison
 
     # ===== UTILITY METHODS =====
 
@@ -446,21 +310,86 @@ class PipelineManager:
 
     # ===== EXPORT METHODS =====
 
-    def _export_results(self, final_predictions: dict) -> str:
+    def _export_strategy_results(self, results: List[Dict], strategy_name: str, labels_csv_path: str = None):
         """
-        Legacy export method for backward compatibility.
+        Export strategy-specific analysis results to CSV with optional ground truth comparison.
+        
+        Args:
+            results (List[Dict]): Analysis results from strategy
+            strategy_name (str): Name of the strategy (UNIFIED/AGENTIC)
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels
+        """
+        try:
+            # Convert results to the format expected by _export_results
+            final_predictions = {}
+            
+            for result in results:
+                # Extract video name from identifier (remove gs://bucket/ prefix)
+                video_identifier = result.get('video_identifier', '')
+                if '/' in video_identifier:
+                    video_name = video_identifier.split('/')[-1]
+                else:
+                    video_name = video_identifier
+                
+                # Create analysis dict in legacy format for compatibility
+                analysis = {
+                    'video_identifier': video_identifier,
+                    'shoplifting_determination': result.get('final_detection', False),
+                    'final_confidence': result.get('final_confidence', 0.0),
+                    'analysis_approach': result.get('analysis_approach', f'{strategy_name}_ENHANCED'),
+                    'decision_reasoning': result.get('decision_reasoning', ''),
+                    'iterations': result.get('iterations', 0),
+                    'detection_threshold': result.get('detection_threshold', 0.45),
+                    'error': result.get('error', ''),
+                    'analysis_timestamp': result.get('analysis_timestamp', '')
+                }
+                
+                # Add strategy-specific data
+                if strategy_name == AGENTIC_MODEL.upper():
+                    if 'cv_observations_summary' in result:
+                        cv_summary = result['cv_observations_summary']
+                        analysis['cv_behavioral_tone'] = cv_summary.get('behavioral_tone', '')
+                        analysis['cv_suspicious_indicators'] = cv_summary.get('suspicious_indicators', 0)
+                        analysis['cv_normal_indicators'] = cv_summary.get('normal_indicators', 0)
+
+                    if 'analysis_summary' in result:
+                        analysis_summary = result['analysis_summary']
+                        analysis['most_common_evidence_tier'] = analysis_summary.get('most_common_tier', '')
+                        analysis['has_concealment_evidence'] = analysis_summary.get('has_concealment_evidence', False)
+                
+                final_predictions[video_name] = analysis
+
+            self._export_results(final_predictions, labels_csv_path)
+
+        except Exception as e:
+            self.logger.error(f"Failed to export {strategy_name} results: {e}")
+
+    def _export_results(self, final_predictions: dict, labels_csv_path: str = None) -> str:
+        """
         Export analysis results to a CSV file.
+
+        Args:
+            final_predictions (dict): Dictionary containing analysis results for each video
+            labels_csv_path (str, optional): Path to CSV file containing ground truth labels for this bucket
+
+        Returns:
+            str: Path to the exported CSV file
         """
         # Create DataFrame from results
         results_data = []
         for name, analysis in final_predictions.items():
             results_data.append({
-                'video_uri': analysis['video_identifier'],
+                'video_identifier': analysis['video_identifier'],
                 'video_name': name,
                 'shoplifting_determination': analysis['shoplifting_determination']
             })
 
         df = pd.DataFrame(results_data)
+        match_percentage = None
+
+        # Compare with labels if provided
+        if labels_csv_path:
+            df, match_percentage = self._compare_with_labels(df, labels_csv_path)
 
         # Create timestamp for unique filename
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -472,88 +401,60 @@ class PipelineManager:
 
         # Save to CSV
         csv_path = os.path.join(results_dir, csv_filename)
-        df.to_csv(csv_path, index=False)
+
+        # Write the main results with better CSV formatting
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig', sep=',', quoting=1)
+
+        # Append match percentage if available
+        if match_percentage is not None:
+            with open(csv_path, 'a', encoding='utf-8-sig') as f:
+                f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
+            self.logger.info(
+                f"[EXPORT] results exported to: {csv_path} (Accuracy: {match_percentage:.2f}%)")
+        else:
+            self.logger.info(f"[EXPORT] results exported to: {csv_path}")
 
         return csv_path
 
-    def _export_strategy_results(self, results: List[Dict], strategy_name: str):
-        """Export strategy-specific analysis results to CSV."""
-        try:
-            export_data = []
-            for result in results:
-                row = {
-                    'video_identifier': result.get('video_identifier', ''),
-                    'analysis_approach': result.get('analysis_approach', f'{strategy_name}_ENHANCED'),
-                    'final_detection': result.get('final_detection', False),
-                    'final_confidence': result.get('final_confidence', 0.0),
-                    'decision_reasoning': result.get('decision_reasoning', ''),
-                    'iterations': result.get('iterations', 0),
-                    'detection_threshold': result.get('detection_threshold', 0.45),
-                    'error': result.get('error', ''),
-                    'analysis_timestamp': result.get('analysis_timestamp', '')
-                }
-
-                # Add strategy-specific data
-                if strategy_name == AGENTIC_MODEL.upper():
-                    if 'cv_observations_summary' in result:
-                        cv_summary = result['cv_observations_summary']
-                        row['cv_behavioral_tone'] = cv_summary.get('behavioral_tone', '')
-                        row['cv_suspicious_indicators'] = cv_summary.get('suspicious_indicators', 0)
-                        row['cv_normal_indicators'] = cv_summary.get('normal_indicators', 0)
-
-                    if 'analysis_summary' in result:
-                        analysis_summary = result['analysis_summary']
-                        row['most_common_evidence_tier'] = analysis_summary.get('most_common_tier', '')
-                        row['has_concealment_evidence'] = analysis_summary.get('has_concealment_evidence', False)
-
-                export_data.append(row)
-
-            df = pd.DataFrame(export_data)
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            csv_filename = f"{strategy_name.lower()}_shoplifting_results_{timestamp}.csv"
-            df.to_csv(csv_filename, index=False)
-            self.logger.info(f"📄 {strategy_name} results exported to: {csv_filename}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to export {strategy_name} results: {e}")
-
-    def _export_comparative_results(self, comparison: Dict):
+    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[DataFrame, float]:
         """
-        Export comparative analysis results to CSV.
+        Compare predictions with ground truth labels and calculate match percentage.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing predictions
+            labels_csv_path (str): Path to CSV file containing ground truth labels
+
+        Returns:
+            tuple[pd.DataFrame, float]: Updated DataFrame with correctness column and match percentage
         """
+        original_df = df.copy()
         try:
-            # Create comparison DataFrame
-            comparison_data = []
+            labels_df = pd.read_csv(labels_csv_path)
+            required_columns = ['video_name', 'shoplifting_determination']
 
-            for detail in comparison["detailed_comparisons"]:
-                comparison_data.append({
-                    'video': detail['video'],
-                    'unified_detected': detail['unified_detected'],
-                    'agentic_detected': detail['agentic_detected'],
-                    'unified_confidence': detail['unified_confidence'],
-                    'agentic_confidence': detail['agentic_confidence'],
-                    'confidence_difference': detail['confidence_diff'],
-                    'strategies_agree': detail['agreement'] != "disagree",
-                    'agreement_type': detail['agreement']
-                })
+            if all(col in labels_df.columns for col in required_columns):
+                # Merge predictions with labels
+                merged_df = pd.merge(
+                    df,
+                    labels_df[required_columns],
+                    on='video_name',
+                    how='left',  # Use left join to keep all analyzed videos
+                    suffixes=('_predicted', '_actual')
+                )
 
-            df = pd.DataFrame(comparison_data)
+                # Add correctness column - only for videos that have labels
+                df['prediction_correct'] = merged_df.apply(
+                    lambda row: row['shoplifting_determination_actual'] == row['shoplifting_determination_predicted'] 
+                    if pd.notna(row['shoplifting_determination_actual']) else None, axis=1
+                )
 
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            csv_filename = f"strategy_comparison_{timestamp}.csv"
-
-            df.to_csv(csv_filename, index=False)
-            self.logger.info(f"📄 Comparative results exported to: {csv_filename}")
-
-            # Log summary statistics
-            agreement_rate = comparison["agreement_analysis"]["agreement_rate"]
-            unified_detection_rate = comparison["performance_comparison"]["unified_detection_rate"]
-            agentic_detection_rate = comparison["performance_comparison"]["agentic_detection_rate"]
-
-            self.logger.info(f"📈 Comparison Summary:")
-            self.logger.info(f"  Agreement Rate: {agreement_rate:.1%}")
-            self.logger.info(f"  Unified Detection Rate: {unified_detection_rate:.1%}")
-            self.logger.info(f"  Agentic Detection Rate: {agentic_detection_rate:.1%}")
-
+                # Calculate match percentage only for videos with labels
+                valid_comparisons = df['prediction_correct'].dropna()
+                if len(valid_comparisons) > 0:
+                    match_percentage = valid_comparisons.mean() * 100
+                    return df, match_percentage
+                
         except Exception as e:
-            self.logger.error(f"Failed to export comparative results: {e}")
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.warning(f"Could not compare with labels: {e}")
+        return original_df, None

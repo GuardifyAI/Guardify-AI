@@ -2,13 +2,12 @@ from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 import logging
 from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL
-from vertexai.generative_models import Part, GenerationConfig
+from vertexai.generative_models import Part
 from typing import List, Tuple, Dict, Any
 import numpy as np
 import pickle
 import datetime
 import os
-import re
 
 
 class ShopliftingAnalyzer:
@@ -26,10 +25,12 @@ class ShopliftingAnalyzer:
 
     # ===== SHARED CONSTANTS =====
     ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi'}
+
     VIDEO_MIME_TYPES = {
         "mp4": "video/mp4",
         "avi": "video/x-msvideo",
     }
+
     ANALYSIS_DICT = {
         "video_identifier": str(),
         "confidence_levels": list(),
@@ -59,7 +60,7 @@ class ShopliftingAnalyzer:
         # Initialize models based on strategy
         if strategy == "unified":
             # Import here to avoid circular imports
-            from SingleShopliftingModel import UnifiedShopliftingModel
+            from UnifiedShopliftingModel import UnifiedShopliftingModel
             self.unified_model = UnifiedShopliftingModel()
             self.cv_model = None
             self.analysis_model = None
@@ -151,14 +152,13 @@ class ShopliftingAnalyzer:
                 f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
         return extension
 
-    def analyze_video_from_bucket(self, video_uri: str, max_api_calls: int = None,
+    def analyze_video_from_bucket(self, video_uri: str,
                                   iterations: int = None, pickle_analysis: bool = True) -> Dict:
         """
         Unified method to analyze video from GCS bucket using current strategy.
 
         Args:
             video_uri (str): GCS URI of the video
-            max_api_calls (int, optional): Maximum API calls (unified strategy)
             iterations (int, optional): Number of iterations (agentic strategy)
             pickle_analysis (bool): Whether to save analysis results
 
@@ -182,14 +182,13 @@ class ShopliftingAnalyzer:
             self.logger.error(f"Failed to analyze {video_uri}: {e}")
             return self._create_error_result(video_uri, str(e))
 
-    def analyze_local_video(self, video_path: str, max_api_calls: int = None,
+    def analyze_local_video(self, video_path: str,
                             iterations: int = None, pickle_analysis: bool = True) -> Dict:
         """
         Unified method to analyze local video file using current strategy.
 
         Args:
             video_path (str): Path to local video file
-            max_api_calls (int, optional): Maximum API calls (unified strategy)
             iterations (int, optional): Number of iterations (agentic strategy)
             pickle_analysis (bool): Whether to save analysis results
 
@@ -495,66 +494,6 @@ class ShopliftingAnalyzer:
 
         return final_confidence, final_detection, reasoning
 
-    # ===== LEGACY UNIFIED STRATEGY METHODS (for backward compatibility) =====
-
-    def should_continue(self, max_api_calls: int) -> bool:
-        """
-        Legacy method for backward compatibility.
-        Modern unified strategy uses iterations instead of should_continue logic.
-        """
-        return False  # Always stop after specified iterations
-
-    def has_reached_plateau(self) -> bool:
-        """
-        Legacy method for backward compatibility.
-        """
-        if len(self.current_confidence_levels) < 3:
-            return False
-        return self.current_confidence_levels[-1] == self.current_confidence_levels[-2] == \
-            self.current_confidence_levels[-3]
-
-    # ===== SHARED STATISTICAL ANALYSIS =====
-
-    def get_detection_stats_for_video(self) -> Dict | str:
-        """
-        Legacy method for backward compatibility.
-        """
-        if not self.current_confidence_levels or not self.current_shoplifting_detected_results:
-            return "Invalid input: One or both lists are empty."
-
-        confidence_levels = np.array(self.current_confidence_levels)
-        shoplifting_detected_results = np.array(self.current_shoplifting_detected_results)
-
-        if confidence_levels.shape != shoplifting_detected_results.shape:
-            return "Invalid input: The shapes of confidence_levels and shoplifting_detected_results do not match."
-
-        true_count = np.sum(shoplifting_detected_results)
-        false_count = shoplifting_detected_results.size - true_count
-
-        avg_confidence_true = np.mean(confidence_levels[shoplifting_detected_results]) if true_count else 0
-        avg_confidence_false = np.mean(confidence_levels[~shoplifting_detected_results]) if false_count else 0
-
-        max_confidence_true = np.max(confidence_levels[shoplifting_detected_results]) if true_count else 0
-        max_confidence_false = np.max(confidence_levels[~shoplifting_detected_results]) if false_count else 0
-
-        return {
-            'True Count': int(true_count),
-            'False Count': int(false_count),
-            'Average Confidence when True': round(float(avg_confidence_true), 4),
-            'Average Confidence when False': round(float(avg_confidence_false), 4),
-            'Highest Confidence when True': round(float(max_confidence_true), 4),
-            'Highest Confidence when False': round(float(max_confidence_false), 4)
-        }
-
-    # ===== LEGACY UNIFIED DECISION LOGIC (for compatibility) =====
-
-    def determine_shoplifting_from_stats(self, stats: dict) -> Tuple[float, bool]:
-        """
-        Legacy method - not used in modern unified approach.
-        """
-        # Simplified legacy return
-        return 0.5, False
-
     # ===== AGENTIC STRATEGY METHODS =====
 
     def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = 3,
@@ -763,41 +702,6 @@ class ShopliftingAnalyzer:
             "concealment_actions": list(set(all_concealment_actions)),
             "has_concealment_evidence": len(all_concealment_actions) > 0
         }
-
-    # ===== BATCH PROCESSING =====
-
-    def batch_analyze_videos(self, video_paths: List[str], iterations: int = 3, max_api_calls: int = 2) -> List[Dict]:
-        """
-        Batch analyze multiple videos using current strategy.
-
-        Args:
-            video_paths (List[str]): List of video paths to analyze
-            iterations (int): Number of iterations (both strategies)
-            max_api_calls (int): Maximum API calls (legacy parameter, unused)
-
-        Returns:
-            List[Dict]: List of analysis results
-        """
-        results = []
-
-        for i, video_path in enumerate(video_paths, 1):
-            self.logger.info(f"Batch analysis {i}/{len(video_paths)}: {video_path}")
-
-            try:
-                # Both strategies use iterations now
-                if video_path.startswith('gs://'):
-                    result = self.analyze_video_from_bucket(video_path, iterations=iterations, pickle_analysis=False)
-                else:
-                    result = self.analyze_local_video(video_path, iterations=iterations, pickle_analysis=False)
-                results.append(result)
-
-            except Exception as e:
-                self.logger.error(f"Failed to analyze {video_path}: {e}")
-                error_result = self._create_error_result(video_path, str(e))
-                results.append(error_result)
-
-        self.logger.info(f"Batch analysis complete: {len(results)} videos processed using {self.strategy} strategy")
-        return results
 
     # ===== SHARED FILE OPERATIONS =====
 
