@@ -316,7 +316,7 @@ class PipelineManager:
         try:
             # Convert results to the format expected by _export_results
             final_predictions = {}
-            
+
             for result in results:
                 # Extract video name from identifier (remove gs://bucket/ prefix)
                 video_identifier = result.get('video_identifier', '')
@@ -324,7 +324,7 @@ class PipelineManager:
                     video_name = video_identifier.split('/')[-1]
                 else:
                     video_name = video_identifier
-                
+
                 # Create analysis dict in legacy format for compatibility
                 analysis = {
                     'video_identifier': video_identifier,
@@ -337,7 +337,7 @@ class PipelineManager:
                     'error': result.get('error', ''),
                     'analysis_timestamp': result.get('analysis_timestamp', '')
                 }
-                
+
                 # Add strategy-specific data
                 if strategy_name == AGENTIC_MODEL.upper():
                     if 'cv_observations_summary' in result:
@@ -350,7 +350,7 @@ class PipelineManager:
                         analysis_summary = result['analysis_summary']
                         analysis['most_common_evidence_tier'] = analysis_summary.get('most_common_tier', '')
                         analysis['has_concealment_evidence'] = analysis_summary.get('has_concealment_evidence', False)
-                
+
                 final_predictions[video_name] = analysis
 
             self._export_results(final_predictions, labels_csv_path)
@@ -396,21 +396,17 @@ class PipelineManager:
         # Save to CSV
         csv_path = os.path.join(results_dir, csv_filename)
 
-        # Write the main results with better CSV formatting
-        df.to_csv(csv_path, index=False, encoding='utf-8-sig', sep=',', quoting=1)
+        # Write the main results
+        df.to_csv(csv_path, index=False)
 
         # Append match percentage if available
         if match_percentage is not None:
-            with open(csv_path, 'a', encoding='utf-8-sig') as f:
+            with open(csv_path, 'a') as f:
                 f.write(f"\nOverall match percentage: {match_percentage:.2f}%")
-            self.logger.info(
-                f"[EXPORT] results exported to: {csv_path} (Accuracy: {match_percentage:.2f}%)")
-        else:
-            self.logger.info(f"[EXPORT] results exported to: {csv_path}")
 
         return csv_path
 
-    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[DataFrame, float]:
+    def _compare_with_labels(self, df: pd.DataFrame, labels_csv_path: str) -> tuple[pd.DataFrame, float]:
         """
         Compare predictions with ground truth labels and calculate match percentage.
 
@@ -432,23 +428,17 @@ class PipelineManager:
                     df,
                     labels_df[required_columns],
                     on='video_name',
-                    how='left',  # Use left join to keep all analyzed videos
+                    how='inner',
                     suffixes=('_predicted', '_actual')
                 )
 
-                # Add correctness column - only for videos that have labels
-                df['prediction_correct'] = merged_df.apply(
-                    lambda row: row['shoplifting_determination_actual'] == row['shoplifting_determination_predicted'] 
-                    if pd.notna(row['shoplifting_determination_actual']) else None, axis=1
-                )
+                # Add correctness column
+                df['prediction_correct'] = merged_df['shoplifting_determination_actual'] == merged_df[
+                    'shoplifting_determination_predicted']
 
-                # Calculate match percentage only for videos with labels
-                valid_comparisons = df['prediction_correct'].dropna()
-                if len(valid_comparisons) > 0:
-                    match_percentage = valid_comparisons.mean() * 100
-                    return df, match_percentage
-                
-        except Exception as e:
-            if hasattr(self, 'logger') and self.logger:
-                self.logger.warning(f"Could not compare with labels: {e}")
+                # Calculate match percentage
+                match_percentage = (df['prediction_correct']).mean() * 100
+                return df, match_percentage
+        except:
+            pass
         return original_df, None
