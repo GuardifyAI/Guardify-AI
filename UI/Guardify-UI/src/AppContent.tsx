@@ -3,7 +3,7 @@ import './styles.css';
 import EventCountBarChart from './components/Stats/EventCountBarChart';
 import EventsOverTime from './components/Stats/EventsOverTime';
 import EventsByHour from './components/Stats/EventsByHour';
-import MostActiveCamera from './components/Stats/MostActiveCamera';
+import EventsByCategory from './components/Stats/EventsByCategory';
 import ShopPage from './pages/ShopPage';
 import Sidebar from './components/Sidebar'; 
 
@@ -47,12 +47,12 @@ export default function AppContent() {
             <section className="tiles">
               <EventsOverTime events={events} />
               <EventsByHour events={events} />
-              <MostActiveCamera events={events} />
               <EventCountBarChart
                 events={events}
                 groupBy="shopId"
                 title="Shops Events Overview"
               />
+              <EventsByCategory events={events} />
             </section>
 
             <section className="events-table-section">

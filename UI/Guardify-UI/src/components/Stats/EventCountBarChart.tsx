@@ -2,16 +2,25 @@ import ChartComponent from './ChartComponent';
 import type { Event } from '../../types';
 
 type Props = {
-  events: Event[];
-  groupBy: 'shopId' | 'cameraId';
+  events?: Event[];
+  groupBy: 'shopId' | 'camera';
   title?: string;
 };
 
 export default function EventCountBarChart({ events, groupBy, title }: Props) {
+  if (!events || !Array.isArray(events)) {
+    return <div className="tile">No event data</div>;
+  }
+
   const counts: Record<string, number> = {};
 
   events.forEach(event => {
-    const key = event[groupBy];
+    const key =
+      groupBy === 'camera'
+        ? event.cameraName || event.cameraId
+        : groupBy === 'shopId'
+          ? event.shopName || event.shopId
+          : event[groupBy];
     counts[key] = (counts[key] || 0) + 1;
   });
 

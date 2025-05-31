@@ -1,5 +1,7 @@
 import EventsOverTime from '../components/Stats/EventsOverTime';
-// import CameraStats from '../components/CameraStats';
+import EventsByHour from '../components/Stats/EventsByHour';
+import EventCountBarChart from '../components/Stats/EventCountBarChart';
+import EventsByCategory from '../components/Stats/EventsByCategory';
 import type { Event, Shop } from '../types';
 import EventCard from '../components/EventCard';
 
@@ -17,11 +19,14 @@ export default function ShopPage({ shop, events, tab }: Props) {
     <div className="page-layout">
       {tab === 'statistics' && (
         <section className="tiles">
-          <div className="tile">
-            <h2>Events Trend Over Time</h2>
-            <EventsOverTime events={filteredEvents} />
-          </div>
-          {/* <CameraStats events={filteredEvents} /> */}
+          <EventsOverTime events={filteredEvents} />
+          <EventsByHour events={filteredEvents} />
+          <EventCountBarChart
+            events={filteredEvents}
+            groupBy="camera"
+            title={`Events by Camera in ${shop.name}`}
+          />
+          <EventsByCategory events={events} />
         </section>
       )}
 

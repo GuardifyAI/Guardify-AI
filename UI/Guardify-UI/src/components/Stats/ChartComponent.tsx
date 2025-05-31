@@ -58,19 +58,19 @@ export default function ChartComponent({
           legend: { display: isPie, position: 'bottom' }
         },
           scales: isPie ? {} : {
-            x: {
-              title: {
-                display: true,
-                text: type === 'bar' ? 'Category' : 'Date'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Count'
-              },
-              beginAtZero: true
-            }
+        x: {
+          title: {
+            display: true,
+            text: isHorizontal ? 'Events Count' : (type === 'bar' ? 'Category' : 'Date')
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: isHorizontal ? 'Camera Name' : 'Count'
+          },
+          beginAtZero: true
+        }
           },
           indexAxis: isHorizontal ? 'y' : 'x',
         }
@@ -79,8 +79,10 @@ export default function ChartComponent({
   }, [type, labels, data, label, color]);
 
 return (
-  <div style={{ width: '100%', maxWidth: '100%' }}>
-    <canvas ref={chartRef} />
-  </div>
+  <canvas
+    ref={chartRef}
+    width={type === 'pie' ? 220 : 300}
+    height={type === 'pie' ? 220 : 200}
+  />
 );
 }
