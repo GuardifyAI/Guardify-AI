@@ -325,6 +325,9 @@ class PipelineManager:
                 else:
                     video_name = video_identifier
 
+                # Remove file extension for comparison with labels
+                video_name_without_ext = os.path.splitext(video_name)[0]
+
                 # Create analysis dict in legacy format for compatibility
                 analysis = {
                     'video_identifier': video_identifier,
@@ -351,7 +354,7 @@ class PipelineManager:
                         analysis['most_common_evidence_tier'] = analysis_summary.get('most_common_tier', '')
                         analysis['has_concealment_evidence'] = analysis_summary.get('has_concealment_evidence', False)
 
-                final_predictions[video_name] = analysis
+                final_predictions[video_name_without_ext] = analysis
 
             self._export_results(final_predictions, labels_csv_path)
 
@@ -418,27 +421,78 @@ class PipelineManager:
             tuple[pd.DataFrame, float]: Updated DataFrame with correctness column and match percentage
         """
         original_df = df.copy()
+        
+        # Initialize prediction_correct column with False by default
+        df['prediction_correct'] = False
+        
         try:
             labels_df = pd.read_csv(labels_csv_path)
             required_columns = ['video_name', 'shoplifting_determination']
 
-            if all(col in labels_df.columns for col in required_columns):
-                # Merge predictions with labels
-                merged_df = pd.merge(
-                    df,
-                    labels_df[required_columns],
-                    on='video_name',
-                    how='inner',
-                    suffixes=('_predicted', '_actual')
+            if not all(col in labels_df.columns for col in required_columns):
+                if hasattr(self, 'logger') and self.logger:
+                    self.logger.warning(f"Labels file missing required columns: {required_columns}")
+                return df, None
+
+            # Remove file extensions from both dataframes for consistent comparison
+            df['video_name_clean'] = df['video_name'].apply(lambda x: os.path.splitext(x)[0])
+            labels_df['video_name_clean'] = labels_df['video_name'].apply(lambda x: os.path.splitext(x)[0])
+
+            # Merge predictions with labels using left join to keep all predictions
+            merged_df = pd.merge(
+                df,
+                labels_df[['video_name_clean', 'shoplifting_determination']],
+                on='video_name_clean',
+                how='left',
+                suffixes=('_predicted', '_actual')
+            )
+
+            # Remove video_name_clean column as it's no longer needed
+            merged_df = merged_df.drop(columns=['video_name_clean'])
+
+            # Handle null predictions - set them to False for comparison
+            merged_df['shoplifting_determination_predicted'] = merged_df['shoplifting_determination_predicted'].fillna(False)
+            
+            # Calculate correctness only for videos that have labels (not null)
+            has_labels = merged_df['shoplifting_determination_actual'].notna()
+            
+            # Initialize prediction_correct to False for all rows
+            merged_df['prediction_correct'] = False
+            
+            # Set prediction_correct to True where predictions match labels
+            if has_labels.sum() > 0:
+                merged_df.loc[has_labels, 'prediction_correct'] = (
+                    merged_df.loc[has_labels, 'shoplifting_determination_actual'] == 
+                    merged_df.loc[has_labels, 'shoplifting_determination_predicted']
                 )
-
-                # Add correctness column
-                df['prediction_correct'] = merged_df['shoplifting_determination_actual'] == merged_df[
-                    'shoplifting_determination_predicted']
-
-                # Calculate match percentage
-                match_percentage = (df['prediction_correct']).mean() * 100
-                return df, match_percentage
-        except:
-            pass
-        return original_df, None
+                
+                # Calculate match percentage only for videos with labels
+                match_percentage = (merged_df.loc[has_labels, 'prediction_correct']).mean() * 100
+                
+                if hasattr(self, 'logger') and self.logger:
+                    correct_count = merged_df.loc[has_labels, 'prediction_correct'].sum()
+                    total_with_labels = has_labels.sum()
+                    self.logger.info(f"Ground truth comparison: {total_with_labels} videos have labels")
+                    self.logger.info(f"Match percentage: {match_percentage:.2f}%")
+                
+                # Remove shoplifting_determination_actual column as it's no longer needed
+                merged_df = merged_df.drop(columns=['shoplifting_determination_actual'])
+                
+                # Return the merged dataframe with the prediction_correct column
+                return merged_df, match_percentage
+            else:
+                if hasattr(self, 'logger') and self.logger:
+                    self.logger.warning("No videos found with matching ground truth labels")
+                
+                # Remove shoplifting_determination_actual column as it's no longer needed
+                merged_df = merged_df.drop(columns=['shoplifting_determination_actual'])
+                
+                return merged_df, None
+                
+        except Exception as e:
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.error(f"Error comparing with labels: {str(e)}")
+            # Ensure prediction_correct column exists even if comparison fails
+            df['prediction_correct'] = False
+        
+        return df, None
