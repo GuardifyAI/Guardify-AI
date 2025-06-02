@@ -96,13 +96,15 @@ class ShopliftingAnalyzer:
 
     ANALYSIS_DICT = {
         "video_identifier": str(),
+        "analysis_approach": str(),
+        "iterations": int(),
+        "final_detection": bool(),
+        "final_confidence": float(),
+        "decision_reasoning": str(),
         "confidence_levels": list(),
-        "shoplifting_detected_results": list(),
-        "cv_model_responses": list(),
-        "analysis_model_responses": list(),
-        "stats": dict(),
-        "shoplifting_probability": float(),
-        "shoplifting_determination": bool()
+        "detection_results": list(),
+        "iteration_results": list(),
+        "analysis_timestamp": str()
     }
 
     def __init__(self, detection_strictness: float = 0.45, strategy: str = UNIFIED_MODEL,
@@ -391,7 +393,6 @@ class ShopliftingAnalyzer:
             "video_identifier": video_identifier,
             "analysis_approach": AGENTIC_MODEL,
             "iterations": iterations,
-            "detection_threshold": self.shoplifting_detection_threshold,
             "final_detection": threshold_decision,
             "final_confidence": final_confidence,
             "decision_reasoning": decision_reasoning,
