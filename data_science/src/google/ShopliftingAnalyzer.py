@@ -103,7 +103,7 @@ class ShopliftingAnalyzer:
         "analysis_timestamp": str()
     }
 
-    def __init__(self, detection_strictness: float = 0.45, strategy: str = UNIFIED_MODEL,
+    def __init__(self, detection_strictness: float, strategy: str = UNIFIED_MODEL,
                  unified_model: UnifiedShopliftingModel = None, cv_model: ComputerVisionModel = None,
                  analysis_model: AnalysisModel = None, logger: logging.Logger = None):
         """
