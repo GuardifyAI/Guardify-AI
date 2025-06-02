@@ -1,20 +1,99 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
+from data_science.src.google.UnifiedShopliftingModel import UnifiedShopliftingModel
 import logging
-from data_science.src.utils import create_logger, get_video_extension
+from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
 from vertexai.generative_models import Part
-from typing import List, Tuple, Dict
+from typing import List, Dict, Any
 import numpy as np
 import pickle
 import datetime
 import os
 
+
+DEFAULT_NUM_OF_ITERATIONS = 3
+
+
+def create_unified_analyzer(detection_threshold: float, logger: logging.Logger = None):
+    """
+    Factory function to create a unified strategy analyzer.
+
+    Args:
+        detection_threshold (float): Detection confidence threshold
+        logger (logging.Logger, optional): Logger instance
+
+    Returns:
+        ShopliftingAnalyzer: Configured for unified strategy
+    """
+    # Create the unified model instance
+    unified_model = UnifiedShopliftingModel()
+    
+    return ShopliftingAnalyzer(
+        detection_strictness=detection_threshold,
+        logger=logger,
+        strategy=UNIFIED_MODEL,
+        unified_model=unified_model
+    )
+
+
+def create_agentic_analyzer(detection_threshold: float, logger: logging.Logger = None):
+    """
+    Factory function to create an agentic strategy analyzer.
+
+    Args:
+        detection_threshold (float): Detection confidence threshold
+        logger (logging.Logger, optional): Logger instance
+
+    Returns:
+        ShopliftingAnalyzer: Configured for agentic strategy
+    """
+    # Create the required model instances for agentic strategy
+    cv_model = ComputerVisionModel()
+    analysis_model = AnalysisModel()
+    
+    return ShopliftingAnalyzer(
+        detection_strictness=detection_threshold,
+        logger=logger,
+        strategy=AGENTIC_MODEL,
+        cv_model=cv_model,
+        analysis_model=analysis_model
+    )
+
+
 class ShopliftingAnalyzer:
+    """
+    UNIFIED SHOPLIFTING ANALYZER WITH DUAL-STRATEGY SUPPORT
+    =======================================================
+
+    This analyzer supports both:
+    1. SINGLE STRATEGY: True single-model direct analysis using UnifiedShopliftingModel
+    2. AGENTIC STRATEGY: Two-step enhanced pipeline (ComputerVisionModel → AnalysisModel)
+
+    Eliminates code duplication by consolidating video processing, validation,
+    statistical analysis, and file operations into shared methods.
+    """
+
+    # ===== SHARED CONSTANTS =====
     ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi'}
+
     VIDEO_MIME_TYPES = {
         "mp4": "video/mp4",
         "avi": "video/x-msvideo",
     }
+
+    # Consolidated behavioral indicators
+    THEFT_INDICATORS = [
+        'pocket', 'bag', 'waist', 'concealed', 'hidden', 'tucked',
+        'clothing adjustment', 'hand movement', 'body area', 'conceal',
+        'nervous', 'furtive', 'quick', 'suspicious', 'concealment'
+    ]
+    
+    NORMAL_INDICATORS = [
+        'browsing', 'examining', 'looking', 'normal', 'casual',
+        'no clear', 'no visible', 'ambiguous', 'consistent with normal',
+        'returned', 'shelf', 'checkout', 'natural', 'regular'
+    ]
+
     ANALYSIS_DICT = {
         "video_identifier": str(),
         "confidence_levels": list(),
@@ -26,244 +105,399 @@ class ShopliftingAnalyzer:
         "shoplifting_determination": bool()
     }
 
-    def __init__(self, cv_model: ComputerVisionModel, analysis_model: AnalysisModel, detection_strictness: float, logger: logging.Logger = None):
+    def __init__(self, detection_strictness: float = 0.45, strategy: str = UNIFIED_MODEL,
+                 unified_model: UnifiedShopliftingModel = None, cv_model: ComputerVisionModel = None,
+                 analysis_model: AnalysisModel = None, logger: logging.Logger = None):
         """
-        Initializes the ShopliftingAnalyzer, which coordinates the end-to-end analysis of a single video
-        using computer vision and analytical models to detect shoplifting behavior.
-
-        The analyzer iteratively calls GenAI-based components to improve confidence in detection results,
-        and evaluates whether the confidence and consistency of results meet criteria to stop further analysis.
+        Initialize the ShopliftingAnalyzer with support for both unified and agentic strategies.
 
         Args:
-            cv_model (ComputerVisionModel): The computer vision model for video analysis.
-            analysis_model (AnalysisModel): The analysis model for interpreting video observations.
-            detection_strictness (float): A threshold between 0 and 1 indicating the minimum required
-                                                    confidence level to classify the video as containing shoplifting.
-                                                    Higher values make the analyzer stricter (fewer false positives,
-                                                    but may miss true positives); lower values make it more sensitive
-                                                    (may detect more true positives, but at risk of false positives).
-            logger (logging.Logger, optional): A logger instance for logging messages. If None, a default logger is created.
+            detection_strictness (float): Confidence threshold (0-1) for shoplifting detection
+            strategy (str): "unified" or AGENTIC_MODEL analysis strategy
+            unified_model (UnifiedShopliftingModel, optional): Unified model for video analysis
+            cv_model (ComputerVisionModel, optional): Computer vision model for video analysis
+            analysis_model (AnalysisModel, optional): Analysis model for interpreting observations
+            logger (logging.Logger, optional): Logger instance
         """
-        self.cv_model = cv_model
-        self.analysis_model = analysis_model
-        self.current_confidence_levels = []
-        self.current_shoplifting_detected_results = []
+        self.strategy = strategy
+
+        # Initialize models based on strategy
+        if strategy == UNIFIED_MODEL:
+            self.unified_model = unified_model
+        else:
+            # Agentic strategy uses separate models
+            self.cv_model = cv_model
+            self.analysis_model = analysis_model
+
+        # Validation
         if detection_strictness < 0 or detection_strictness > 1:
             raise ValueError("Detection strictness must be between 0 and 1.")
-        self.shoplifting_detection_threshold = detection_strictness
-        if logger is None:
-            self.logger = create_logger('ShopliftingAnalyzer', 'shoplifting_analysis.log')
+        if self.strategy == AGENTIC_MODEL:
+            if (not hasattr(self, 'cv_model') or not self.cv_model or not hasattr(self, 'analysis_model')
+                    or not self.analysis_model):
+                raise ValueError("Agentic analysis requires both CV and Analysis models")
+        elif self.strategy == UNIFIED_MODEL:
+            if not hasattr(self, 'unified_model') or not self.unified_model:
+                raise ValueError("Unified analysis requires UnifiedShopliftingModel")
 
-    def analyze_video_from_bucket(self, video_uri: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+        self.shoplifting_detection_threshold = detection_strictness
+
+        # Initialize logger
+        if logger is None:
+            strategy_suffix = f"_{strategy}" if strategy != UNIFIED_MODEL else ""
+            self.logger = create_logger(f'ShopliftingAnalyzer{strategy_suffix}', f'{strategy}_analysis.log')
+        else:
+            self.logger = logger
+
+        # Set logger on analysis model for enhanced debugging (agentic only)
+        if hasattr(self, 'analysis_model') and self.analysis_model and hasattr(self.analysis_model, 'logger'):
+            self.analysis_model.logger = self.logger
+
+        # State tracking for unified strategy
+        self.current_confidence_levels = []
+        self.current_shoplifting_detected_results = []
+
+        self.logger.info(
+            f"Initialized ShopliftingAnalyzer with {strategy.upper()} strategy, threshold: {detection_strictness}")
+
+    # ===== SHARED VIDEO PROCESSING METHODS =====
+
+    def _validate_video_format(self, video_identifier: str) -> str:
         """
-        Analyzes a video from Google Cloud Storage bucket.
+        Shared method to validate video format and return extension.
 
         Args:
-            video_uri (str): The GCS URI of the video
-            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
-            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+            video_identifier (str): Video path or URI
 
         Returns:
-            Dict: Analysis results including confidence levels, detection results, and model responses
+            str: Validated file extension
             
         Raises:
-            ValueError: If the video URI has an invalid or unsupported extension
+            ValueError: If video format is unsupported
         """
-        # Validate video extension
-        extension = get_video_extension(video_uri)
+        extension = get_video_extension(video_identifier)
         if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
-            self.logger.error(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
-            return self.ANALYSIS_DICT
-        video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
-        return self.analyze_video(video_part, video_uri, max_api_calls, pickle_analysis)
+            raise ValueError(
+                f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
+        return extension
 
-    def analyze_local_video(self, video_path: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+    def analyze_video_from_bucket(self, video_uri: str,
+                                  iterations: int = None, pickle_analysis: bool = True) -> Dict:
         """
-        Analyzes a local video file for shoplifting activity.
+        Analyze video from GCS bucket using current strategy.
 
         Args:
-            video_path (str): Path to the local video file
-            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
-            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+            video_uri (str): GCS URI of the video
+            iterations (int, optional): Number of iterations (agentic strategy)
+            pickle_analysis (bool): Whether to save analysis results
 
         Returns:
-            Dict: Analysis results including confidence levels, detection results, and model responses
-
-        Raises:
-            FileNotFoundError: If the video file doesn't exist
-            ValueError: If the file is not a valid video file
+            Dict: Analysis results
         """
-        extension = get_video_extension(video_path)
+        try:
+            extension = self._validate_video_format(video_uri)
+            video_part = Part.from_uri(uri=video_uri, mime_type=self.VIDEO_MIME_TYPES[extension])
+            return self._analyze_video(video_uri, video_part, iterations, pickle_analysis)
+
+        except Exception as e:
+            self.logger.error(f"Failed to analyze {video_uri}: {e}")
+            return self._create_error_result(video_uri, str(e))
+
+    def analyze_local_video(self, video_path: str,
+                            iterations: int = None, pickle_analysis: bool = True) -> Dict:
+        """
+        Analyze local video file using current strategy.
+
+        Args:
+            video_path (str): Path to local video file
+            iterations (int, optional): Number of iterations (agentic strategy)
+            pickle_analysis (bool): Whether to save analysis results
+
+        Returns:
+            Dict: Analysis results
+        """
+        # Validate file existence
         if not os.path.exists(video_path):
             self.logger.error(f"Video file not found at path: {video_path}")
             return self.ANALYSIS_DICT
 
-        if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
-            self.logger.error(f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
-            return self.ANALYSIS_DICT
+        try:
+            # Validate video format
+            extension = self._validate_video_format(video_path)
+            video_part = Part.from_data(mime_type=self.VIDEO_MIME_TYPES[extension], data=open(video_path, "rb").read())
+            return self._analyze_video(video_path, video_part, iterations, pickle_analysis)
 
-        video_part = Part.from_data(
-            mime_type=self.VIDEO_MIME_TYPES[extension],
-            data=open(video_path, "rb").read()
-        )
-        return self.analyze_video(video_part, video_path, max_api_calls, pickle_analysis)
+        except Exception as e:
+            self.logger.error(f"Failed to analyze {video_path}: {e}")
+            return self._create_error_result(video_path, str(e))
 
-    def analyze_video(self, video_part: Part, video_identifier: str, max_api_calls: int, pickle_analysis: bool = True) -> Dict:
+    def _analyze_video(self, video_path: str, video_part: Part, iterations: int = None, pickle_analysis: bool = True):
         """
-        Analyzes a video for shoplifting activity using the provided video Part.
+        Analyze video file by strategy.
 
         Args:
-            video_part (Part): The video Part object to analyze
-            video_identifier (str): Identifier for the video (path or URI)
-            pickle_analysis (bool, optional): Whether to save the analysis results to a pickle file. Defaults to True.
-            max_api_calls(int): The maximum number of API calls to make before stopping the analysis.
+            video_path (str): Path to local video file
+            video_part (Part): Video part
+            iterations (int, optional): Number of iterations (agentic strategy)
+            pickle_analysis (bool): Whether to save analysis results
 
         Returns:
-            Dict: Analysis results including confidence levels, detection results, and model responses
+            Dict: Analysis results
         """
-        cv_model_responses = []
-        analysis_model_responses = []
+        # Route to appropriate analysis method
+        if self.strategy == AGENTIC_MODEL:
+            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS
+            return self.analyze_video_agentic(video_part, video_path, iterations, pickle_analysis)
+        else:
+            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS  # Unified
+            return self.analyze_video_unified(video_part, video_path, iterations, pickle_analysis)
 
-        while self.should_continue(max_api_calls):
-            self.logger.info(f"Sending video '{video_identifier}' to CV model for video description")
-            cv_model_response = self.cv_model.analyze_video(video_part)  # Using default prompt
-            self.logger.info(f"Sending video '{video_identifier}' to Analysis model for analysis of the video and results generation")
-            analysis_model_response, shoplifting_detected, confidence_level = self.analysis_model.analyze_video_observations(
-                video_part, cv_model_response)
-            self.logger.debug(f"Shoplifting Detected: {shoplifting_detected}")
-            self.logger.debug(f"Confidence Level: {confidence_level}")
-            self.current_confidence_levels.append(confidence_level)
-            self.current_shoplifting_detected_results.append(shoplifting_detected)
-            cv_model_responses.append(cv_model_response)
-            analysis_model_responses.append(analysis_model_response)
-            self.logger.info(f"Finished {len(self.current_confidence_levels)} iterations of analysis for video '{video_identifier}'")
-
-        stats = self.get_detection_stats_for_video()
-        shoplifting_probability, shoplifting_determination = self.determine_shoplifting_from_stats(stats)
-        analysis = self.ANALYSIS_DICT.copy()
-        analysis["video_identifier"] = video_identifier
-        analysis["confidence_levels"] = self.current_confidence_levels
-        analysis["shoplifting_detected_results"] = self.current_shoplifting_detected_results
-        analysis["cv_model_responses"] = cv_model_responses
-        analysis["analysis_model_responses"] = analysis_model_responses
-        analysis["stats"] = stats
-        analysis["shoplifting_probability"] = shoplifting_probability
-        analysis["shoplifting_determination"] = shoplifting_determination
-
-        if pickle_analysis:
-            self.save_analysis_to_pickle(analysis)
-
-        self.current_confidence_levels = []
-        self.current_shoplifting_detected_results = []
-        self.logger.info(f"Finished analysis for video '{video_identifier}'")
-        return analysis
-
-    def should_continue(self, max_api_calls: int) -> bool:
+    def _create_error_result(self, video_identifier: str, error_message: str) -> Dict:
         """
-        Determines whether the analysis should continue based on confidence levels, API call limits, and result plateau.
+        Create standardized error result dictionary.
 
         Args:
-            max_api_calls (int): The maximum number of API calls allowed.
+            video_identifier (str): Video identifier
+            error_message (str): Error description
 
         Returns:
-                bool: True if the analysis should continue, False otherwise.
+            Dict: Standardized error result
         """
-        return (not self.current_confidence_levels or self.current_confidence_levels[-1] < 0.9) and len(
-            self.current_confidence_levels) < max_api_calls and not self.has_reached_plateau()
-
-    def has_reached_plateau(self) -> bool:
-        """
-        Checks if the confidence levels have plateaued (no improvement over the last three iterations).
-
-        Returns:
-            bool: True if the confidence levels have plateaued, False otherwise.
-        """
-        if len(self.current_confidence_levels) < 3:
-            return False
-        return self.current_confidence_levels[-1] == self.current_confidence_levels[-2] == self.current_confidence_levels[-3]
-
-    # TODO: add tests for edge cases
-    def get_detection_stats_for_video(self) -> Dict | str:
-        """
-        Computes statistical metrics for the analysis results, such as average and maximum confidence levels.
-
-        Returns:
-            Dict: A dictionary containing statistical metrics for true and false detections.
-            str: An error message if the input lists are invalid or misaligned.
-        """
-        if not self.current_confidence_levels or not self.current_shoplifting_detected_results:
-            return "Invalid input: One or both lists are empty."
-
-        confidence_levels = np.array(self.current_confidence_levels)
-        shoplifting_detected_results = np.array(self.current_shoplifting_detected_results)
-
-        if confidence_levels.shape != shoplifting_detected_results.shape:
-            return "Invalid input: The shapes of confidence_levels and shoplifting_detected_results do not match."
-
-        true_count = np.sum(shoplifting_detected_results)
-        false_count = shoplifting_detected_results.size - true_count
-
-        avg_confidence_true = np.mean(confidence_levels[shoplifting_detected_results]) if true_count else 0
-        avg_confidence_false = np.mean(confidence_levels[~shoplifting_detected_results]) if false_count else 0
-
-        max_confidence_true = np.max(confidence_levels[shoplifting_detected_results]) if true_count else 0
-        max_confidence_false = np.max(confidence_levels[~shoplifting_detected_results]) if false_count else 0
-
         return {
-            'True Count': int(true_count),
-            'False Count': int(false_count),
-            'Average Confidence when True': round(float(avg_confidence_true), 4),
-            'Average Confidence when False': round(float(avg_confidence_false), 4),
-            'Highest Confidence when True': round(float(max_confidence_true), 4),
-            'Highest Confidence when False': round(float(max_confidence_false), 4)
+            "video_identifier": video_identifier,
+            "error": error_message,
+            "final_detection": None,
+            "final_confidence": 0.0,
+            "analysis_approach": self.strategy.upper(),
+            "analysis_timestamp": datetime.datetime.now().isoformat()
         }
 
-    def save_analysis_to_pickle(self, analysis: Dict) -> None:
+    # ===== UNIFIED STRATEGY METHODS (TRUE SINGLE MODEL) =====
+
+    def analyze_video_unified(self, video_part: Part, video_identifier: str, iterations: int,
+                              pickle_analysis: bool = True) -> Dict:
         """
-        Saves the analysis results to a pickle file.
+        TRUE UNIFIED strategy analysis method using UnifiedShopliftingModel.
 
         Args:
-            analysis (Dict): The analysis results to save.
-        """
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        pkl_path = f"video_analysis_{current_time}.pkl"
-
-        with open(pkl_path, 'wb') as file:
-            pickle.dump(analysis, file)
-
-        self.logger.info(f"Finished with {analysis['video_identifier']}, results saved to {pkl_path}")
-
-    # TODO: make the algorithm better. make it take into account also the False results.
-    # TODO: Make this into an AI model that gets results as number and output the prediction
-    def determine_shoplifting_from_stats(self, stats: dict) -> Tuple[float, bool]:
-        """
-        Determines whether shoplifting is detected based on statistical metrics and a weighted scoring system.
-
-        Args:
-            stats (dict): A dictionary containing statistical metrics for the analysis.
+            video_part (Part): Video part object
+            video_identifier (str): Video identifier
+            iterations (int): Number of analysis iterations
+            pickle_analysis (bool): Whether to save results
 
         Returns:
-            Tuple[float, bool]: The shoplifting probability and a boolean indicating whether shoplifting is detected.
+            Dict: Analysis results
         """
-        # Calculate the weighted score
-        count_weight = 0.5
-        average_confidence_weight = 0.3
-        highest_confidence_weight = 0.2
+        return self.unified_model.analyze_video(
+            video_part=video_part,
+            video_identifier=video_identifier,
+            iterations=iterations,
+            detection_threshold=self.shoplifting_detection_threshold,
+            logger=self.logger,
+            pickle_analysis=pickle_analysis
+        )
 
-        # Normalize count to be between 0 and 1
-        # Assuming the maximum expected count can be defined or observed from historical data
-        # For demonstration, let's assume a maximum count of 10
-        max_expected_count = 10
-        normalized_count = stats['True Count'] / (stats["True Count"] + stats["False Count"])
-        normalized_count = min(normalized_count, 1)  # Ensure it does not exceed 1
+    # ===== AGENTIC STRATEGY METHODS =====
 
-        average_confidence = stats['Average Confidence when True']
-        highest_confidence = stats['Highest Confidence when True']
+    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = DEFAULT_NUM_OF_ITERATIONS,
+                              pickle_analysis: bool = True) -> Dict:
+        """
+        Agentic strategy analysis method: CV observations → Analysis decision.
 
-        # Calculate the final score using the specified weights
-        final_score = (count_weight * normalized_count) + \
-                      (average_confidence_weight * average_confidence) + \
-                      (highest_confidence_weight * highest_confidence)
-        self.logger.info(f"Final score: {final_score}, shoplifting_determination: {final_score >= self.shoplifting_detection_threshold}")
-        # Check if the final score exceeds the threshold
-        return final_score, final_score >= self.shoplifting_detection_threshold
+        Args:
+            video_part (Part): Video part object
+            video_identifier (str): Video identifier
+            iterations (int): Number of iterations for consistency checking
+            pickle_analysis (bool): Whether to save results
+
+        Returns:
+            Dict: Comprehensive analysis results
+        """
+        self.logger.info(f"Starting agentic analysis of '{video_identifier}' with {iterations} iterations")
+
+        # Store results from multiple iterations
+        iteration_results = []
+        all_confidences = []
+        all_detections = []
+        cv_observations = []
+        analysis_details = []
+
+        for i in range(iterations):
+            self.logger.info(f"=== AGENTIC ITERATION {i + 1}/{iterations} ===")
+
+            # Step 1: Computer Vision Model - Get detailed observations
+            self.logger.info(f"Step 1: Getting detailed observations from CV model...")
+            cv_response = self.cv_model.analyze_video(video_part)
+            cv_observations.append(cv_response)
+
+            # Get structured observations for better analysis
+            structured_obs = self.cv_model.analyze_video_structured(video_part)
+
+            self.logger.info(f"CV Model Observations Length: {len(cv_response)} characters")
+            self.logger.debug(f"CV Observations Preview: {cv_response[:200]}...")
+
+            # Step 2: Analysis Model - Make decision based on observations
+            self.logger.info(f"Step 2: Analysis model making decision...")
+            analysis_response, detected, confidence, detailed_analysis = self.analysis_model.analyze_structured_observations(
+                video_part, structured_obs
+            )
+
+            analysis_details.append(detailed_analysis)
+
+            self.logger.info(f"Analysis Result - Iteration {i + 1}:")
+            self.logger.info(f"  Detected: {detected}")
+            self.logger.info(f"  Confidence: {confidence:.3f}")
+            self.logger.info(f"  Evidence Tier: {detailed_analysis.get('evidence_tier', 'N/A')}")
+            self.logger.info(f"  Key Behaviors: {detailed_analysis.get('key_behaviors', [])}")
+
+            if detailed_analysis.get('concealment_actions'):
+                self.logger.info(f"  Concealment Actions: {detailed_analysis['concealment_actions']}")
+
+            # Store iteration results
+            iteration_result = {
+                'iteration': i + 1,
+                'cv_observations': cv_response,
+                'structured_observations': structured_obs,
+                'analysis_response': analysis_response,
+                'detected': detected,
+                'confidence': confidence,
+                'detailed_analysis': detailed_analysis,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+
+            iteration_results.append(iteration_result)
+            all_confidences.append(confidence)
+            all_detections.append(detected)
+
+        # Enhanced final decision using AnalysisModel's surveillance-realistic logic
+        self.logger.info("=== MAKING FINAL DECISION ===")
+        final_confidence, final_detection, decision_reasoning = self.analysis_model.make_surveillance_realistic_decision(
+            all_confidences, all_detections, analysis_details
+        )
+
+        self.logger.info(f"Final Decision:")
+        self.logger.info(f"  Shoplifting Detected: {final_detection}")
+        self.logger.info(f"  Final Confidence: {final_confidence:.3f}")
+        self.logger.info(f"  Decision Reasoning: {decision_reasoning}")
+
+        # Check against threshold
+        threshold_decision = final_confidence >= self.shoplifting_detection_threshold
+        if threshold_decision != final_detection:
+            self.logger.warning(
+                f"Threshold adjustment: {final_detection} -> {threshold_decision} (threshold: {self.shoplifting_detection_threshold})")
+
+        # Compile comprehensive results
+        results = {
+            "video_identifier": video_identifier,
+            "analysis_approach": AGENTIC_MODEL,
+            "iterations": iterations,
+            "detection_threshold": self.shoplifting_detection_threshold,
+            "final_detection": threshold_decision,
+            "final_confidence": final_confidence,
+            "decision_reasoning": decision_reasoning,
+            "confidence_levels": all_confidences,
+            "detection_results": all_detections,
+            "iteration_results": iteration_results,
+            "analysis_timestamp": datetime.datetime.now().isoformat()
+        }
+
+        # Save results if requested
+        if pickle_analysis:
+            self._save_analysis_to_pickle(results)
+
+        # Performance summary
+        self.logger.info(f"=== AGENTIC ANALYSIS COMPLETE ===")
+        self.logger.info(f"Video: {video_identifier}")
+        self.logger.info(f"Iterations: {iterations}")
+        self.logger.info(f"Confidence Range: {min(all_confidences):.3f} - {max(all_confidences):.3f}")
+        self.logger.info(f"Detection Consistency: {sum(all_detections)}/{len(all_detections)}")
+        self.logger.info(f"Final Result: detected={threshold_decision}, confidence={final_confidence:.3f}")
+
+        return results
+
+    # ===== AGENTIC STRATEGY SUMMARY METHODS =====
+
+    def _summarize_cv_observations(self, observations: List[str]) -> Dict[str, Any]:
+        """
+        Summarize computer vision observations across iterations.
+
+        Args:
+            observations (List[str]): List of CV observation strings
+
+        Returns:
+            Dict[str, Any]: Summary of observations
+        """
+        if not observations:
+            return {"error": "No observations available"}
+
+        # Analyze common themes across observations
+        all_text = " ".join(observations).lower()
+
+        # Use consolidated behavioral indicators from class constants
+        suspicious_count = sum(1 for keyword in self.THEFT_INDICATORS if keyword in all_text)
+        normal_count = sum(1 for keyword in self.NORMAL_INDICATORS if keyword in all_text)
+
+        return {
+            "total_observations": len(observations),
+            "avg_length": np.mean([len(obs) for obs in observations]),
+            "suspicious_indicators": suspicious_count,
+            "normal_indicators": normal_count,
+            "behavioral_tone": "suspicious" if suspicious_count > normal_count else "normal",
+            "consistency": "high" if len(set(observations)) < len(observations) * 0.7 else "variable"
+        }
+
+    def _summarize_analysis_results(self, analysis_details: List[Dict]) -> Dict[str, Any]:
+        """
+        Summarize analysis results across iterations.
+
+        Args:
+            analysis_details (List[Dict]): List of detailed analysis results
+
+        Returns:
+            Dict[str, Any]: Summary of analysis results
+        """
+        if not analysis_details:
+            return {"error": "No analysis details available"}
+
+        # Extract evidence tiers
+        evidence_tiers = [detail.get('evidence_tier', 'UNKNOWN') for detail in analysis_details]
+        tier_counts = {tier: evidence_tiers.count(tier) for tier in set(evidence_tiers)}
+
+        # Collect all key behaviors
+        all_behaviors = []
+        all_concealment_actions = []
+
+        for detail in analysis_details:
+            all_behaviors.extend(detail.get('key_behaviors', []))
+            all_concealment_actions.extend(detail.get('concealment_actions', []))
+
+        return {
+            "total_analyses": len(analysis_details),
+            "evidence_tier_distribution": tier_counts,
+            "most_common_tier": max(tier_counts, key=tier_counts.get) if tier_counts else "NONE",
+            "unique_behaviors": list(set(all_behaviors)),
+            "concealment_actions": list(set(all_concealment_actions)),
+            "has_concealment_evidence": len(all_concealment_actions) > 0
+        }
+
+    # ===== SHARED FILE OPERATIONS =====
+
+    def _save_analysis_to_pickle(self, analysis: Dict) -> None:
+        """
+        Shared method to save analysis results to pickle file.
+
+        Args:
+            analysis (Dict): Analysis results to save
+        """
+        try:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            strategy_prefix = self.strategy if self.strategy != UNIFIED_MODEL else UNIFIED_MODEL
+            pkl_path = f"{strategy_prefix}_analysis_{current_time}.pkl"
+
+            with open(pkl_path, 'wb') as file:
+                pickle.dump(analysis, file)
+
+            self.logger.info(f"Analysis saved to pickle file: {pkl_path}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to save analysis to pickle: {e}")

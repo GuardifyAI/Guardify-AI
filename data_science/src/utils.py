@@ -1,9 +1,12 @@
 import os
 import logging
 import base64
-import re
-from typing import Dict, Optional
 from dotenv import load_dotenv
+
+
+# options for a strategy to run
+UNIFIED_MODEL = "unified"
+AGENTIC_MODEL = "agentic"
 
 
 def create_logger(name: str, log_file: str) -> logging.Logger:
@@ -21,7 +24,7 @@ def create_logger(name: str, log_file: str) -> logging.Logger:
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # File handler
-    file_handler = logging.FileHandler(log_path)
+    file_handler = logging.FileHandler(log_path, encoding='utf-8')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
