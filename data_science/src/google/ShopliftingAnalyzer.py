@@ -1,5 +1,6 @@
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
+from data_science.src.google.UnifiedShopliftingModel import UnifiedShopliftingModel
 import logging
 from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
 from vertexai.generative_models import Part
@@ -8,6 +9,9 @@ import numpy as np
 import pickle
 import datetime
 import os
+
+
+DEFAULT_NUM_OF_ITERATIONS = 3
 
 
 def create_unified_analyzer(detection_threshold: float, logger: logging.Logger = None):
@@ -21,10 +25,14 @@ def create_unified_analyzer(detection_threshold: float, logger: logging.Logger =
     Returns:
         ShopliftingAnalyzer: Configured for unified strategy
     """
+    # Create the unified model instance
+    unified_model = UnifiedShopliftingModel()
+    
     return ShopliftingAnalyzer(
         detection_strictness=detection_threshold,
         logger=logger,
-        strategy=UNIFIED_MODEL
+        strategy=UNIFIED_MODEL,
+        unified_model=unified_model
     )
 
 
@@ -39,10 +47,16 @@ def create_agentic_analyzer(detection_threshold: float, logger: logging.Logger =
     Returns:
         ShopliftingAnalyzer: Configured for agentic strategy
     """
+    # Create the required model instances for agentic strategy
+    cv_model = ComputerVisionModel()
+    analysis_model = AnalysisModel()
+    
     return ShopliftingAnalyzer(
         detection_strictness=detection_threshold,
         logger=logger,
-        strategy=AGENTIC_MODEL
+        strategy=AGENTIC_MODEL,
+        cv_model=cv_model,
+        analysis_model=analysis_model
     )
 
 
@@ -91,36 +105,41 @@ class ShopliftingAnalyzer:
         "shoplifting_determination": bool()
     }
 
-    def __init__(self, detection_strictness: float = 0.45, cv_model: ComputerVisionModel = None,
-                 analysis_model: AnalysisModel = None, logger: logging.Logger = None, strategy: str = UNIFIED_MODEL):
+    def __init__(self, detection_strictness: float = 0.45, strategy: str = UNIFIED_MODEL,
+                 unified_model: UnifiedShopliftingModel = None, cv_model: ComputerVisionModel = None,
+                 analysis_model: AnalysisModel = None, logger: logging.Logger = None):
         """
         Initialize the ShopliftingAnalyzer with support for both unified and agentic strategies.
 
         Args:
+            detection_strictness (float): Confidence threshold (0-1) for shoplifting detection
+            strategy (str): "unified" or AGENTIC_MODEL analysis strategy
+            unified_model (UnifiedShopliftingModel, optional): Unified model for video analysis
             cv_model (ComputerVisionModel, optional): Computer vision model for video analysis
             analysis_model (AnalysisModel, optional): Analysis model for interpreting observations
-            detection_strictness (float): Confidence threshold (0-1) for shoplifting detection
             logger (logging.Logger, optional): Logger instance
-            strategy (str): "unified" or AGENTIC_MODEL analysis strategy
         """
         self.strategy = strategy
 
         # Initialize models based on strategy
         if strategy == UNIFIED_MODEL:
-            # Import here to avoid circular imports
-            from UnifiedShopliftingModel import UnifiedShopliftingModel
-            self.unified_model = UnifiedShopliftingModel()
-            self.cv_model = None
-            self.analysis_model = None
+            self.unified_model = unified_model
         else:
             # Agentic strategy uses separate models
-            self.cv_model = cv_model or ComputerVisionModel()
-            self.analysis_model = analysis_model or AnalysisModel()
-            self.unified_model = None
+            self.cv_model = cv_model
+            self.analysis_model = analysis_model
 
         # Validation
         if detection_strictness < 0 or detection_strictness > 1:
             raise ValueError("Detection strictness must be between 0 and 1.")
+        if self.strategy == AGENTIC_MODEL:
+            if (not hasattr(self, 'cv_model') or not self.cv_model or not hasattr(self, 'analysis_model')
+                    or not self.analysis_model):
+                raise ValueError("Agentic analysis requires both CV and Analysis models")
+        elif self.strategy == UNIFIED_MODEL:
+            if not hasattr(self, 'unified_model') or not self.unified_model:
+                raise ValueError("Unified analysis requires UnifiedShopliftingModel")
+
         self.shoplifting_detection_threshold = detection_strictness
 
         # Initialize logger
@@ -131,7 +150,7 @@ class ShopliftingAnalyzer:
             self.logger = logger
 
         # Set logger on analysis model for enhanced debugging (agentic only)
-        if self.analysis_model and hasattr(self.analysis_model, 'logger'):
+        if hasattr(self, 'analysis_model') and self.analysis_model and hasattr(self.analysis_model, 'logger'):
             self.analysis_model.logger = self.logger
 
         # State tracking for unified strategy
@@ -227,10 +246,10 @@ class ShopliftingAnalyzer:
         """
         # Route to appropriate analysis method
         if self.strategy == AGENTIC_MODEL:
-            iterations = iterations or 3
+            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS
             return self.analyze_video_agentic(video_part, video_path, iterations, pickle_analysis)
         else:
-            iterations = iterations or 3  # Unified
+            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS  # Unified
             return self.analyze_video_unified(video_part, video_path, iterations, pickle_analysis)
 
     def _create_error_result(self, video_identifier: str, error_message: str) -> Dict:
@@ -285,7 +304,7 @@ class ShopliftingAnalyzer:
         )
 
         # Compile and log results
-        analysis_results = self._compile_unified_results(
+        analysis_results = self._compile_results_schema(
             video_identifier, iterations, iteration_results, all_confidences,
             all_detections, final_confidence, final_detection, decision_reasoning
         )
@@ -425,9 +444,9 @@ class ShopliftingAnalyzer:
 
         return final_confidence, final_detection, decision_reasoning
 
-    def _compile_unified_results(self, video_identifier: str, iterations: int, iteration_results: List[Dict],
-                                 all_confidences: List[float], all_detections: List[bool],
-                                 final_confidence: float, final_detection: bool, decision_reasoning: str) -> Dict:
+    def _compile_results_schema(self, video_identifier: str, iterations: int, iteration_results: List[Dict],
+                                all_confidences: List[float], all_detections: List[bool],
+                                final_confidence: float, final_detection: bool, decision_reasoning: str) -> Dict:
         """
         Compile comprehensive analysis results and log final decision.
         
@@ -450,7 +469,7 @@ class ShopliftingAnalyzer:
         # Compile comprehensive results
         analysis_results = {
             "video_identifier": video_identifier,
-            "analysis_approach": "UNIFIED_SINGLE_MODEL",
+            "analysis_approach": UNIFIED_MODEL,
             "iterations": iterations,
             "iteration_results": iteration_results,
             "confidence_levels": all_confidences,
@@ -533,7 +552,7 @@ class ShopliftingAnalyzer:
 
     # ===== AGENTIC STRATEGY METHODS =====
 
-    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = 3,
+    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = DEFAULT_NUM_OF_ITERATIONS,
                               pickle_analysis: bool = True) -> Dict:
         """
         Agentic strategy analysis method: CV observations → Analysis decision.
@@ -547,9 +566,6 @@ class ShopliftingAnalyzer:
         Returns:
             Dict: Comprehensive analysis results
         """
-        if self.strategy != AGENTIC_MODEL or not self.cv_model or not self.analysis_model:
-            raise ValueError("Agentic analysis requires agentic strategy and both CV and Analysis models")
-
         self.logger.info(f"Starting agentic analysis of '{video_identifier}' with {iterations} iterations")
 
         # Store results from multiple iterations
@@ -626,29 +642,15 @@ class ShopliftingAnalyzer:
         # Compile comprehensive results
         results = {
             "video_identifier": video_identifier,
-            "analysis_approach": "AGENTIC_ENHANCED",
+            "analysis_approach": AGENTIC_MODEL,
             "iterations": iterations,
             "detection_threshold": self.shoplifting_detection_threshold,
-
-            # Final results
             "final_detection": threshold_decision,
             "final_confidence": final_confidence,
             "decision_reasoning": decision_reasoning,
-
-            # Iteration data
             "confidence_levels": all_confidences,
             "detection_results": all_detections,
             "iteration_results": iteration_results,
-
-            # Summary statistics
-            "avg_confidence": np.mean(all_confidences),
-            "detection_consistency": sum(all_detections) / len(all_detections),
-            "confidence_std": np.std(all_confidences),
-
-            # Enhanced analysis summary
-            "cv_observations_summary": self._summarize_cv_observations(cv_observations),
-            "analysis_summary": self._summarize_analysis_results(analysis_details),
-
             "analysis_timestamp": datetime.datetime.now().isoformat()
         }
 
@@ -742,7 +744,7 @@ class ShopliftingAnalyzer:
         """
         try:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            strategy_prefix = self.strategy if self.strategy != "unified" else "unified"
+            strategy_prefix = self.strategy if self.strategy != UNIFIED_MODEL else UNIFIED_MODEL
             pkl_path = f"{strategy_prefix}_analysis_{current_time}.pkl"
 
             with open(pkl_path, 'wb') as file:
