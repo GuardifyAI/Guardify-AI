@@ -123,11 +123,11 @@ def get_video_extension(video_path_or_uri: str) -> str:
         str: The video extension without the dot (e.g., 'mp4', 'avi')
         
     Examples:
-        >>> get_video_extension('/path/to/video.mp4')
+        get_video_extension('/path/to/video.mp4')
         'mp4'
-        >>> get_video_extension('gs://bucket/video.avi')
+        get_video_extension('gs://bucket/video.avi')
         'avi'
-        >>> get_video_extension('inalid_file')
+        get_video_extension('inalid_file')
         raises value error
     """
     extension = os.path.splitext(video_path_or_uri)[1].lower().lstrip('.')
