@@ -269,7 +269,7 @@ class UnifiedShopliftingModel(GenerativeModel):
             # Fallback for malformed responses
             return False, 0.0, {"error": f"Response parsing failed: {e}"}
 
-    def analyze_video(self, video_part: Part, video_identifier: str, iterations: int, detection_threshold: float = 0.45,
+    def analyze_video(self, video_part: Part, video_identifier: str, iterations: int, detection_threshold: float,
                       logger: logging.Logger = None, pickle_analysis: bool = True) -> Dict:
         """
         Comprehensive unified strategy analysis method using UnifiedShopliftingModel.

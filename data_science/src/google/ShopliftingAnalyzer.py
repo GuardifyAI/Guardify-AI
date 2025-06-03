@@ -10,10 +10,6 @@ import pickle
 import datetime
 import os
 
-
-DEFAULT_NUM_OF_ITERATIONS = 3
-
-
 def create_unified_analyzer(detection_threshold: float, logger: logging.Logger = None):
     """
     Factory function to create a unified strategy analyzer.
@@ -96,16 +92,18 @@ class ShopliftingAnalyzer:
 
     ANALYSIS_DICT = {
         "video_identifier": str(),
+        "analysis_approach": str(),
+        "iterations": int(),
+        "final_detection": bool(),
+        "final_confidence": float(),
+        "decision_reasoning": str(),
         "confidence_levels": list(),
-        "shoplifting_detected_results": list(),
-        "cv_model_responses": list(),
-        "analysis_model_responses": list(),
-        "stats": dict(),
-        "shoplifting_probability": float(),
-        "shoplifting_determination": bool()
+        "detection_results": list(),
+        "iteration_results": list(),
+        "analysis_timestamp": str()
     }
 
-    def __init__(self, detection_strictness: float = 0.45, strategy: str = UNIFIED_MODEL,
+    def __init__(self, detection_strictness: float, strategy: str = UNIFIED_MODEL,
                  unified_model: UnifiedShopliftingModel = None, cv_model: ComputerVisionModel = None,
                  analysis_model: AnalysisModel = None, logger: logging.Logger = None):
         """
@@ -181,14 +179,16 @@ class ShopliftingAnalyzer:
                 f"'{extension}' is an unsupported video format. Supported formats are: {self.ALLOWED_VIDEO_EXTENSIONS}")
         return extension
 
-    def analyze_video_from_bucket(self, video_uri: str,
-                                  iterations: int = None, pickle_analysis: bool = True) -> Dict:
+    def analyze_video_from_bucket(self,
+                                  video_uri: str,
+                                  iterations: int,
+                                  pickle_analysis: bool = True) -> Dict:
         """
         Analyze video from GCS bucket using current strategy.
 
         Args:
             video_uri (str): GCS URI of the video
-            iterations (int, optional): Number of iterations (agentic strategy)
+            iterations (int): Number of iterations
             pickle_analysis (bool): Whether to save analysis results
 
         Returns:
@@ -203,14 +203,16 @@ class ShopliftingAnalyzer:
             self.logger.error(f"Failed to analyze {video_uri}: {e}")
             return self._create_error_result(video_uri, str(e))
 
-    def analyze_local_video(self, video_path: str,
-                            iterations: int = None, pickle_analysis: bool = True) -> Dict:
+    def analyze_local_video(self,
+                            video_path: str,
+                            iterations: int,
+                            pickle_analysis: bool = True) -> Dict:
         """
         Analyze local video file using current strategy.
 
         Args:
             video_path (str): Path to local video file
-            iterations (int, optional): Number of iterations (agentic strategy)
+            iterations (int): Number of iterations
             pickle_analysis (bool): Whether to save analysis results
 
         Returns:
@@ -231,14 +233,14 @@ class ShopliftingAnalyzer:
             self.logger.error(f"Failed to analyze {video_path}: {e}")
             return self._create_error_result(video_path, str(e))
 
-    def _analyze_video(self, video_path: str, video_part: Part, iterations: int = None, pickle_analysis: bool = True):
+    def _analyze_video(self, video_path: str, video_part: Part, iterations: int, pickle_analysis: bool = True):
         """
         Analyze video file by strategy.
 
         Args:
             video_path (str): Path to local video file
             video_part (Part): Video part
-            iterations (int, optional): Number of iterations (agentic strategy)
+            iterations (int): Number of iterations (agentic strategy)
             pickle_analysis (bool): Whether to save analysis results
 
         Returns:
@@ -246,10 +248,8 @@ class ShopliftingAnalyzer:
         """
         # Route to appropriate analysis method
         if self.strategy == AGENTIC_MODEL:
-            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS
             return self.analyze_video_agentic(video_part, video_path, iterations, pickle_analysis)
         else:
-            iterations = iterations or DEFAULT_NUM_OF_ITERATIONS  # Unified
             return self.analyze_video_unified(video_part, video_path, iterations, pickle_analysis)
 
     def _create_error_result(self, video_identifier: str, error_message: str) -> Dict:
@@ -299,7 +299,7 @@ class ShopliftingAnalyzer:
 
     # ===== AGENTIC STRATEGY METHODS =====
 
-    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int = DEFAULT_NUM_OF_ITERATIONS,
+    def analyze_video_agentic(self, video_part: Part, video_identifier: str, iterations: int,
                               pickle_analysis: bool = True) -> Dict:
         """
         Agentic strategy analysis method: CV observations → Analysis decision.
@@ -391,7 +391,6 @@ class ShopliftingAnalyzer:
             "video_identifier": video_identifier,
             "analysis_approach": AGENTIC_MODEL,
             "iterations": iterations,
-            "detection_threshold": self.shoplifting_detection_threshold,
             "final_detection": threshold_decision,
             "final_confidence": final_confidence,
             "decision_reasoning": decision_reasoning,

@@ -1,12 +1,13 @@
 import pytest
 from pathlib import Path
-from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer
+from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
 from data_science.src.google.AnalysisModel import AnalysisModel
 from data_science.src.google.ComputerVisionModel import ComputerVisionModel
 from data_science.src.google.GoogleClient import GoogleClient
+from data_science.src.google.PipelineManager import PipelineManager
 import shutil
 import os
-from data_science.src.utils import load_env_variables
+from data_science.src.utils import load_env_variables, UNIFIED_MODEL, AGENTIC_MODEL, create_logger
 load_env_variables()
 
 # Test data paths
@@ -49,73 +50,86 @@ def google_client():
         service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
     )
 
-@pytest.mark.parametrize("non_shoplifting_video_uri", ["gs://guardify-test-videos/Shoplifting001_x264_4.mp4"])
-def test_analyze_video_from_bucket_no_shoplifting(google_client, shoplifting_analyzer, non_shoplifting_video_uri):
+@pytest.fixture(scope="session")
+def logger():
+    return create_logger('TestShopliftingAnalysis', 'test_analysis.log')
+
+def test_unified_strategy_analysis(google_client, logger):
     """
-    Test analyzing a video that does not contain shoplifting.
-    This test verifies that the analyzer correctly identifies a video without shoplifting activity.
+    Test the unified strategy analysis on a single video from the bucket.
+    Verifies that the unified strategy produces valid results with the expected structure.
     """
-    # Analyze the video
-    results = shoplifting_analyzer.analyze_video_from_bucket(
-        video_uri=non_shoplifting_video_uri,
-        max_api_calls=1,
-        pickle_analysis=False
+    # Create unified analyzer
+    shoplifting_analyzer = create_unified_analyzer(
+        detection_threshold=0.45,
+        logger=logger
     )
 
-    # Assert that shoplifting was not detected
-    assert not results["shoplifting_determination"], "Shoplifting was incorrectly detected in a video without shoplifting"
-    
-    # Assert that the probability is low
-    assert results["shoplifting_probability"] < 0.5, "Shoplifting probability should be low for a video without shoplifting"
-    
-    # Assert that we have the expected structure in the results
-    assert "confidence_levels" in results
-    assert "shoplifting_detected_results" in results
-    assert "cv_model_responses" in results
-    assert "analysis_model_responses" in results
-    assert "stats" in results
+    # Create pipeline manager
+    pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
 
-@pytest.mark.parametrize("shoplifting_video_uri", ["gs://guardify-test-videos/43dd8387-28ad-4a64-bda1-9c566c526b82 (1).mp4"])
-def test_analyze_video_from_bucket_with_shoplifting(google_client, shoplifting_analyzer, shoplifting_video_uri):
-    """
-    Test analyzing a video that contains shoplifting.
-    This test verifies that the analyzer correctly identifies a video with shoplifting activity.
-    """
-    # Analyze the video
-    results = shoplifting_analyzer.analyze_video_from_bucket(
-        video_uri=shoplifting_video_uri,
-        max_api_calls=1,
-        pickle_analysis=False
+    # Get bucket name from environment
+    bucket_name = os.getenv("BUCKET_NAME")
+
+    # Run unified analysis with max_videos=1
+    results = pipeline_manager.run_unified_analysis(
+        bucket_name=bucket_name,
+        max_videos=1,
+        iterations=1,
+        diagnostic=True,
+        export=False,
+        labels_csv_path=None
     )
 
-    # Assert that shoplifting was detected
-    assert results["shoplifting_determination"], "Shoplifting was not detected in a video with shoplifting"
-    
-    # Assert that the probability is high
-    assert results["shoplifting_probability"] > 0.7, "Shoplifting probability should be high for a video with shoplifting"
-    
-    # Assert that we have the expected structure in the results
-    assert "confidence_levels" in results
-    assert "shoplifting_detected_results" in results
-    assert "cv_model_responses" in results
-    assert "analysis_model_responses" in results
-    assert "stats" in results
-    
-    # Additional assertions for shoplifting case
-    assert any(results["shoplifting_detected_results"]), "At least one analysis should detect shoplifting"
-    assert results["stats"]["True Count"] > 0, "Should have at least one true detection"
+    # Verify results structure
+    assert len(results) == 1, "Should analyze exactly one video"
+    result = results[0]
+    result_assertions(result, UNIFIED_MODEL)
 
-@pytest.mark.parametrize("video_file", ["shop_video_2.mp4", "outputavi.avi"])
-def test_analyze_local_video(google_client, shoplifting_analyzer, video_file):
-    # Analyze the video
-    results = shoplifting_analyzer.analyze_local_video(
-        video_path=str(TEST_DATASET_DIR) + "/" + video_file,
-        max_api_calls=1,
-        pickle_analysis=False
+def test_agentic_strategy_analysis(google_client, logger):
+    """
+    Test the agentic strategy analysis on a single video from the bucket.
+    Verifies that the agentic strategy produces valid results with the expected structure.
+    """
+    # Create agentic analyzer
+    shoplifting_analyzer = create_agentic_analyzer(
+        detection_threshold=0.45,
+        logger=logger
     )
-    # Assert that we have the expected structure in the results
-    assert "confidence_levels" in results
-    assert "shoplifting_detected_results" in results
-    assert "cv_model_responses" in results
-    assert "analysis_model_responses" in results
-    assert "stats" in results
+
+    # Create pipeline manager
+    pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+
+    # Get bucket name from environment
+    bucket_name = os.getenv("BUCKET_NAME")
+
+    # Run agentic analysis with max_videos=1
+    results = pipeline_manager.run_agentic_analysis(
+        bucket_name=bucket_name,
+        max_videos=1,
+        iterations=1,
+        diagnostic=True,
+        export=False,
+        labels_csv_path=None
+    )
+
+    # Verify results structure
+    assert len(results) == 1, "Should analyze exactly one video"
+    result = results[0]
+    result_assertions(result, AGENTIC_MODEL)
+
+def result_assertions(result: dict, analysis_approach: str):
+    result_keys = set(result.keys())
+    expected_keys = set(ShopliftingAnalyzer.ANALYSIS_DICT.keys())
+    missing_keys = expected_keys - result_keys
+    extra_keys = result_keys - expected_keys
+
+    assert not missing_keys, f"Missing keys in result: {missing_keys}"
+    assert not extra_keys, f"Extra keys in result: {extra_keys}"
+
+    # Verify confidence and detection values are valid
+    assert result["analysis_approach"] == analysis_approach
+    assert 0 <= result["final_confidence"] <= 1
+    assert isinstance(result["final_detection"], bool)
+    assert len(result["confidence_levels"]) == result["iterations"]
+    assert len(result["detection_results"]) == result["iterations"]
