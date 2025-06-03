@@ -136,6 +136,26 @@ def get_video_extension(video_path_or_uri: str) -> str:
         raise ValueError(f"Invalid video path in: {video_path_or_uri}")
     return extension
 
+def get_video_name_without_extension(video_path_or_uri: str) -> str:
+    """
+    Extract the video name (without extension) from a file path or URI.
+
+    Args:
+        video_path_or_uri (str): The full path or URI of the video file
+
+    Returns:
+        str: The video file name without the extension
+
+    Example:
+        get_video_name_without_extension("gs://ben_gurion_shop/exit1_20250416231103.mp4")
+        # returns "exit1_20250416231103"
+    """
+    extension = get_video_extension(video_path_or_uri)
+    base = os.path.basename(video_path_or_uri)
+    if not base.lower().endswith('.' + extension):
+        raise ValueError(f"Extension mismatch in: {video_path_or_uri}")
+    return base[:-(len(extension) + 1)]
+
 def extract_frames(every_n_frames: int, video_path: str, output_folder: str) -> None:
     """
     Legacy method for local file extraction. Kept for backwards compatibility.

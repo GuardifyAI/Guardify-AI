@@ -114,3 +114,22 @@ class GoogleClient:
             os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
             print(f"Downloading {blob.name} to {local_file_path}")
             blob.download_to_filename(local_file_path)
+
+    def num_of_files_in_bucket_path(self, bucket_name: str, path: str = None) -> int:
+        """
+        Count the number of files in a specific path inside a Google Cloud Storage bucket.
+        If path is None, counts all files in the bucket.
+
+        Args:
+            bucket_name: Name of the GCS bucket.
+            path: Path inside the bucket to count files (prefix). If None, counts all files.
+
+        Returns:
+            int: Number of files in the specified path or the whole bucket.
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        if path:
+            blobs = list(bucket.list_blobs(prefix=path))
+        else:
+            blobs = list(bucket.list_blobs())
+        return len(blobs)
