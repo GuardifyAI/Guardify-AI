@@ -3,6 +3,7 @@ import logging
 import base64
 from dotenv import load_dotenv
 import cv2
+import pickle
 
 # options for a strategy to run
 UNIFIED_MODEL = "unified"
@@ -194,3 +195,17 @@ def extract_frames_for_all_videos_in_folder(
 
         print(f"Extracting frames from: {video_file}")
         extract_frames(every_n_frames, video_path, output_subfolder)
+
+def load_pickle_object(pickle_path: str):
+    """
+    Load and return a Python object from a pickle file.
+
+    Args:
+        pickle_path: Path to the pickle file.
+
+    Returns:
+        The object stored in the pickle file.
+    """
+    with open(pickle_path, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
