@@ -95,3 +95,22 @@ class GoogleClient:
                     blob.delete()
 
                     print(f"Converted and replaced: {blob.name} with {new_blob_name}")
+
+    def download_bucket_content(self, bucket_name: str, local_path: str):
+        """
+        Download all contents from a Google Cloud Storage bucket to a local directory.
+
+        Args:
+            bucket_name: Name of the GCS bucket.
+            local_path: Local directory path to download the bucket's contents into.
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        blobs = bucket.list_blobs()
+        os.makedirs(local_path, exist_ok=True)
+
+        for blob in blobs:
+            # Make sure the local subdirectory exists
+            local_file_path = os.path.join(local_path, blob.name)
+            os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+            print(f"Downloading {blob.name} to {local_file_path}")
+            blob.download_to_filename(local_file_path)
