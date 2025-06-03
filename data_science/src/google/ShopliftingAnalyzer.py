@@ -355,7 +355,7 @@ class ShopliftingAnalyzer:
             # Store iteration results
             iteration_result = {
                 'iteration': i + 1,
-                'cv_observations': cv_observations[-1],
+                'cv_observations': str(structured_obs),
                 'structured_observations': structured_obs,
                 'analysis_response': analysis_response,
                 'detected': detected,
