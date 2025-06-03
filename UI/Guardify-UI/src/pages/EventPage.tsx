@@ -22,6 +22,11 @@ export default function EventPage() {
       <p><strong>Camera:</strong> {event.cameraName}</p>
       <p><strong>Description:</strong> {event.description}</p>
 
+      <h4>Analysis</h4>
+      <p><strong>Final Detection:</strong> {event.analysis.final_detection ? 'Yes' : 'No'}</p>
+      <p><strong>Confidence:</strong> {event.analysis.final_confidence}%</p>
+      <p><strong>Reasoning:</strong> {event.analysis.decision_reasoning}</p>
+
       <div className="video-container">
         <video controls width="100%">
           <source src={event.videoUrl} type="video/mp4" />

@@ -13,6 +13,14 @@ export type Event = {
   cameraId: string;
   cameraName: string;
   videoUrl: string;
+  analysis: EventAnalysis;
+};
+
+export type EventAnalysis = {
+  final_detection: boolean;
+  final_confidence: number;
+  decision_reasoning: string;
+  analysis_timestamp: string;
 };
 
 export type User = {
