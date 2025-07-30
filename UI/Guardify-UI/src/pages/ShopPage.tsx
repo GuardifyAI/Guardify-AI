@@ -5,6 +5,7 @@ import EventsOverTime from '../components/Stats/EventsOverTime';
 import EventsByHour from '../components/Stats/EventsByHour';
 import EventCountBarChart from '../components/Stats/EventCountBarChart';
 import EventsByCategorySimple from '../components/Stats/EventsByCategory';
+import './ShopPage.css';
 
 type Props = {
   shop: Shop;
@@ -41,7 +42,7 @@ export default function ShopPage({ shop, events, tab }: Props) {
         <section className="events-table-section">
           <h2>Events in {shop.name}</h2>
 
-          <div style={{ marginBottom: '1rem' }}>
+          <div className="filter-section">
             <label htmlFor="cameraFilter">Filter by Camera: </label>
             <select
               id="cameraFilter"

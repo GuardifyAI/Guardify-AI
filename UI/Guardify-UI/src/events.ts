@@ -452,14 +452,14 @@ export const events = [
     shopId: 'shop3',
     shopName: 'Eilat',
     date: '2025-04-03T13:17:46',
-    description: 'Money transfer logged',
+    description: 'Employee takes money from the cash register without authorization',
     cameraId: 'cam1',
     cameraName: 'Money 1',
     videoUrl: '/videos/fixed/Money 1_20250403131746.mp4',
     analysis: {
       final_detection: true,
       final_confidence: 83.17,
-      decision_reasoning: "Checkout time exceeded average duration.",
+      decision_reasoning: "Employee is seen removing cash from the register without performing any transaction or interacting with a customer.",
       analysis_timestamp: '2025-04-03T13:18:19'
     }
   },
