@@ -1,0 +1,28 @@
+.filter-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.filter-section label {
+  font-weight: 600;
+}
+
+.filter-section select {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: white;
+  color: #1e293b;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.filter-section select:focus {
+  outline: none;
+  border-color: #30B3E1;
+  box-shadow: 0 0 0 2px rgba(48, 179, 225, 0.2);
+}
