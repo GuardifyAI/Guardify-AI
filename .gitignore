@@ -224,3 +224,7 @@ Thumbs.db
 
 # Ignore all videos inside the public/videos folder
 /public/videos/
+=======
+# Other files
+*.pkl
+*.csv
