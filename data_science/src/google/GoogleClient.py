@@ -59,6 +59,31 @@ class GoogleClient:
 
         return uris, names
 
+    def _find_files_starting_with(self, directory, prefix):
+        matching_files = []
+        for filename in os.listdir(directory):
+            if filename.startswith(prefix):
+                matching_files.append(os.path.join(directory, filename))
+        return matching_files
+
+    def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str):
+        bucket = self.storage_client.bucket(bucket_name)
+
+        # Full path to local video file
+        local_file_path = self._find_files_starting_with(
+            os.getenv("PROVISION_VIDEOS_SOURCE"), camera_name
+        )[0]
+
+        # Only the filename (not path) becomes the GCS blob name
+        blob_name = os.path.basename(local_file_path)
+        blob = bucket.blob(blob_name)
+
+        # Upload using full local path
+        blob.upload_from_filename(local_file_path)
+
+        # Optional: delete after upload
+        os.remove(local_file_path)
+
     def convert_all_videos_in_bucket_to_mp4(self, bucket_name: str, extensions: List[str] = None):
         """
         Convert all videos with specified extensions in the given bucket to MP4.

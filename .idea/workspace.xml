@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="removed default arguments in function">
-      <change afterPath="$PROJECT_DIR$/data_science/src/video_recorder.py" afterDir="false" />
+    <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="can record a video">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/google/GoogleClient.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/google/GoogleClient.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_science/src/video_recorder.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/video_recorder.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -315,7 +315,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748850744045</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="can record a video">
+      <option name="closed" value="true" />
+      <created>1753886170391</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1753886170391</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -353,12 +361,13 @@
     <MESSAGE value="pull changes back" />
     <MESSAGE value="fixed csv export, there was a problem with file extensions" />
     <MESSAGE value="removed default arguments in function" />
-    <option name="LAST_COMMIT_MESSAGE" value="removed default arguments in function" />
+    <MESSAGE value="can record a video" />
+    <option name="LAST_COMMIT_MESSAGE" value="can record a video" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/SurveillanceAI$main.coverage" NAME="main Coverage Results" MODIFIED="1736698585531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$video_recorder.coverage" NAME="video_recorder Coverage Results" MODIFIED="1753885797682" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$video_recorder.coverage" NAME="video_recorder Coverage Results" MODIFIED="1753892323683" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$.coverage" NAME=" Coverage Results" MODIFIED="1745741326755" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/tests" />
     <SUITE FILE_PATH="coverage/Guardify_AI$python__m_data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746379837733" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Guardify_AI$ComputerVisionModel.coverage" NAME="ComputerVisionModel Coverage Results" MODIFIED="1747918916186" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/google" />
