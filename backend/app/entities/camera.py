@@ -5,7 +5,7 @@ class Camera(db.Model):
 
     camera_id = db.Column(db.String, primary_key=True)
     shop_id = db.Column(db.String, db.ForeignKey('shop.shop_id'))
-    camera_name = db.Column(db.String)
+    camera_name = db.Column(db.String, nullable=True)
 
     shop = db.relationship('Shop', backref='cameras')
     
