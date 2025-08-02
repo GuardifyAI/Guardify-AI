@@ -1,4 +1,3 @@
-from backend.app import create_app
 from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.company import Company

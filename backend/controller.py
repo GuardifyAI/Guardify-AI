@@ -7,7 +7,7 @@ ERROR_MESSAGE_KEY = "errorMessage"
 class Controller:
     def __init__(self, app: Flask):
         self.app = app
-        self.book_logic = AppLogic()
+        self.app_logic = AppLogic()
         self.setup_routes()  # Ensure routes are set up during initialization
 
     def setup_routes(self):
