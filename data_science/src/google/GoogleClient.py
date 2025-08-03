@@ -60,6 +60,19 @@ class GoogleClient:
         return uris, names
 
     def _find_files_starting_with(self, directory, prefix):
+        """
+        Find all files in a directory that start with a specific prefix.
+
+        Args:
+            directory (str): Path to the directory to search in. Must be a valid
+                           directory path that exists and is accessible.
+            prefix (str): The prefix string to match against filenames. Files whose
+                        names start with this exact string will be included in results.
+        
+        Returns:
+            List[str]: A list of full file paths (directory + filename) for all files
+                      that match the prefix. Returns an empty list if no matches are found.
+        """
         matching_files = []
         for filename in os.listdir(directory):
             if filename.startswith(prefix):
@@ -67,6 +80,19 @@ class GoogleClient:
         return matching_files
 
     def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str):
+        """
+        Upload a camera recording file from local storage to a Google Cloud Storage bucket.
+        
+        Args:
+            bucket_name (str): Name of the Google Cloud Storage bucket to upload to.
+                             The bucket must already exist and be accessible with current credentials.
+            camera_name (str): Name/prefix of the camera used to identify the recording file.
+                             This is used as a prefix to search for matching files in the
+                             local videos directory.
+        
+        Environment Variables Required:
+            - PROVISION_VIDEOS_SOURCE: Local directory path where camera recordings are stored
+        """
         bucket = self.storage_client.bucket(bucket_name)
 
         # Full path to local video file
