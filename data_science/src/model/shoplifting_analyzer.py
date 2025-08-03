@@ -1,6 +1,6 @@
-from data_science.src.google.AnalysisModel import AnalysisModel
-from data_science.src.google.ComputerVisionModel import ComputerVisionModel
-from data_science.src.google.UnifiedShopliftingModel import UnifiedShopliftingModel
+from data_science.src.model.agentic.analysis_model import AnalysisModel
+from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
+from data_science.src.model.unified.unified_shoplifting_model import UnifiedShopliftingModel
 import logging
 from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
 from vertexai.generative_models import Part

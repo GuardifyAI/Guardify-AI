@@ -5,13 +5,13 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, project_root)
 
-from GoogleClient import GoogleClient
-from ShopliftingAnalyzer import create_unified_analyzer, create_agentic_analyzer
+from google_client import GoogleClient
+from shoplifting_analyzer import create_unified_analyzer, create_agentic_analyzer
 
 from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL
 
 load_env_variables()
-from PipelineManager import PipelineManager
+from pipeline_manager import PipelineManager
 import argparse
 
 

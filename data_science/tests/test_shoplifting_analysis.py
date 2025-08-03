@@ -1,10 +1,10 @@
 import pytest
 from pathlib import Path
-from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
-from data_science.src.google.AnalysisModel import AnalysisModel
-from data_science.src.google.ComputerVisionModel import ComputerVisionModel
-from data_science.src.google.GoogleClient import GoogleClient
-from data_science.src.google.PipelineManager import PipelineManager
+from data_science.src.model.shoplifting_analyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
+from data_science.src.model.agentic.analysis_model import AnalysisModel
+from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
+from data_science.src.google.google_client import GoogleClient
+from data_science.src.model.pipeline_manager import PipelineManager
 import shutil
 import os
 from data_science.src.utils import load_env_variables, UNIFIED_MODEL, AGENTIC_MODEL, create_logger

@@ -1,5 +1,5 @@
 from playwright.sync_api import Page, sync_playwright
-from data_science.src.google.GoogleClient import GoogleClient
+from data_science.src.google.google_client import GoogleClient
 import os
 import threading
 import time

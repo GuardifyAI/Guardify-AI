@@ -1,5 +1,5 @@
-from data_science.src.google.GoogleClient import GoogleClient
-from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer
+from data_science.src.google.google_client import GoogleClient
+from data_science.src.model.shoplifting_analyzer import ShopliftingAnalyzer
 import pandas as pd
 import datetime
 import os
