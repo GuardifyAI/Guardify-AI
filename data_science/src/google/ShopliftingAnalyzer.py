@@ -327,14 +327,13 @@ class ShopliftingAnalyzer:
 
             # Step 1: Computer Vision Model - Get detailed observations
             self.logger.info(f"Step 1: Getting detailed observations from CV model...")
-            cv_response = self.cv_model.analyze_video(video_part)
-            cv_observations.append(cv_response)
-
+            
             # Get structured observations for better analysis
             structured_obs = self.cv_model.analyze_video_structured(video_part)
+            cv_observations.append(str(structured_obs))  # Store structured obs as string for logging
 
-            self.logger.info(f"CV Model Observations Length: {len(cv_response)} characters")
-            self.logger.debug(f"CV Observations Preview: {cv_response[:200]}...")
+            self.logger.info(f"CV Model Observations Length: {len(str(structured_obs))} characters")
+            self.logger.debug(f"CV Observations Preview: {str(structured_obs)[:200]}...")
 
             # Step 2: Analysis Model - Make decision based on observations
             self.logger.info(f"Step 2: Analysis model making decision...")
@@ -356,7 +355,7 @@ class ShopliftingAnalyzer:
             # Store iteration results
             iteration_result = {
                 'iteration': i + 1,
-                'cv_observations': cv_response,
+                'cv_observations': str(structured_obs),
                 'structured_observations': structured_obs,
                 'analysis_response': analysis_response,
                 'detected': detected,
