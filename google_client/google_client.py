@@ -6,6 +6,11 @@ from google.cloud import storage
 import tempfile
 import subprocess
 import os
+try:
+    import imageio_ffmpeg
+    FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+except ImportError:
+    FFMPEG_PATH = "ffmpeg"  # Fall back to system ffmpeg
 
 class GoogleClient:
     def __init__(self, project: str, location: str, service_account_json_path: str):
@@ -82,6 +87,7 @@ class GoogleClient:
     def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str):
         """
         Upload a camera recording file from local storage to a Google Cloud Storage bucket.
+        If the video is not in MP4 format, it will be converted to MP4 before upload.
         
         Args:
             bucket_name (str): Name of the Google Cloud Storage bucket to upload to.
@@ -100,15 +106,73 @@ class GoogleClient:
             os.getenv("PROVISION_VIDEOS_SOURCE"), camera_name
         )[0]
 
+        # Check if file needs conversion to MP4
+        file_extension = os.path.splitext(local_file_path)[1].lower()
+        upload_file_path = local_file_path
+        converted_file_created = False
+        
+        if file_extension != '.mp4':
+            print(f"Converting {local_file_path} to MP4 format...")
+            print(f"Using ffmpeg path: {FFMPEG_PATH}")
+            # Create temporary MP4 file path
+            base_name = os.path.splitext(local_file_path)[0]
+            converted_file_path = base_name + ".mp4"
+            
+            try:
+                # Convert to MP4 using ffmpeg
+                result = subprocess.run(
+                    [FFMPEG_PATH, "-i", local_file_path, converted_file_path], 
+                    check=True, 
+                    capture_output=True, 
+                    text=True
+                )
+                
+                # Verify the converted file was actually created
+                if os.path.exists(converted_file_path):
+                    upload_file_path = converted_file_path
+                    converted_file_created = True
+                    print(f"Conversion completed: {converted_file_path}")
+                else:
+                    print(f"ERROR: Converted file was not created: {converted_file_path}")
+                    print("Using original file instead")
+                    upload_file_path = local_file_path
+                    
+            except subprocess.CalledProcessError as e:
+                print(f"ERROR: ffmpeg conversion failed: {e}")
+                print(f"stdout: {e.stdout}")
+                print(f"stderr: {e.stderr}")
+                print("Using original file instead")
+                upload_file_path = local_file_path
+            except FileNotFoundError as e:
+                print(f"ERROR: ffmpeg not found at {FFMPEG_PATH}: {e}")
+                print("Using original file instead")
+                upload_file_path = local_file_path
+
+        # Verify the file to upload actually exists
+        if not os.path.exists(upload_file_path):
+            raise FileNotFoundError(f"File to upload does not exist: {upload_file_path}")
+        
         # Only the filename (not path) becomes the GCS blob name
-        blob_name = os.path.basename(local_file_path)
+        # Ensure the blob name has .mp4 extension if conversion was attempted
+        original_blob_name = os.path.basename(upload_file_path)
+        if converted_file_created and not original_blob_name.lower().endswith('.mp4'):
+            blob_name = os.path.splitext(original_blob_name)[0] + '.mp4'
+        else:
+            blob_name = original_blob_name
+            
         blob = bucket.blob(blob_name)
 
-        # Upload using full local path
-        blob.upload_from_filename(local_file_path)
+        # Upload using the file path (original or converted)
+        print(f"Uploading file: {upload_file_path} as {blob_name}")
+        blob.upload_from_filename(upload_file_path)
+        print(f"Uploaded to bucket: {blob_name}")
 
-        # Optional: delete after upload
+        # Delete the original file locally
         os.remove(local_file_path)
+        
+        # Delete the converted file locally if it was created
+        if converted_file_created and upload_file_path != local_file_path:
+            os.remove(upload_file_path)
 
     def convert_all_videos_in_bucket_to_mp4(self, bucket_name: str, extensions: List[str] = None):
         """
@@ -135,7 +199,7 @@ class GoogleClient:
                     blob.download_to_filename(local_original_path)
 
                     # Convert to MP4 using ffmpeg
-                    subprocess.run(["ffmpeg", "-i", local_original_path, local_converted_path], check=True)
+                    subprocess.run([FFMPEG_PATH, "-i", local_original_path, local_converted_path], check=True)
 
                     # Upload converted file
                     new_blob_name = os.path.splitext(blob.name)[0] + ".mp4"

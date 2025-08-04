@@ -78,19 +78,19 @@ def main():
             location=os.getenv("GOOGLE_PROJECT_LOCATION"),
             service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
         )
-        print("✓ Google Cloud client initialized successfully")
+        print("Google Cloud client initialized successfully")
     except Exception as e:
-        print(f"✗ Failed to initialize Google Cloud client: {e}")
+        print(f"Failed to initialize Google Cloud client: {e}")
         return 1
 
     # Initialize video components
     video_uploader = VideoUploader(google_client)
     video_recorder = VideoRecorder(video_uploader)
-    print("✓ Video components initialized successfully")
+    print("Video components initialized successfully")
 
     # Start the upload worker
     video_uploader.start()
-    print("✓ Upload worker thread started")
+    print("Upload worker thread started")
     print()
 
     try:
@@ -102,7 +102,7 @@ def main():
 
             # Authenticate to Provision ISR
             video_recorder.login_to_provisionisr(page)
-            print("✓ Successfully authenticated to Provision ISR")
+            print("Successfully authenticated to Provision ISR")
             print()
 
             # Start recording process
@@ -122,7 +122,7 @@ def main():
         print("=" * 60)
         
     except Exception as e:
-        print(f"\n✗ An error occurred: {e}")
+        print(f"\nAn error occurred: {e}")
         return 1
         
     finally:
@@ -132,10 +132,10 @@ def main():
         
         pending_uploads = video_uploader.get_queue_size()
         if pending_uploads > 0:
-            print(f"✓ Completed {pending_uploads} pending uploads")
+            print(f"Completed {pending_uploads} pending uploads")
         
-        print("✓ Upload worker stopped successfully")
-        print("✓ All components shut down gracefully")
+        print("Upload worker stopped successfully")
+        print("All components shut down gracefully")
         print("=" * 60)
         print("SHUTDOWN COMPLETE")
         print("=" * 60)
