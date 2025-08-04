@@ -14,3 +14,4 @@ azure-ai-inference
 pytest>=7.4.0
 vertexai~=1.71.1
 playwright~=1.54.0
+imageio-ffmpeg
