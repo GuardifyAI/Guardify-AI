@@ -178,19 +178,13 @@ cython_debug/
 data_science/src/azure/logs/
 *.log
 
-# JSON files
+# Ignore all JSON files
 *.json
 
-# Photos and Images
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-*.svg
-*.tiff
-*.ico
-*.webp
+# But do track these specific ones
+!package.json
+!package-lock.json
+
 
 # Video files
 *.mp4
