@@ -1,6 +1,7 @@
 import threading
 import queue
-from data_science.src.google.GoogleClient import GoogleClient
+
+from google_client import google_client
 from data_science.src.utils import create_logger
 
 
@@ -9,16 +10,16 @@ class VideoUploader:
     A video upload system that handles concurrent uploading of recorded videos to Google Cloud Storage.
     """
 
-    def __init__(self, google_client: GoogleClient):
+    def __init__(self, gc: google_client):
         """
         Initialize the VideoUploader with Google Cloud client and threading components.
         
         Args:
-            google_client (GoogleClient): An instance of GoogleClient for handling
+            gc (GoogleClient): An instance of GoogleClient for handling
                                         uploads to Google Cloud Storage buckets.
         """
         self.logger = create_logger("video_uploader", "video_uploader.log")
-        self.google_client = google_client
+        self.google_client = gc
 
         # A thread-safe queue for passing upload tasks between threads
         self.upload_queue = queue.Queue()

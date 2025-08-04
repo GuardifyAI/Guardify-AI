@@ -1,13 +1,14 @@
 import pytest
 from pathlib import Path
-from data_science.src.model.shoplifting_analyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
+from data_science.src.model.pipeline.shoplifting_analyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
 from data_science.src.model.agentic.analysis_model import AnalysisModel
 from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
-from data_science.src.google.google_client import GoogleClient
-from data_science.src.model.pipeline_manager import PipelineManager
+from data_science.src.model.pipeline.pipeline_manager import PipelineManager
 import shutil
 import os
 from data_science.src.utils import load_env_variables, UNIFIED_MODEL, AGENTIC_MODEL, create_logger
+from google_client.google_client import GoogleClient
+
 load_env_variables()
 
 # Test data paths
