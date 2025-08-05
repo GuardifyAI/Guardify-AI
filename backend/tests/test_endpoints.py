@@ -276,7 +276,8 @@ def test_successful_logout(client, login_data):
     expected_user_id = login_result["userId"]
 
     # Now logout with the token
-    logout_response = client.get("/logout", headers={"Authorization": token})
+    logout_data = {"userId": expected_user_id}
+    logout_response = client.get("/logout", json=logout_data, headers={"Authorization": token})
 
     # Check logout response status
     assert logout_response.status_code == HTTPStatus.OK, f"Expected OK status, got {logout_response.status_code}"
@@ -309,7 +310,8 @@ def test_logout_without_token(client):
     - Error message indicates token is required
     """
     # Make logout request without Authorization header
-    logout_response = client.get("/logout")
+    logout_data = {"userId": "stam"}
+    logout_response = client.get("/logout", json=logout_data)
 
     # Check response status
     assert logout_response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 401 status, got {logout_response.status_code}"
@@ -338,7 +340,8 @@ def test_logout_invalid_token(client):
     - Error message indicates invalid token format
     """
     # Make logout request with invalid token format
-    logout_response = client.get("/logout", headers={"Authorization": "InvalidToken"})
+    logout_data = {"userId": "stam"}
+    logout_response = client.get("/logout", json=logout_data, headers={"Authorization": "InvalidToken"})
 
     # Check response status
     assert logout_response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {logout_response.status_code}"
@@ -355,4 +358,4 @@ def test_logout_invalid_token(client):
     expected_error = "Invalid token format"
     assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
 
-    print("? Logout with invalid token test passed!")
+    print("Logout with invalid token test passed!")

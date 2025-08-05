@@ -163,7 +163,7 @@ class Controller:
                     - token: JWT token for the session
                 - errorMessage: None on success, error string on failure
             """
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             email = data.get("email")
             password = data.get("password")
             # Call the business logic
@@ -184,8 +184,11 @@ class Controller:
             """
             # Get token from Authorization header
             auth_header = request.headers.get("Authorization")
+            # Get user_id from request body
+            data = request.get_json(silent=True) or {}
+            user_id = data.get("userId")
             # Call the business logic
-            return self.app_logic.logout(auth_header)
+            return self.app_logic.logout(user_id, auth_header)
 
         @self.app.after_request
         def wrap_success_response(response):

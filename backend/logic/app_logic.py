@@ -64,21 +64,32 @@ class AppLogic:
             "token": f"Bearer {token}"
         }
 
-    def logout(self, token: str | None) -> dict:
+    def logout(self, user_id: str | None, token: str | None) -> dict:
         """
-        Logout a user by checking that the token is valid, otherwise raise an exception as you cannot logout a user that is not logged in.
+        Logout a user by checking that the token is valid and belongs to the specified user.
 
         Args:
-            token (str): The JWT token to invalidate
+            user_id (str): The user ID to logout
+            token (str): The JWT token to validate
 
         Returns:
             dict: dict with userId
 
         Raises:
-            Unauthorized: If token is invalid
+            ValueError: If user_id or token is not provided
+            Unauthorized: If token is invalid or doesn't belong to the specified user
         """
+        if not user_id or user_id.strip() == "":
+            raise ValueError("User ID is required")
+
+        # Validate token and get the user ID from it
+        token_user_id = self.validate_token(token)
+        # Check if the token belongs to the specified user
+        if token_user_id != user_id:
+            raise Unauthorized(f"Token does not belong to user '{user_id}'")
+
         return {
-            "userId": self.validate_token(token),
+            "userId": token_user_id,
         }
 
     def validate_token(self, token: str) -> str:
