@@ -84,3 +84,175 @@ def test_successful_login(client):
     print(f"   First Name: {result['firstName']}")
     print(f"   Last Name: {result['lastName']}")
     print(f"   Token: {token[:20]}...")  # Show first 20 chars of token
+
+
+def test_login_nonexistent_email(client):
+    """
+    Test login with an email that doesn't exist in the database.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates user doesn't exist
+    """
+    # Test data with non-existent email
+    login_data = {
+        "email": "nonexistent@example.com",
+        "password": "demo_user"
+    }
+
+    # Make login request
+    response = client.post("/login", json=login_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "User with email 'nonexistent@example.com' does not exist"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Login with nonexistent email test passed!")
+
+
+def test_login_wrong_password(client):
+    """
+    Test login with correct email but wrong password.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates incorrect password
+    """
+    # Test data with correct email but wrong password
+    login_data = {
+        "email": "aiguardify@gmail.com",
+        "password": "wrong_password"
+    }
+
+    # Make login request
+    response = client.post("/login", json=login_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Incorrect password"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Login with wrong password test passed!")
+
+
+def test_login_missing_password(client):
+    """
+    Test login request without password in the payload.
+
+    Verifies that:
+    - Request returns 400 Bad Request status
+    - Error message indicates password is required
+    """
+    # Test data without password
+    login_data = {
+        "email": "aiguardify@gmail.com"
+        # password is missing
+    }
+
+    # Make login request
+    response = client.post("/login", json=login_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Password is required"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Login with missing password test passed!")
+
+
+def test_login_missing_email(client):
+    """
+    Test login request without email in the payload.
+
+    Verifies that:
+    - Request returns 400 Bad Request status
+    - Error message indicates email is required
+    """
+    # Test data without email
+    login_data = {
+        "password": "demo_user"
+        # email is missing
+    }
+
+    # Make login request
+    response = client.post("/login", json=login_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Email is required"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Login with missing email test passed!")
+
+
+def test_login_empty_payload(client):
+    """
+    Test login request with empty JSON payload.
+
+    Verifies that:
+    - Request returns 400 Bad Request status
+    - Error message indicates email is required
+    """
+    # Test data with empty payload
+    login_data = {}
+
+    # Make login request
+    response = client.post("/login", json=login_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message (should be the first validation error encountered)
+    expected_error = "Email is required"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Login with empty payload test passed!")
