@@ -94,9 +94,9 @@ class Controller:
             This endpoint is used for testing error handling and response wrapping.
 
             Raises:
-                ValueError: Intentional error for testing purposes
+                AssertionError: Intentional error for testing purposes
             """
-            raise ValueError("Intentional error")
+            raise AssertionError("Intentional error")
 
         @self.app.route("/app/test", methods=["POST"])
         @self.cache.memoize()

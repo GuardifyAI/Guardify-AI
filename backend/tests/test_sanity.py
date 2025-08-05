@@ -4,7 +4,6 @@ from backend.app.entities.company import Company
 from backend.app.entities.user import User
 from backend.app.entities.camera import Camera
 from backend.app.entities.analysis import Analysis
-from backend.run import app
 import pytest
 from backend.controller import Controller
 from backend.app import create_app
@@ -30,6 +29,8 @@ def print_first_dto(entity_cls, entity_name: str):
         print(f"⚠️  {entity_name}: No data found.")
 
 def test_print_first():
+    """Test printing first record from each model with proper app context."""
+    app = create_app()
     with app.app_context():
         print("🔎 Testing models...")
         print_first(Company)
@@ -40,6 +41,8 @@ def test_print_first():
         print_first(Analysis)
 
 def test_print_first_dto():
+    """Test printing first DTO from each entity with proper app context."""
+    app = create_app()
     with app.app_context():
         print("🔍 Testing DTOs for all entities...")
         print_first_dto(Company, "Company")
