@@ -178,6 +178,7 @@ class AppLogic:
             raise ValueError("User ID is required")
 
         # Check if user exists
+        # TODO: make it a function of itself
         user = User.query.filter_by(user_id=user_id).first()
         if not user:
             raise NotFound(f"User with ID '{user_id}' does not exist")

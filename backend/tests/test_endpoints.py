@@ -21,6 +21,19 @@ def login_data():
         "email": "aiguardify@gmail.com",
         "password": "demo_user"
     }
+@pytest.fixture
+def john_doe():
+    return {
+        "email": "user_4ef9faf8-4fa4-4868-94ea-710be8598487@example.com",
+        "password": "john_doe"
+    }
+
+@pytest.fixture
+def jane_smith():
+    return {
+        "email": "user_4ef9faf8-4fa4-4868-94ea-710be8598487@example.com",
+        "password": "jane_smith"
+    }
 
 def test_successful_login(client, login_data):
     """
@@ -397,3 +410,172 @@ def test_logout_mismatched_user_id(client, login_data):
     assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
 
     print("Logout with mismatched user ID test passed!")
+
+
+@pytest.fixture
+def john_doe_login(client, john_doe):
+    # Make login request
+    response = client.post("/login", json=john_doe)
+    assert response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+    # Extract token from response
+    login_result = response.get_json()["result"]
+    token = login_result["token"]
+    user_id = login_result["userId"]
+    return user_id, token
+
+@pytest.fixture
+def jane_smith_login(client, jane_smith):
+    # Make login request
+    response = client.post("/login", json=jane_smith)
+    assert response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+    # Extract token from response
+    login_result = response.get_json()["result"]
+    token = login_result["token"]
+    user_id = login_result["userId"]
+    return user_id, token
+
+def test_get_user_shops_success(client, john_doe, john_doe_login):
+    """
+    Test successful retrieval of user shops.
+
+    Verifies that:
+    - Request returns OK status
+    - Response contains the expected shop structure
+    - All expected shops are returned with correct IDs and names
+    """
+    user_id, john_doe_auth_token = john_doe_login
+
+    # Make shops request
+    shops_data = {"userId": user_id}
+    response = client.get("/shops", json=shops_data, headers={"Authorization": john_doe_auth_token})
+
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected OK status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Check result structure
+    shops = data["result"]
+    assert isinstance(shops, list), "Result should be a list of shops"
+    assert len(shops) == 4, f"Expected 4 shops, got {len(shops)}"
+
+    # Define expected shops based on the image
+    expected_shops = [
+        {"shop_id": "guardify_ai_central", "shop_name": "Guardify AI Central"},
+        {"shop_id": "guardify_ai_north", "shop_name": "Guardify AI North"},
+        {"shop_id": "guardify_ai_east", "shop_name": "Guardify AI East"},
+        {"shop_id": "guardify_ai_west", "shop_name": "Guardify AI West"}
+    ]
+
+    # Check each shop
+    for expected_shop in expected_shops:
+        # Find the shop in the response
+        found_shop = None
+        for shop in shops:
+            if shop["shop_id"] == expected_shop["shop_id"]:
+                found_shop = shop
+                break
+
+        assert found_shop is not None, f"Shop with ID '{expected_shop['shop_id']}' not found in response"
+        assert found_shop["shop_name"] == expected_shop["shop_name"], \
+            f"Shop '{expected_shop['shop_id']}' should have name '{expected_shop['shop_name']}', got '{found_shop['shop_name']}'"
+
+    print("Get user shops test passed successfully!")
+    print(f"   Found {len(shops)} shops:")
+    for shop in shops:
+        print(f"     - {shop['shop_id']}: {shop['shop_name']}")
+
+
+def test_get_user_shops_without_auth(client):
+    """
+    Test shops endpoint without authentication.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates authentication is required
+    """
+    # Make shops request without Authorization header
+    shops_data = {"userId": "some_user_id"}
+    response = client.get("/shops", json=shops_data)
+
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Authorization header is required"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Get user shops without auth test passed!")
+
+
+def test_get_user_shops_missing_user_id(client, auth_token):
+    """
+    Test shops endpoint without providing userId.
+
+    Verifies that:
+    - Request returns 400 Bad Request status
+    - Error message indicates userId is required
+    """
+    # Make shops request without userId
+    shops_data = {}  # Empty payload
+    response = client.get("/shops", json=shops_data, headers={"Authorization": auth_token})
+
+    # Check response status
+    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "User ID is required"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Get user shops without userId test passed!")
+
+
+def test_get_user_shops_unauthorized_user(client, auth_token):
+    """
+    Test shops endpoint with a different user ID than the authenticated user.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates user can only access their own shops
+    """
+    # Make shops request with a different user ID
+    shops_data = {"userId": "different_user_id"}
+    response = client.get("/shops", json=shops_data, headers={"Authorization": auth_token})
+
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Can only access your own shops"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Get user shops with unauthorized user test passed!")
