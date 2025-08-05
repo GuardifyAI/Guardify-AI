@@ -1,5 +1,5 @@
-from data_science.src.google.GoogleClient import GoogleClient
-from data_science.src.google.ShopliftingAnalyzer import ShopliftingAnalyzer
+from google_client.google_client import GoogleClient
+from data_science.src.model.pipeline.shoplifting_analyzer import ShopliftingAnalyzer
 import pandas as pd
 import datetime
 import os
@@ -54,7 +54,7 @@ class PipelineManager:
 
         final_predictions = {}
         for uri, name in zip(uris, names):
-            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri, pickle_analysis=True)
+            analysis = self.shoplifting_analyzer.analyze_video_from_bucket(uri)
             final_predictions[name] = analysis
 
         if export_results:

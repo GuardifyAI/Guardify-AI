@@ -1,6 +1,6 @@
-from data_science.src.google.AnalysisModel import AnalysisModel
-from data_science.src.google.ComputerVisionModel import ComputerVisionModel
-from data_science.src.google.UnifiedShopliftingModel import UnifiedShopliftingModel
+from data_science.src.model.agentic.analysis_model import AnalysisModel
+from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
+from data_science.src.model.unified.unified_shoplifting_model import UnifiedShopliftingModel
 import logging
 from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
 from vertexai.generative_models import Part
@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 import datetime
 import os
+
 
 def create_unified_analyzer(detection_threshold: float, logger: logging.Logger = None):
     """
@@ -23,7 +24,7 @@ def create_unified_analyzer(detection_threshold: float, logger: logging.Logger =
     """
     # Create the unified model instance
     unified_model = UnifiedShopliftingModel()
-    
+
     return ShopliftingAnalyzer(
         detection_strictness=detection_threshold,
         logger=logger,
@@ -46,7 +47,7 @@ def create_agentic_analyzer(detection_threshold: float, logger: logging.Logger =
     # Create the required model instances for agentic strategy
     cv_model = ComputerVisionModel()
     analysis_model = AnalysisModel()
-    
+
     return ShopliftingAnalyzer(
         detection_strictness=detection_threshold,
         logger=logger,
@@ -83,7 +84,7 @@ class ShopliftingAnalyzer:
         'clothing adjustment', 'hand movement', 'body area', 'conceal',
         'nervous', 'furtive', 'quick', 'suspicious', 'concealment'
     ]
-    
+
     NORMAL_INDICATORS = [
         'browsing', 'examining', 'looking', 'normal', 'casual',
         'no clear', 'no visible', 'ambiguous', 'consistent with normal',
@@ -181,15 +182,15 @@ class ShopliftingAnalyzer:
 
     def analyze_video_from_bucket(self,
                                   video_uri: str,
-                                  iterations: int,
+                                  iterations: int = 3,
                                   pickle_analysis: bool = True) -> Dict:
         """
         Analyze video from GCS bucket using current strategy.
 
         Args:
             video_uri (str): GCS URI of the video
-            iterations (int): Number of iterations
-            pickle_analysis (bool): Whether to save analysis results
+            iterations (int): Number of iterations (Default: 3)
+            pickle_analysis (bool): Whether to save analysis results (Default: True)
 
         Returns:
             Dict: Analysis results
@@ -327,7 +328,7 @@ class ShopliftingAnalyzer:
 
             # Step 1: Computer Vision Model - Get detailed observations
             self.logger.info(f"Step 1: Getting detailed observations from CV model...")
-            
+
             # Get structured observations for better analysis
             structured_obs = self.cv_model.analyze_video_structured(video_part)
             cv_observations.append(str(structured_obs))  # Store structured obs as string for logging
