@@ -15,7 +15,7 @@ Usage:
     
     # Programmatic usage
     from backend.video import VideoRecorder, VideoUploader
-    from data_science.src.google.GoogleClient import GoogleClient
+    from gcp_client.google_client import GoogleClient
     
     google_client = GoogleClient(project, location, service_account_path)
     uploader = VideoUploader(google_client)
