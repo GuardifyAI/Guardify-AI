@@ -82,3 +82,71 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* Shared Events Grid Layout */
+.events-grid-4col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .events-grid-4col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .events-grid-4col {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+
+/* Camera Filter Styles */
+.camera-filter-section {
+  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #374151;
+  padding: 1.25rem;
+  border-radius: 8px;
+}
+
+.camera-filter-section label {
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.camera-filter-section select {
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: white;
+  color: #374151;
+  font-size: 1rem;
+  font-weight: 500;
+  min-width: 200px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.camera-filter-section select:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.camera-filter-section select:focus {
+  outline: none;
+  border-color: #30B3E1;
+  box-shadow: 0 0 0 3px rgba(48, 179, 225, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.camera-filter-section select option {
+  padding: 8px;
+  color: #374151;
+}

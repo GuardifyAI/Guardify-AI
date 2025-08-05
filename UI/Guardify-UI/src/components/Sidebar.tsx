@@ -19,7 +19,7 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white shadow-strong z-50 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0">
+    <aside className="fixed left-0 top-0 h-full w-72 bg-gray-900 text-white shadow-strong z-50 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0">
       {/* Logo and Brand */}
       <div className="p-6 border-b border-gray-700">
         <div className="flex items-center space-x-3">
@@ -55,15 +55,17 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
                 activeTab === 'dashboard' 
                   ? 'bg-primary-500 text-white shadow-medium' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  : 'text-blue-400 font-bold bg-blue-50 hover:bg-blue-100 hover:text-blue-700'
               }`}
               onClick={() => {
                 setActiveTab('dashboard');
                 setSelectedShop(null);
               }}
             >
-              <BarChart3 className="w-5 h-5" />
-              <span className="font-medium">Dashboard Overview</span>
+              <BarChart3 className={`w-5 h-5 ${activeTab !== 'dashboard' ? 'text-blue-500' : ''}`} />
+              <span className="font-medium">
+                {activeTab === 'dashboard' ? 'Dashboard Overview' : '← Back to Dashboard'}
+              </span>
             </button>
 
             {/* Individual Shops */}

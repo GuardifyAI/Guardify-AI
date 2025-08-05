@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import type { Event, Shop } from '../types';
-import EventCard from '../components/EventCard';
+import EventsGrid from '../components/EventsGrid';
 import EventsOverTime from '../components/Stats/EventsOverTime';
 import EventsByHour from '../components/Stats/EventsByHour';
 import EventCountBarChart from '../components/Stats/EventCountBarChart';
@@ -16,53 +15,40 @@ type Props = {
 export default function ShopPage({ shop, events, tab }: Props) {
   const filteredEvents = events.filter((e) => e.shopId === shop.id);
 
-  const [selectedCamera, setSelectedCamera] = useState<string | 'all'>('all');
-  const cameraOptions = Array.from(new Set(filteredEvents.map((e) => e.cameraName)));
-  const displayedEvents =
-    selectedCamera === 'all'
-      ? filteredEvents
-      : filteredEvents.filter((e) => e.cameraName === selectedCamera);
-
   return (
     <div className="page-layout">
       {tab === 'statistics' && (
         <section className="tiles">
-          <EventsOverTime events={filteredEvents} />
-          <EventsByHour events={filteredEvents} />
-          <EventCountBarChart
-            events={filteredEvents}
-            groupBy="camera"
-            title={`Events by Camera in ${shop.name}`}
-          />
-          <EventsByCategorySimple events={filteredEvents} />
+          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events Over Time</h3>
+            <EventsOverTime events={filteredEvents} />
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Hour</h3>
+            <EventsByHour events={filteredEvents} />
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Camera</h3>
+            <EventCountBarChart
+              events={filteredEvents}
+              groupBy="camera"
+            />
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Categories</h3>
+            <EventsByCategorySimple events={filteredEvents} />
+          </div>
         </section>
       )}
 
       {tab === 'events' && (
         <section className="events-table-section">
           <h2>Events in {shop.name}</h2>
-
-          <div className="filter-section">
-            <label htmlFor="cameraFilter">Filter by Camera: </label>
-            <select
-              id="cameraFilter"
-              value={selectedCamera}
-              onChange={(e) => setSelectedCamera(e.target.value)}
-            >
-              <option value="all">All Cameras</option>
-              {cameraOptions.map((cam) => (
-                <option key={cam} value={cam}>
-                  {cam}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="events-grid">
-            {displayedEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          <EventsGrid
+            events={filteredEvents}
+            showCameraFilter={true}
+            className="!p-0 !shadow-none !border-none !bg-transparent"
+          />
         </section>
       )}
 

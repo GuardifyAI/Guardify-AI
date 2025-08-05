@@ -1,20 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Camera, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, Camera } from 'lucide-react';
 import type { Event } from '../types';
+import { getStatusInfo } from '../utils/statusUtils';
 
 export default function EventCard({ event }: { event: Event }) {
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-red-600 bg-red-100';
-    if (confidence >= 60) return 'text-yellow-600 bg-yellow-100';
-    return 'text-green-600 bg-green-100';
-  };
 
-  const getConfidenceLabel = (confidence: number) => {
-    if (confidence >= 80) return 'High Risk';
-    if (confidence >= 60) return 'Medium Risk';
-    return 'Low Risk';
-  };
-
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -29,27 +20,27 @@ export default function EventCard({ event }: { event: Event }) {
     }
   };
 
+  const statusInfo = getStatusInfo(event.analysis.final_detection, event.analysis.final_confidence);
+
   return (
     <Link to={`/event/${event.id}`} className="block group">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-medium transition-all duration-200 hover:border-primary-300 group-hover:scale-[1.02]">
-        {/* Header with status and confidence */}
+      <div className="bg-white rounded-xl p-4 hover:shadow-medium transition-all duration-200 group-hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-300">
+
+        {/* Header with status + detection label */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            {event.analysis.final_detection ? (
-              <div className="flex items-center space-x-1">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-                <span className="text-xs font-medium text-red-600">INCIDENT</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-xs font-medium text-green-600">SAFE</span>
-              </div>
-            )}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1">
+              <statusInfo.icon className={`w-4 h-4 ${statusInfo.color}`} />
+              <span className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.label}</span>
+            </div>
+            <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+              event.analysis.final_detection 
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {event.analysis.final_detection ? 'DETECTED' : 'NOT DETECTED'}
+            </div>
           </div>
-          <span className={`text-xs font-medium px-2 py-1 rounded-full ${getConfidenceColor(event.analysis.final_confidence)}`}>
-            {getConfidenceLabel(event.analysis.final_confidence)}
-          </span>
         </div>
 
         {/* Event Description */}
@@ -83,10 +74,7 @@ export default function EventCard({ event }: { event: Event }) {
           </div>
           <div className="mt-1 w-full bg-gray-200 rounded-full h-1">
             <div 
-              className={`h-1 rounded-full ${
-                event.analysis.final_confidence >= 80 ? 'bg-red-500' :
-                event.analysis.final_confidence >= 60 ? 'bg-yellow-500' : 'bg-green-500'
-              }`}
+              className={`h-1 rounded-full ${statusInfo.bgColor}`}
               style={{ width: `${event.analysis.final_confidence}%` }}
             ></div>
           </div>

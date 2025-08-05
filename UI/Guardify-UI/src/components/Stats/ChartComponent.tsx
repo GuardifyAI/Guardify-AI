@@ -27,11 +27,7 @@ export default function ChartComponent({
     '#075985', '#0c4a6e', '#ef4444', '#dc2626'
   ];
 
-  const gradientColors = [
-    '#30B3E1', '#10b981', '#f59e0b', '#ef4444',
-    '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
-  ];
-
+  
   useEffect(() => {
     if (chartRef.current) {
       if (chartInstance.current) chartInstance.current.destroy();
@@ -80,59 +76,7 @@ export default function ChartComponent({
               borderColor: '#30B3E1',
               borderWidth: 1,
               cornerRadius: 8,
-              displayColors: true,
-              font: {
-                family: 'Inter, sans-serif'
-              }
-            }
-          },
-          scales: isPie ? {} : {
-            x: {
-              title: {
-                display: true,
-                text: isHorizontal ? 'Events Count' : (type === 'bar' ? 'Category' : 'Date'),
-                font: {
-                  size: 12,
-                  family: 'Inter, sans-serif',
-                  weight: '500'
-                },
-                color: '#64748b'
-              },
-              grid: {
-                color: '#f1f5f9',
-                borderColor: '#e2e8f0'
-              },
-              ticks: {
-                font: {
-                  size: 11,
-                  family: 'Inter, sans-serif'
-                },
-                color: '#64748b'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: isHorizontal ? 'Camera Name' : 'Count',
-                font: {
-                  size: 12,
-                  family: 'Inter, sans-serif',
-                  weight: '500'
-                },
-                color: '#64748b'
-              },
-              beginAtZero: true,
-              grid: {
-                color: '#f1f5f9',
-                borderColor: '#e2e8f0'
-              },
-              ticks: {
-                font: {
-                  size: 11,
-                  family: 'Inter, sans-serif'
-                },
-                color: '#64748b'
-              }
+              displayColors: true
             }
           },
           indexAxis: isHorizontal ? 'y' : 'x',
