@@ -359,3 +359,41 @@ def test_logout_invalid_token(client):
     assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
 
     print("Logout with invalid token test passed!")
+
+
+def test_logout_mismatched_user_id(client, login_data):
+    """
+    Test logout with token that doesn't belong to the specified user.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates token doesn't belong to the user
+    """
+    login_response = client.post("/login", json=login_data)
+    assert login_response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+
+    login_result = login_response.get_json()["result"]
+    token = login_result["token"]
+    actual_user_id = login_result["userId"]
+
+    # Try to logout with a different user_id
+    wrong_user_id = "different_user"
+    logout_data = {"userId": wrong_user_id}
+    logout_response = client.get("/logout", json=logout_data, headers={"Authorization": token})
+
+    # Check response status
+    assert logout_response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {logout_response.status_code}"
+
+    # Parse response
+    data = logout_response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = f"Token does not belong to user '{wrong_user_id}'"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Logout with mismatched user ID test passed!")
