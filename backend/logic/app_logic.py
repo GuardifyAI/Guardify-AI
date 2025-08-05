@@ -109,8 +109,7 @@ class AppLogic:
         """
         payload = {
             "user_id": user_id,
-            "exp": datetime.datetime.now() + datetime.timedelta(hours=int(os.getenv('JWT_TOKEN_EXPIRES_IN_HOURS', 24))),
-            "iat": datetime.datetime.now()
+            "exp": datetime.datetime.now() + datetime.timedelta(hours=int(os.getenv('JWT_TOKEN_EXPIRES_IN_HOURS', 24))),  # 24 hour expiry
         }
         return jwt.encode(payload, self.jwt_secret, algorithm="HS256")
 
