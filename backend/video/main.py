@@ -3,9 +3,9 @@ import os
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
 
-from data_science.src.google.GoogleClient import GoogleClient
 from backend.video.video_recorder import VideoRecorder
 from backend.video.video_uploader import VideoUploader
+from google_client.google_client import GoogleClient
 
 load_dotenv()
 
