@@ -13,7 +13,7 @@ class AppLogic:
         # Secret key for JWT signing (in production, use environment variable)
         self.jwt_secret = os.getenv('JWT_SECRET_KEY')
 
-    def login(self, email: str, password: str) -> dict:
+    def login(self, email: str | None, password: str | None) -> dict:
         """
         Authenticate a user with email and password.
 
@@ -62,6 +62,25 @@ class AppLogic:
             "firstName": user.first_name,
             "lastName": user.last_name,
             "token": f"Bearer {token}"
+        }
+
+    def logout(self, token: str | None) -> dict:
+        """
+        Logout a user by checking that the token is valid, otherwise raise an exception as you cannot logout a user that is not logged in.
+
+        Args:
+            token (str): The JWT token to invalidate
+
+        Returns:
+            dict: dict with userId
+
+        Raises:
+            Unauthorized: If token is invalid
+        """
+        if not token:
+            raise ValueError("Token was not provided")
+        return {
+            "userId": self.validate_token(token),
         }
 
     def validate_token(self, token: str) -> str:

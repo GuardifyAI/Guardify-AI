@@ -157,14 +157,35 @@ class Controller:
 
             Returns:
                 JSON response with:
-                    - result: "login succeeded" on successful login
-                    - errorMessage: None on success, error string on failure
+                    - userId: user ID of the logged-in user
+                    - firstName: user's first name
+                    - lastName: user's last name
+                    - token: JWT token for the session
+                - errorMessage: None on success, error string on failure
             """
             data = request.get_json() or {}
             email = data.get("email")
             password = data.get("password")
             # Call the business logic
             return self.app_logic.login(email, password)
+
+        @self.app.route("/logout", methods=["GET"])
+        def logout():
+            """
+            User logout endpoint.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Returns:
+                JSON response with:
+                    - userId: user ID of the logged-out user
+                - errorMessage: None on success, error string on failure
+            """
+            # Get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            # Call the business logic
+            return self.app_logic.logout(auth_header)
 
         @self.app.after_request
         def wrap_success_response(response):
