@@ -81,3 +81,55 @@ def test_error_handling(client):
     assert data["result"] is None
     assert isinstance(data["errorMessage"], str)
     assert len(data["errorMessage"]) > 0
+
+def test_cache(client):
+    payload = {"number": 7}
+
+    # First request: should take longer and return a fresh result
+    response1 = client.post("/app/test", json=payload)
+    assert response1.status_code == HTTPStatus.OK
+    data1 = response1.get_json()
+    assert "result" in data1
+    first_result = data1["result"]
+    assert first_result["input"] == 7
+    assert first_result["square"] == 49
+    first_timestamp = first_result["timestamp"]
+
+    # Second request: should be instant and return cached result (same timestamp)
+    response2 = client.post("/app/test", json=payload)
+    assert response2.status_code == HTTPStatus.OK
+    data2 = response2.get_json()
+    second_result = data2["result"]
+    assert second_result["input"] == 7
+    assert second_result["square"] == 49
+    second_timestamp = second_result["timestamp"]
+
+    # The timestamp should be the same, indicating the result was cached
+    assert first_timestamp == second_timestamp
+
+def test_clear_cache(client):
+    payload = {"number": 7}
+
+    # First request: get initial result and timestamp
+    response1 = client.post("/app/test", json=payload)
+    assert response1.status_code == HTTPStatus.OK
+    data1 = response1.get_json()
+    first_result = data1["result"]
+    first_timestamp = first_result["timestamp"]
+
+    # Clear the cache
+    clear_response = client.post("/app/cache/clear")
+    assert clear_response.status_code == HTTPStatus.OK
+    clear_data = clear_response.get_json()
+    assert clear_data["result"] == "Cache cleared successfully"
+    assert clear_data["errorMessage"] is None
+
+    # Second request: should return a new result with a new timestamp
+    response2 = client.post("/app/test", json=payload)
+    assert response2.status_code == HTTPStatus.OK
+    data2 = response2.get_json()
+    second_result = data2["result"]
+    second_timestamp = second_result["timestamp"]
+
+    # The timestamp should be different, indicating the calculation was performed again
+    assert first_timestamp != second_timestamp

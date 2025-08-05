@@ -28,6 +28,32 @@ class Controller:
         def raise_error():
             raise ValueError("Intentional error")
 
+        @self.app.route("/app/test", methods=["POST"])
+        @self.cache.memoize()  # Cache for 10 minutes
+        def test_calculation():
+            """
+            Test endpoint for caching: returns the square of the input number and a timestamp.
+            """
+            import time
+            try:
+                data = request.get_json() or {}
+                number = data.get("number", 0)
+                time.sleep(1)  # Simulate expensive calculation
+                result = {
+                    "input": number,
+                    "square": number * number,
+                    "timestamp": time.time()
+                }
+                return jsonify({
+                    RESULT_KEY: result,
+                    ERROR_MESSAGE_KEY: None
+                })
+            except Exception as e:
+                return jsonify({
+                    RESULT_KEY: None,
+                    ERROR_MESSAGE_KEY: str(e)
+                }), HTTPStatus.INTERNAL_SERVER_ERROR
+
         @self.app.route("/app/cache/clear", methods=["POST"])
         def clear_cache():
             """
