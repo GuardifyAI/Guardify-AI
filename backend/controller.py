@@ -119,24 +119,15 @@ class Controller:
             Raises:
                 HTTP 500: If calculation fails or invalid input provided
             """
-            try:
-                data = request.get_json() or {}
-                number = data.get("number", 0)
-                time.sleep(1)  # Simulate expensive calculation
-                result = {
-                    "input": number,
-                    "square": number * number,
-                    "timestamp": time.time()
-                }
-                return jsonify({
-                    RESULT_KEY: result,
-                    ERROR_MESSAGE_KEY: None
-                })
-            except Exception as e:
-                return jsonify({
-                    RESULT_KEY: None,
-                    ERROR_MESSAGE_KEY: str(e)
-                }), HTTPStatus.INTERNAL_SERVER_ERROR
+            data = request.get_json(silent=True) or {}
+            number = data.get("number", 0)
+            time.sleep(1)  # Simulate expensive calculation
+            result = {
+                "input": number,
+                "square": number * number,
+                "timestamp": time.time()
+            }
+            return result
 
         @self.app.route("/app/cache/clear", methods=["POST"])
         def clear_cache():
@@ -154,17 +145,8 @@ class Controller:
             Raises:
                 HTTP 500: If cache clearing operation fails
             """
-            try:
-                self.cache.clear()
-                return jsonify({
-                    RESULT_KEY: "Cache cleared successfully",
-                    ERROR_MESSAGE_KEY: None
-                })
-            except Exception as e:
-                return jsonify({
-                    RESULT_KEY: None,
-                    ERROR_MESSAGE_KEY: str(e)
-                }), HTTPStatus.INTERNAL_SERVER_ERROR
+            self.cache.clear()
+            return "Cache cleared successfully"
 
         @self.app.route("/login", methods=["POST"])
         def login():
