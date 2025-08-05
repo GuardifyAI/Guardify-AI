@@ -1,10 +1,16 @@
 from backend.app.entities.user import User
 import hashlib
 from werkzeug.exceptions import Unauthorized
+import jwt
+import datetime
+import os
+from data_science.src.utils import load_env_variables
+load_env_variables()
 
 class AppLogic:
     def __init__(self):
-        pass
+        # Secret key for JWT signing (in production, use environment variable)
+        self.jwt_secret = os.getenv('JWT_SECRET_KEY')
 
     def login(self, email: str, password: str) -> dict:
         """
@@ -15,7 +21,7 @@ class AppLogic:
             password (str): User's password (will be hashed for comparison)
 
         Returns:
-            dict: Result with userId, firstName and lastName of the logged in user
+            dict: Result with userId, firstName, lastName and token
 
         Raises:
             ValueError: If email/password are null or empty
@@ -46,20 +52,75 @@ class AppLogic:
         if user.password != hashed_input_password:
             raise Unauthorized("Incorrect password")
 
-        # Login successful - return user's ID, first and last name
+        # Generate JWT token
+        token = self._generate_token(user.user_id)
+
+        # Login successful - return user's ID, first and last name, and token
         return {
             "userId": user.user_id,
             "firstName": user.first_name,
-            "lastName": user.last_name
+            "lastName": user.last_name,
+            "token": f"Bearer {token}"
         }
-    
+
+    def validate_token(self, token: str) -> str:
+        """
+        Validate a JWT token and return the user ID.
+
+        Args:
+            token (str): The JWT token to validate
+
+        Returns:
+            str: User ID from the token
+
+        Raises:
+            Unauthorized: If token is invalid or expired
+        """
+        if not token or not token.startswith("Bearer "):
+            raise Unauthorized("Invalid token format")
+
+        # Extract token without "Bearer " prefix
+        jwt_token = token[7:]
+
+        try:
+            # Verify token is valid and not expired
+            payload = jwt.decode(jwt_token, self.jwt_secret, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+
+            if not user_id:
+                raise Unauthorized("Invalid token")
+
+            return user_id
+
+        except jwt.ExpiredSignatureError:
+            raise Unauthorized("Token has expired")
+        except jwt.InvalidTokenError:
+            raise Unauthorized("Invalid token")
+
+    def _generate_token(self, user_id: str) -> str:
+        """
+        Generate a JWT token for a user.
+
+        Args:
+            user_id (str): The user ID to include in the token
+
+        Returns:
+            str: JWT token with 24-hour expiry
+        """
+        payload = {
+            "user_id": user_id,
+            "exp": datetime.datetime.now() + datetime.timedelta(hours=int(os.getenv('JWT_TOKEN_EXPIRES_IN_HOURS', 24))),
+            "iat": datetime.datetime.now()
+        }
+        return jwt.encode(payload, self.jwt_secret, algorithm="HS256")
+
     def _encode_string(self, text: str) -> str:
         """
         Encode a string using SHA-256.
-        
+
         Args:
             text (str): String to encode
-            
+
         Returns:
             str: Encoded string
         """
