@@ -222,3 +222,7 @@ Thumbs.db
 # Other files
 *.pkl
 *.csv
+
+# Ignore all .idea files except the project structure
+.idea/*
+!.idea/*.iml
