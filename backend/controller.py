@@ -3,6 +3,7 @@ from flask_caching import Cache
 from backend.logic.app_logic import AppLogic
 from http import HTTPStatus
 import time
+from werkzeug.exceptions import Unauthorized
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -140,6 +141,31 @@ class Controller:
                     ERROR_MESSAGE_KEY: str(e)
                 }), HTTPStatus.INTERNAL_SERVER_ERROR
 
+        @self.app.route("/login", methods=["POST"])
+        def login():
+            """
+            User login endpoint.
+
+            Authenticates a user with email and password. The password is hashed
+            before comparison with the stored hashed password in the database.
+
+            Expected JSON payload:
+                {
+                    "email": str,     - User's email address
+                    "password": str   - User's password
+                }
+
+            Returns:
+                JSON response with:
+                    - result: "login succeeded" on successful login
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json() or {}
+            email = data.get("email")
+            password = data.get("password")
+            # Call the business logic
+            return self.app_logic.login(email, password)
+
         @self.app.after_request
         def wrap_success_response(response):
             """
@@ -195,9 +221,18 @@ class Controller:
                     - errorMessage: String representation of the exception
 
             Status:
-                HTTP 500: Internal Server Error
+                HTTP 401: For Unauthorized exceptions
+                HTTP 400: For ValueError (bad request)
+                HTTP 500: For all other exceptions (internal server error)
             """
+            if isinstance(e, Unauthorized):
+                status = HTTPStatus.UNAUTHORIZED
+            elif isinstance(e, ValueError):
+                status = HTTPStatus.BAD_REQUEST
+            else:
+                status = HTTPStatus.INTERNAL_SERVER_ERROR
+
             return jsonify({
                 RESULT_KEY: None,
-                ERROR_MESSAGE_KEY: str(e)  # or use traceback.format_exc() for debug
-            }), HTTPStatus.INTERNAL_SERVER_ERROR
+                ERROR_MESSAGE_KEY: str(e)
+            }), status
