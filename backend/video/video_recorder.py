@@ -122,7 +122,7 @@ class VideoRecorder:
 
                 # Queue the upload task for background processing
                 bucket_name = os.getenv("BUCKET_NAME")
-                self.video_uploader.queue_upload(bucket_name, camera_name)
+                self.video_uploader.add_to_queue(bucket_name, camera_name)
                 
         except KeyboardInterrupt:
             self.logger.info("Recording interrupted by user")
