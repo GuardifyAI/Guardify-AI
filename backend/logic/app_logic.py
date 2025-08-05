@@ -5,44 +5,52 @@ from werkzeug.exceptions import Unauthorized
 class AppLogic:
     def __init__(self):
         pass
-    
-    def login(self, email: str, password: str) -> str:
+
+    def login(self, email: str, password: str) -> dict:
         """
         Authenticate a user with email and password.
-        
+
         Args:
             email (str): User's email address
             password (str): User's password (will be hashed for comparison)
-            
+
         Returns:
-            dict: Result with status and message
-            
+            dict: Result with firstName and lastName of the logged in user
+
         Raises:
             ValueError: If email/password are null or empty
-            Unauthorized: If authentication fails
+            Unauthorized: If authentication fails or multiple users found with same email
         """
         # Validate input parameters
         if not email or email.strip() == "":
             raise ValueError("Email is required")
-        
+
         if not password or password.strip() == "":
             raise ValueError("Password is required")
-        
+
         # Check if user exists with the given email
-        user = User.query.filter_by(email=email.strip()).first()
-        
-        if not user:
+        users = User.query.filter_by(email=email.strip()).all()
+
+        if len(users) > 1:
+            raise Unauthorized(f"Multiple users found with email '{email}'")
+
+        if len(users) == 0:
             raise Unauthorized(f"User with email '{email}' does not exist")
-        
+
+        user = users[0]
+
         # Hash the input password for comparison
         hashed_input_password = self._encode_string(password)
-        
+
         # Check if the hashed password matches the stored password
         if user.password != hashed_input_password:
             raise Unauthorized("Incorrect password")
-        
-        # Login successful
-        return "login succeeded"
+
+        # Login successful - return user's first and last name
+        return {
+            "firstName": user.first_name,
+            "lastName": user.last_name
+        }
     
     def _encode_string(self, text: str) -> str:
         """
