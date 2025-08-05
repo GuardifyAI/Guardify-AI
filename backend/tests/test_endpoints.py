@@ -15,8 +15,14 @@ def client():
     with app.test_client() as client:
         yield client
 
+@pytest.fixture
+def login_data():
+    return {
+        "email": "aiguardify@gmail.com",
+        "password": "demo_user"
+    }
 
-def test_successful_login(client):
+def test_successful_login(client, login_data):
     """
     Test successful login with valid credentials.
 
@@ -27,12 +33,6 @@ def test_successful_login(client):
     - First name is 'Demo'
     - Last name is 'User'
     """
-    # Test data
-    login_data = {
-        "email": "aiguardify@gmail.com",
-        "password": "demo_user"
-    }
-
     # Make login request
     response = client.post("/login", json=login_data)
 
@@ -257,3 +257,102 @@ def test_login_empty_payload(client):
     assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
 
     print("Login with empty payload test passed!")
+
+
+def test_successful_logout(client, login_data):
+    """
+    Test successful logout with valid token.
+
+    Verifies that:
+    - Request returns OK status
+    - Response contains the userId of the logged-out user
+    - Token is properly validated
+    """
+    login_response = client.post("/login", json=login_data)
+    assert login_response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+
+    login_result = login_response.get_json()["result"]
+    token = login_result["token"]
+    expected_user_id = login_result["userId"]
+
+    # Now logout with the token
+    logout_response = client.get("/logout", headers={"Authorization": token})
+
+    # Check logout response status
+    assert logout_response.status_code == HTTPStatus.OK, f"Expected OK status, got {logout_response.status_code}"
+
+    # Parse logout response
+    logout_data = logout_response.get_json()
+    assert logout_data is not None, "Response should be JSON"
+    assert "result" in logout_data, "Response should contain 'result' key"
+    assert "errorMessage" in logout_data, "Response should contain 'errorMessage' key"
+    assert logout_data["errorMessage"] is None, "Should not have error message"
+
+    # Check result structure
+    result = logout_data["result"]
+    assert isinstance(result, dict), "Result should be a dictionary"
+    assert "userId" in result, "Result should contain userId"
+
+    # Check that the userId matches the one from login
+    assert result["userId"] == expected_user_id, f"Expected userId '{expected_user_id}', got '{result['userId']}'"
+
+    print("Logout test passed successfully!")
+    print(f"   Logged out user ID: {result['userId']}")
+
+
+def test_logout_without_token(client):
+    """
+    Test logout without providing Authorization header.
+
+    Verifies that:
+    - Request returns 400 bad request status
+    - Error message indicates token is required
+    """
+    # Make logout request without Authorization header
+    logout_response = client.get("/logout")
+
+    # Check response status
+    assert logout_response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 401 status, got {logout_response.status_code}"
+
+    # Parse response
+    data = logout_response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Token was not provided"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("Logout without token test passed!")
+
+
+def test_logout_invalid_token(client):
+    """
+    Test logout with invalid token format.
+
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates invalid token format
+    """
+    # Make logout request with invalid token format
+    logout_response = client.get("/logout", headers={"Authorization": "InvalidToken"})
+
+    # Check response status
+    assert logout_response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 status, got {logout_response.status_code}"
+
+    # Parse response
+    data = logout_response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+
+    # Check error message
+    expected_error = "Invalid token format"
+    assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
+
+    print("? Logout with invalid token test passed!")
