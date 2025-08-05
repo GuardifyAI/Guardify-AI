@@ -77,8 +77,6 @@ class AppLogic:
         Raises:
             Unauthorized: If token is invalid
         """
-        if not token:
-            raise ValueError("Token was not provided")
         return {
             "userId": self.validate_token(token),
         }
@@ -96,7 +94,9 @@ class AppLogic:
         Raises:
             Unauthorized: If token is invalid or expired
         """
-        if not token or not token.startswith("Bearer "):
+        if not token:
+            raise ValueError("Token was not provided")
+        if not token.startswith("Bearer "):
             raise Unauthorized("Invalid token format")
 
         # Extract token without "Bearer " prefix
