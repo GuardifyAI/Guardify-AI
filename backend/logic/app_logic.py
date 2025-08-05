@@ -3,6 +3,7 @@ import hashlib
 from werkzeug.exceptions import Unauthorized
 import jwt
 import datetime
+import uuid
 import os
 from data_science.src.utils import load_env_variables
 load_env_variables()
@@ -109,6 +110,7 @@ class AppLogic:
         """
         payload = {
             "user_id": user_id,
+            "jti": str(uuid.uuid4()),  # Unique token ID for invalidation tracking
             "exp": datetime.datetime.now() + datetime.timedelta(hours=int(os.getenv('JWT_TOKEN_EXPIRES_IN_HOURS', 24))),  # 24 hour expiry
         }
         return jwt.encode(payload, self.jwt_secret, algorithm="HS256")

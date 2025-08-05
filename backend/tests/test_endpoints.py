@@ -73,6 +73,7 @@ def test_successful_login(client):
         assert "user_id" in payload, "Token should contain user_id"
         assert payload["user_id"] == "demo_user", f"Token should contain userId 'demo_user', got '{payload['user_id']}'"
         assert "exp" in payload, "Token should contain expiration"
+        assert "jti" in payload, "Token should contain jti (JWT ID)"
 
     except jwt.ExpiredSignatureError:
         pytest.fail("Token should not be expired")
