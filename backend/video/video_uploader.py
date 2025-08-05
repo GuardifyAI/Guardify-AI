@@ -87,7 +87,7 @@ class VideoUploader:
         
         self.logger.info("Upload worker thread stopped successfully")
 
-    def queue_upload(self, bucket_name: str, camera_name: str) -> None:
+    def add_to_queue(self, bucket_name: str, camera_name: str) -> None:
         """
         Add an upload task to the processing queue.
         
