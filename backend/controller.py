@@ -3,7 +3,7 @@ from flask_caching import Cache
 from backend.logic.app_logic import AppLogic
 from http import HTTPStatus
 import time
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import Unauthorized, NotFound
 from functools import wraps
 
 RESULT_KEY = "result"
@@ -197,6 +197,31 @@ class Controller:
             # Call the business logic
             return self.app_logic.logout(user_id, auth_header)
 
+        @self.app.route("/shops", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize(timeout=1800)  # 30 minutes cache
+        def get_user_shops():
+            """
+            Get all shops for the current authenticated user.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Expected JSON payload:
+                {
+                    "userId": str  - The user ID to get shops for
+                }
+
+            Returns:
+                JSON response with:
+                    - result: Array of shop objects with shop_id and shop_name
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+            user_id = data.get("userId")
+            # Call the business logic
+            return self.app_logic.get_user_shops(user_id)
+
         @self.app.after_request
         def wrap_success_response(response):
             """
@@ -260,6 +285,8 @@ class Controller:
                 status = HTTPStatus.UNAUTHORIZED
             elif isinstance(e, ValueError):
                 status = HTTPStatus.BAD_REQUEST
+            elif isinstance(e, NotFound):
+                status = HTTPStatus.NOT_FOUND
             else:
                 status = HTTPStatus.INTERNAL_SERVER_ERROR
 
