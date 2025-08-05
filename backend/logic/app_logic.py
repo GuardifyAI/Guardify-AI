@@ -15,7 +15,7 @@ class AppLogic:
             password (str): User's password (will be hashed for comparison)
 
         Returns:
-            dict: Result with firstName and lastName of the logged in user
+            dict: Result with userId, firstName and lastName of the logged in user
 
         Raises:
             ValueError: If email/password are null or empty
@@ -46,8 +46,9 @@ class AppLogic:
         if user.password != hashed_input_password:
             raise Unauthorized("Incorrect password")
 
-        # Login successful - return user's first and last name
+        # Login successful - return user's ID, first and last name
         return {
+            "userId": user.user_id,
             "firstName": user.first_name,
             "lastName": user.last_name
         }
