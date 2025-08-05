@@ -7,4 +7,4 @@ PORT = 8574
 
 if __name__ == "__main__":
     controller = Controller(app)
-    app.run(host=HOST, port=PORT)
+    controller.run(HOST, PORT)

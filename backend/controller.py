@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 from backend.logic.app_logic import AppLogic
 from http import HTTPStatus
+import time
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -37,6 +38,9 @@ class Controller:
         })
 
         self.setup_routes()  # Ensure routes are set up during initialization
+
+    def run(self, host: str, port: int):
+        self.app.run(host, port)
 
     def setup_routes(self):
         """
@@ -89,7 +93,6 @@ class Controller:
             Raises:
                 HTTP 500: If calculation fails or invalid input provided
             """
-            import time
             try:
                 data = request.get_json() or {}
                 number = data.get("number", 0)
