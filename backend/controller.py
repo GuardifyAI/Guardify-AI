@@ -4,6 +4,7 @@ from backend.logic.app_logic import AppLogic
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized
+from functools import wraps
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -42,6 +43,30 @@ class Controller:
 
     def run(self, host: str, port: int):
         self.app.run(host, port)
+
+    def require_auth(self, f):
+        """
+        Decorator to require authentication for protected endpoints.
+
+        Args:
+            f: The function to decorate
+
+        Returns:
+            The decorated function that validates the token before execution
+        """
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header:
+                raise ValueError("Authorization header is required")
+            # Validate token and get user ID
+            user_id = self.app_logic.validate_token(auth_header)
+            # Add user_id to request context for use in the endpoint
+            request.user_id = user_id
+            return f(*args, **kwargs)
+
+        return decorated_function
 
     def setup_routes(self):
         """
