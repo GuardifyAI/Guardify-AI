@@ -224,6 +224,15 @@ class ApiHandler:
             # Call the business logic
             return self.shops_service.get_user_shops(user_id)
 
+        @self.app.route("/shops/<shop_id>/events", methods=["GET"])
+        @self.require_auth
+        def get_shop_events(shop_id):
+            """
+            Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
+            """
+            result = self.shops_service.get_shop_events(shop_id)
+            return result
+
         @self.app.after_request
         def wrap_success_response(response):
             """
