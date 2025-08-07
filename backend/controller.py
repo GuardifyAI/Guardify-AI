@@ -3,6 +3,8 @@ from flask_caching import Cache
 from backend.logic.app_logic import AppLogic
 from http import HTTPStatus
 import time
+from werkzeug.exceptions import Unauthorized
+from functools import wraps
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -42,6 +44,30 @@ class Controller:
     def run(self, host: str, port: int):
         self.app.run(host, port)
 
+    def require_auth(self, f):
+        """
+        Decorator to require authentication for protected endpoints.
+
+        Args:
+            f: The function to decorate
+
+        Returns:
+            The decorated function that validates the token before execution
+        """
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header:
+                raise ValueError("Authorization header is required")
+            # Validate token and get user ID
+            user_id = self.app_logic.validate_token(auth_header)
+            # Add user_id to request context for use in the endpoint
+            request.user_id = user_id
+            return f(*args, **kwargs)
+
+        return decorated_function
+
     def setup_routes(self):
         """
         Configure all application routes and middleware.
@@ -68,9 +94,9 @@ class Controller:
             This endpoint is used for testing error handling and response wrapping.
 
             Raises:
-                ValueError: Intentional error for testing purposes
+                AssertionError: Intentional error for testing purposes
             """
-            raise ValueError("Intentional error")
+            raise AssertionError("Intentional error")
 
         @self.app.route("/app/test", methods=["POST"])
         @self.cache.memoize()
@@ -93,24 +119,15 @@ class Controller:
             Raises:
                 HTTP 500: If calculation fails or invalid input provided
             """
-            try:
-                data = request.get_json() or {}
-                number = data.get("number", 0)
-                time.sleep(1)  # Simulate expensive calculation
-                result = {
-                    "input": number,
-                    "square": number * number,
-                    "timestamp": time.time()
-                }
-                return jsonify({
-                    RESULT_KEY: result,
-                    ERROR_MESSAGE_KEY: None
-                })
-            except Exception as e:
-                return jsonify({
-                    RESULT_KEY: None,
-                    ERROR_MESSAGE_KEY: str(e)
-                }), HTTPStatus.INTERNAL_SERVER_ERROR
+            data = request.get_json(silent=True) or {}
+            number = data.get("number", 0)
+            time.sleep(1)  # Simulate expensive calculation
+            result = {
+                "input": number,
+                "square": number * number,
+                "timestamp": time.time()
+            }
+            return result
 
         @self.app.route("/app/cache/clear", methods=["POST"])
         def clear_cache():
@@ -128,17 +145,57 @@ class Controller:
             Raises:
                 HTTP 500: If cache clearing operation fails
             """
-            try:
-                self.cache.clear()
-                return jsonify({
-                    RESULT_KEY: "Cache cleared successfully",
-                    ERROR_MESSAGE_KEY: None
-                })
-            except Exception as e:
-                return jsonify({
-                    RESULT_KEY: None,
-                    ERROR_MESSAGE_KEY: str(e)
-                }), HTTPStatus.INTERNAL_SERVER_ERROR
+            self.cache.clear()
+            return "Cache cleared successfully"
+
+        @self.app.route("/login", methods=["POST"])
+        def login():
+            """
+            User login endpoint.
+
+            Authenticates a user with email and password. The password is hashed
+            before comparison with the stored hashed password in the database.
+
+            Expected JSON payload:
+                {
+                    "email": str,     - User's email address
+                    "password": str   - User's password
+                }
+
+            Returns:
+                JSON response with:
+                    - userId: user ID of the logged-in user
+                    - firstName: user's first name
+                    - lastName: user's last name
+                    - token: JWT token for the session
+                - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+            email = data.get("email")
+            password = data.get("password")
+            # Call the business logic
+            return self.app_logic.login(email, password)
+
+        @self.app.route("/logout", methods=["GET"])
+        def logout():
+            """
+            User logout endpoint.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Returns:
+                JSON response with:
+                    - userId: user ID of the logged-out user
+                - errorMessage: None on success, error string on failure
+            """
+            # Get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            # Get user_id from request body
+            data = request.get_json(silent=True) or {}
+            user_id = data.get("userId")
+            # Call the business logic
+            return self.app_logic.logout(user_id, auth_header)
 
         @self.app.after_request
         def wrap_success_response(response):
@@ -195,9 +252,18 @@ class Controller:
                     - errorMessage: String representation of the exception
 
             Status:
-                HTTP 500: Internal Server Error
+                HTTP 401: For Unauthorized exceptions
+                HTTP 400: For ValueError (bad request)
+                HTTP 500: For all other exceptions (internal server error)
             """
+            if isinstance(e, Unauthorized):
+                status = HTTPStatus.UNAUTHORIZED
+            elif isinstance(e, ValueError):
+                status = HTTPStatus.BAD_REQUEST
+            else:
+                status = HTTPStatus.INTERNAL_SERVER_ERROR
+
             return jsonify({
                 RESULT_KEY: None,
-                ERROR_MESSAGE_KEY: str(e)  # or use traceback.format_exc() for debug
-            }), HTTPStatus.INTERNAL_SERVER_ERROR
+                ERROR_MESSAGE_KEY: str(e)
+            }), status
