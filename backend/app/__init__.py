@@ -1,10 +1,8 @@
 from flask import Flask, Blueprint
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-
-db = SQLAlchemy()
+from backend.db import db
 
 def create_app():
     load_dotenv()
