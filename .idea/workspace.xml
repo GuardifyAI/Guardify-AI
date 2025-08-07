@@ -5,44 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="merged ui and backend changes">
+      <change afterPath="$PROJECT_DIR$/debug_flask_app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/App.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/AppContent.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/AppContent.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/components/EventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/components/EventCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/components/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/components/Sidebar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/components/Stats/ChartComponent.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/components/Stats/ChartComponent.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/pages/LoginPage.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/pages/LoginPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/pages/LoginPage.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/styles.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/README_GUARDIFY_UI.md" beforeDir="false" afterPath="$PROJECT_DIR$/UI/README_GUARDIFY_UI.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data_science/src/model/agentic/prompt_and_scheme/analysis_prompt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data_science/src/model/pipeline/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data_science/src/model/unified/prompt/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data_science/src/model/unified/prompt/unified_prompt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/google_client/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/video/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/video/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/video/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/video/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/video/video_uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/video/video_uploader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/config.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/extract_frames.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/azure/manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/google/google_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/google_client/google_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/agentic/prompt_and_scheme/computer_vision_prompt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/agentic/analysis_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/agentic/analysis_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/agentic/computer_vision_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/agentic/computer_vision_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/agentic/prompt_model.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/pipeline_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/pipeline/pipeline_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/shoplifting_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/pipeline/shoplifting_analyzer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/tuning_jsons/converted_image_data.jsonl" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/tuning/converted_image_data.jsonl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/model/unified/unified_shoplifting_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/model/unified/unified_shoplifting_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/tests/test_shoplifting_analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/camera.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/company.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/company.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/event.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/event.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/shop.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/shop.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/user.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/logic/app_logic.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/logic/app_logic.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,7 +78,7 @@
     "Python.video_recorder.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "merged-branches",
+    "git-widget-placeholder": "connect-be-ui-login",
     "last_opened_file_path": "C:/Users/asafl/PycharmProjects/Guardify-AI/main_unified.py",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -126,7 +98,7 @@
       <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main2">
+  <component name="RunManager" selected="Python.run">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Guardify-AI" />
       <option name="ENV_FILES" value="" />
@@ -198,6 +170,29 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="run" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Guardify-AI" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/backend/run.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="video_recorder" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Guardify-AI" />
       <option name="ENV_FILES" value="" />
@@ -224,11 +219,13 @@
     <list>
       <item itemvalue="Python.main" />
       <item itemvalue="Python.main_unified" />
+      <item itemvalue="Python.run" />
       <item itemvalue="Python.main2" />
       <item itemvalue="Python.video_recorder" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.run" />
         <item itemvalue="Python.main2" />
         <item itemvalue="Python.video_recorder" />
       </list>
@@ -442,19 +439,19 @@
     <option name="LAST_COMMIT_MESSAGE" value="moved to seperated files, moved to backend folder" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/SurveillanceAI$main.coverage" NAME="main Coverage Results" MODIFIED="1736698585531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
     <SUITE FILE_PATH="coverage/Guardify_AI$video_recorder.coverage" NAME="video_recorder Coverage Results" MODIFIED="1754212551264" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$main__1_.coverage" NAME="main2 Coverage Results" MODIFIED="1754217483918" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/video" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$.coverage" NAME=" Coverage Results" MODIFIED="1745741326755" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/tests" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$.coverage" NAME=" Coverage Results" MODIFIED="1754560983896" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/tests" />
     <SUITE FILE_PATH="coverage/Guardify_AI$python__m_data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746379837733" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/SurveillanceAI$main.coverage" NAME="main Coverage Results" MODIFIED="1736698585531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$run.coverage" NAME="run Coverage Results" MODIFIED="1754579580321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
     <SUITE FILE_PATH="coverage/Guardify_AI$ComputerVisionModel.coverage" NAME="ComputerVisionModel Coverage Results" MODIFIED="1747918916186" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/google" />
     <SUITE FILE_PATH="coverage/Guardify_AI$analyze_shoplifting.coverage" NAME="analyze_shoplifting Coverage Results" MODIFIED="1747920579352" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Guardify_AI$data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746389268325" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$main.coverage" NAME="main Coverage Results" MODIFIED="1748785340196" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$main2.coverage" NAME="main2 Coverage Results" MODIFIED="1754303473867" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/video" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$main2.coverage" NAME="main2 Coverage Results" MODIFIED="1754387009929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/video" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$main.coverage" NAME="main Coverage Results" MODIFIED="1754387274704" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science" />
     <SUITE FILE_PATH="coverage/Guardify_AI$main_unified.coverage" NAME="main_unified Coverage Results" MODIFIED="1747997710266" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$agentic_strategy.coverage" NAME="agentic-strategy Coverage Results" MODIFIED="1754387142204" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
 </project>
