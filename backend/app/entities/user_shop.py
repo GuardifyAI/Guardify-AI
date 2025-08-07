@@ -15,7 +15,7 @@ class UserShop(db.Model):
     shop_id = db.Column(db.Text, db.ForeignKey('shop.shop_id'), primary_key=True)
 
     # Relationships
-    user = db.relationship('User', backref='user_shops')
+    user = db.relationship('User', back_populates='user_shops')
     shop = db.relationship('Shop', backref='user_shops')
 
     def __repr__(self):
