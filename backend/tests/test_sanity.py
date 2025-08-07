@@ -5,7 +5,7 @@ from backend.app.entities.user import User
 from backend.app.entities.camera import Camera
 from backend.app.entities.analysis import Analysis
 import pytest
-from backend.controller import Controller
+from backend.api_handler import ApiHandler
 from backend.app import create_app
 from http import HTTPStatus
 
@@ -55,7 +55,7 @@ def test_print_first_dto():
 @pytest.fixture
 def client():
     app = create_app()
-    Controller(app)  # Set up routes
+    ApiHandler(app)  # Set up routes
     app.testing = True
     with app.test_client() as client:
         yield client

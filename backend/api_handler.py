@@ -1,20 +1,21 @@
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
-from backend.logic.app_logic import AppLogic
+from backend.services.user_service import UserService
+from backend.services.shops_service import ShopsService
 from http import HTTPStatus
 import time
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import Unauthorized, NotFound
 from functools import wraps
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
 
 
-class Controller:
+class ApiHandler:
     """
-    Main controller class for handling HTTP requests and managing application routes.
+    Main api handler class for handling HTTP requests and managing application routes.
 
-    This controller provides endpoints for health checks, error handling, caching tests,
+    This api handler provides endpoints for health checks, error handling, caching tests,
     and cache management. It also includes automatic response wrapping and exception handling.
 
     Attributes:
@@ -31,7 +32,8 @@ class Controller:
             app (Flask): The Flask application instance to configure routes for
         """
         self.app = app
-        self.app_logic = AppLogic()
+        self.user_service = UserService()
+        self.shops_service = ShopsService()
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -61,7 +63,7 @@ class Controller:
             if not auth_header:
                 raise ValueError("Authorization header is required")
             # Validate token and get user ID
-            user_id = self.app_logic.validate_token(auth_header)
+            user_id = self.user_service.validate_token(auth_header)
             # Add user_id to request context for use in the endpoint
             request.user_id = user_id
             return f(*args, **kwargs)
@@ -174,7 +176,7 @@ class Controller:
             email = data.get("email")
             password = data.get("password")
             # Call the business logic
-            return self.app_logic.login(email, password)
+            return self.user_service.login(email, password)
 
         @self.app.route("/logout", methods=["GET"])
         def logout():
@@ -195,7 +197,41 @@ class Controller:
             data = request.get_json(silent=True) or {}
             user_id = data.get("userId")
             # Call the business logic
-            return self.app_logic.logout(user_id, auth_header)
+            return self.user_service.logout(user_id, auth_header)
+
+        @self.app.route("/shops", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize(timeout=1800)  # 30 minutes cache
+        def get_user_shops():
+            """
+            Get all shops for the current authenticated user.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Expected JSON payload:
+                {
+                    "userId": str  - The user ID to get shops for
+                }
+
+            Returns:
+                JSON response with:
+                    - result: Array of shop objects with shop_id and shop_name
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+            user_id = data.get("userId")
+            # Call the business logic
+            return self.shops_service.get_user_shops(user_id)
+
+        @self.app.route("/shops/<shop_id>/events", methods=["GET"])
+        @self.require_auth
+        def get_shop_events(shop_id):
+            """
+            Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
+            """
+            result = self.shops_service.get_shop_events(shop_id)
+            return result
 
         @self.app.after_request
         def wrap_success_response(response):
@@ -260,6 +296,8 @@ class Controller:
                 status = HTTPStatus.UNAUTHORIZED
             elif isinstance(e, ValueError):
                 status = HTTPStatus.BAD_REQUEST
+            elif isinstance(e, NotFound):
+                status = HTTPStatus.NOT_FOUND
             else:
                 status = HTTPStatus.INTERNAL_SERVER_ERROR
 
