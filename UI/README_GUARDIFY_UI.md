@@ -17,7 +17,7 @@ Make sure each team member has:
 ## 2. Run the project locally
 
 ```bash
-cd guardify-ui
+cd UI/Guardify-UI
 npm install
 npm run dev
 ```
@@ -30,15 +30,23 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 ## 3. Project Structure (Vite + React)
 
 ```
-guardify-ui/
+Guardify-UI/
 ├── public/
 │   └── images/         # logos, icons
 │
 ├── src/
+│   ├── components/     # UI components (Sidebar, EventCard, Stats)
+│   ├── pages/          # LoginPage, EventPage, ShopPage
+│   ├── context/        # EventsContext
 │   ├── App.tsx         # main UI
+│   ├── AppContent.tsx  # dashboard layout
 │   ├── main.tsx        # entry point
-│   └── styles.css      # global styles
+│   ├── index.css       # global styles with Tailwind
+│   ├── types.ts        # TypeScript definitions
+│   └── events.ts       # sample data
 │
+├── tailwind.config.js
+├── postcss.config.js
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -51,8 +59,10 @@ guardify-ui/
 
 - React (with TypeScript)
 - Vite
+- Tailwind CSS (for styling)
+- Lucide React (for icons)
 - Chart.js (for graphs)
-- CSS modules / custom styles
+- React Router (for navigation)
 
 ---
 
@@ -69,6 +79,8 @@ npm run preview  # Preview built version
 ## 🧠 Notes
 
 - All UI logic is in `src/`
+- Tailwind CSS v3.4 is configured for styling
+- Demo login: `guardifyai@gmail.com` / `1234`
 - Do not commit `node_modules/` or `.env` files
 - Static assets like logos go in `public/images/`
 

@@ -7,7 +7,7 @@ type Props = {
   title?: string;
 };
 
-export default function EventCountBarChart({ events, groupBy, title }: Props) {
+export default function EventCountBarChart({ events, groupBy }: Props) {
   if (!events || !Array.isArray(events)) {
     return <div className="tile">No event data</div>;
   }
@@ -29,12 +29,12 @@ export default function EventCountBarChart({ events, groupBy, title }: Props) {
 
   return (
     <div className="tile">
-      <h2>{title || `Events by ${groupBy}`}</h2>
+      <h2>{`Events by ${groupBy}`}</h2>
       <ChartComponent
         type="bar"
         labels={labels}
         data={data}
-        label={`Events per ${groupBy}`}
+        label={`Events by ${groupBy}`}
       />
     </div>
   );

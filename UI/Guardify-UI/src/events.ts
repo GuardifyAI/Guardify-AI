@@ -495,4 +495,148 @@ export const events = [
       analysis_timestamp: '2025-04-03T12:32:17'
     }
   },
+  {
+    id: 'e32',
+    shopId: 'shop1',
+    shopName: 'Tel Aviv',
+    date: '2025-05-02T10:15:00',
+    description: 'Suspicious activity detected',
+    cameraId: 'cam1',
+    cameraName: 'Kupa 1',
+    videoUrl: '/videos/fixed/Kupa 1_20250502101500.mp4',
+    analysis: {
+      final_detection: false,
+      final_confidence: 58.12,
+      decision_reasoning: 'Unusual checkout behavior.',
+      analysis_timestamp: '2025-05-02T10:15:30'
+    }
+  },
+  {
+    id: 'e33',
+    shopId: 'shop2',
+    shopName: 'Haifa',
+    date: '2025-05-03T11:20:00',
+    description: 'Unusual behavior at exit',
+    cameraId: 'cam1',
+    cameraName: 'Face Recognition',
+    videoUrl: '/videos/fixed/face recognition_20250503112000.mp4',
+    analysis: {
+      final_detection: true,
+      final_confidence: 62.45,
+      decision_reasoning: 'Face match with known offender.',
+      analysis_timestamp: '2025-05-03T11:20:30'
+    }
+  },
+  {
+    id: 'e34',
+    shopId: 'shop3',
+    shopName: 'Eilat',
+    date: '2025-05-04T12:25:00',
+    description: 'Person in a hurry',
+    cameraId: 'cam1',
+    cameraName: 'Sweets 1',
+    videoUrl: '/videos/fixed/Sweets 1_20250504122500.mp4',
+    analysis: {
+      final_detection: false,
+      final_confidence: 67.89,
+      decision_reasoning: 'Hand near pocket during exit.',
+      analysis_timestamp: '2025-05-04T12:25:30'
+    }
+  },
+  {
+    id: 'e35',
+    shopId: 'shop1',
+    shopName: 'Tel Aviv',
+    date: '2025-05-05T13:30:00',
+    description: 'Possible shoplifting behavior',
+    cameraId: 'cam1',
+    cameraName: 'Kupa 2',
+    videoUrl: '/videos/fixed/Kupa 2_20250505133000.mp4',
+    analysis: {
+      final_detection: true,
+      final_confidence: 91.23,
+      decision_reasoning: 'Checkout time exceeded average duration.',
+      analysis_timestamp: '2025-05-05T13:30:30'
+    }
+  },
+  {
+    id: 'e36',
+    shopId: 'shop2',
+    shopName: 'Haifa',
+    date: '2025-05-06T14:35:00',
+    description: 'Exit event captured',
+    cameraId: 'cam1',
+    cameraName: 'Money 1',
+    videoUrl: '/videos/fixed/Money 1_20250506143500.mp4',
+    analysis: {
+      final_detection: false,
+      final_confidence: 73.56,
+      decision_reasoning: 'Employee is seen removing cash from the register.',
+      analysis_timestamp: '2025-05-06T14:35:30'
+    }
+  },
+  {
+    id: 'e37',
+    shopId: 'shop3',
+    shopName: 'Eilat',
+    date: '2025-05-07T15:40:00',
+    description: 'Individual behaving oddly',
+    cameraId: 'cam1',
+    cameraName: 'Exit Camera',
+    videoUrl: '/videos/fixed/exit1_20250507154000.mp4',
+    analysis: {
+      final_detection: true,
+      final_confidence: 85.67,
+      decision_reasoning: 'Suspicious hand movement detected.',
+      analysis_timestamp: '2025-05-07T15:40:30'
+    }
+  },
+  {
+    id: 'e38',
+    shopId: 'shop1',
+    shopName: 'Tel Aviv',
+    date: '2025-05-08T16:45:00',
+    description: 'Exit footage recorded',
+    cameraId: 'cam1',
+    cameraName: 'Kupa 1',
+    videoUrl: '/videos/fixed/Kupa 1_20250508164500.mp4',
+    analysis: {
+      final_detection: false,
+      final_confidence: 59.34,
+      decision_reasoning: 'Multiple entries without purchase.',
+      analysis_timestamp: '2025-05-08T16:45:30'
+    }
+  },
+  {
+    id: 'e39',
+    shopId: 'shop2',
+    shopName: 'Haifa',
+    date: '2025-05-09T17:50:00',
+    description: 'Customer leaving quickly',
+    cameraId: 'cam1',
+    cameraName: 'Sweets 1',
+    videoUrl: '/videos/fixed/Sweets 1_20250509175000.mp4',
+    analysis: {
+      final_detection: true,
+      final_confidence: 77.21,
+      decision_reasoning: 'Multiple entries without purchase.',
+      analysis_timestamp: '2025-05-09T17:50:30'
+    }
+  },
+  {
+    id: 'e40',
+    shopId: 'shop3',
+    shopName: 'Eilat',
+    date: '2025-05-10T18:55:00',
+    description: 'Suspicious package',
+    cameraId: 'cam1',
+    cameraName: 'Face Recognition',
+    videoUrl: '/videos/fixed/face recognition_20250510185500.mp4',
+    analysis: {
+      final_detection: false,
+      final_confidence: 61.11,
+      decision_reasoning: 'Unexpected object interaction detected.',
+      analysis_timestamp: '2025-05-10T18:55:30'
+    }
+  },
 ];

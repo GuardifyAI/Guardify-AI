@@ -21,12 +21,13 @@ export default function ChartComponent({
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // Blue shades for pie chart segments
+  // Professional color palette for charts
   const pieColors = [
-    '#b3e5fc', '#81d4fa', '#4fc3f7', '#29b6f6',
-    '#03a9f4', '#039be5', '#0288d1', '#0277bd'
+    '#30B3E1', '#0288d1', '#0277bd', '#0369a1',
+    '#075985', '#0c4a6e', '#ef4444', '#dc2626'
   ];
 
+  
   useEffect(() => {
     if (chartRef.current) {
       if (chartInstance.current) chartInstance.current.destroy();
@@ -54,35 +55,55 @@ export default function ChartComponent({
         },
         options: {
           responsive: true,
-        plugins: {
-          legend: { display: isPie, position: 'bottom' }
-        },
-          scales: isPie ? {} : {
-        x: {
-          title: {
-            display: true,
-            text: isHorizontal ? 'Events Count' : (type === 'bar' ? 'Category' : 'Date')
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: isHorizontal ? 'Camera Name' : 'Count'
-          },
-          beginAtZero: true
-        }
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { 
+              display: isPie, 
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                font: {
+                  size: 12,
+                  family: 'Inter, sans-serif'
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              borderColor: '#30B3E1',
+              borderWidth: 1,
+              cornerRadius: 8,
+              displayColors: true
+            }
           },
           indexAxis: isHorizontal ? 'y' : 'x',
+          elements: {
+            bar: {
+              borderRadius: 4,
+              borderSkipped: false,
+            },
+            point: {
+              radius: 4,
+              hoverRadius: 6
+            },
+            line: {
+              tension: 0.4
+            }
+          }
         }
       });
     }
   }, [type, labels, data, label, color]);
 
 return (
-  <canvas
-    ref={chartRef}
-    width={type === 'pie' ? 220 : 300}
-    height={type === 'pie' ? 220 : 200}
-  />
+  <div className={`${type === 'pie' ? 'h-64' : 'h-64'} w-full`}>
+    <canvas
+      ref={chartRef}
+      className="w-full h-full"
+    />
+  </div>
 );
 }
