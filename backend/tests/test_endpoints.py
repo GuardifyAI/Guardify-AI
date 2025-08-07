@@ -474,3 +474,52 @@ def test_get_user_shops_success(client, john_doe, john_doe_login):
     # Compare using DeepDiff
     diff = DeepDiff(expected_shops, shops, ignore_order=True)
     assert not diff, f"Shops mismatch:\n{diff}"
+
+def test_get_shop_events(client, john_doe_login):
+    """
+    Test retrieval of events for shop 'guardify_ai_central'.
+    Verifies that the response contains the expected event details.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Make request to the events endpoint for the shop
+    response = client.get(
+        "/shops/guardify_ai_central/events",
+        headers={"Authorization": auth_token}
+    )
+
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected 200 OK, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    events = data["result"]
+    assert isinstance(events, list), "Events should be a list"
+
+    # Expected events (from your latest DB screenshot)
+    expected_events = [
+        {
+            "event_id": "b88c061d-e375-4043-8305-9d5c79594151",
+            "event_datetime": "2025-07-25T14:30:00",  # Adjust if your API returns a different format
+            "shop_name": "Guardify AI Central",              # Adjust if your DB has a different name
+            "camera_name": "Entrance",
+            "description": "Person entering suspiciously"
+        },
+        {
+            "event_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "event_datetime": "2025-07-27T10:45:00",  # Adjust if your API returns a different format
+            "shop_name": "Guardify AI Central",
+            "camera_name": "Checkout",
+            "description": "Suspicious behavior at checkout"
+        }
+    ]
+
+    # Compare using DeepDiff (ignore order)
+    diff = DeepDiff(expected_events, events, ignore_order=True)
+    assert not diff, f"Events mismatch:\n{diff}"
