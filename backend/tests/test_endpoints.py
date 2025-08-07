@@ -2,7 +2,7 @@ import pytest
 import jwt
 from http import HTTPStatus
 from backend.app import create_app
-from backend.controller import Controller
+from backend.api_handler import ApiHandler
 import os
 from data_science.src.utils import load_env_variables
 load_env_variables()
@@ -11,7 +11,7 @@ from deepdiff import DeepDiff
 @pytest.fixture
 def client():
     app = create_app()
-    Controller(app)  # Set up routes
+    ApiHandler(app)  # Set up routes
     app.testing = True
     with app.test_client() as client:
         yield client

@@ -10,11 +10,11 @@ RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
 
 
-class Controller:
+class ApiHandler:
     """
-    Main controller class for handling HTTP requests and managing application routes.
+    Main api handler class for handling HTTP requests and managing application routes.
 
-    This controller provides endpoints for health checks, error handling, caching tests,
+    This api handler provides endpoints for health checks, error handling, caching tests,
     and cache management. It also includes automatic response wrapping and exception handling.
 
     Attributes:
