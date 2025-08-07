@@ -23,11 +23,23 @@ export type EventAnalysis = {
   analysis_timestamp: string;
 };
 
-export type User = {
-  id: string;
-  name: string;
-  role: 'manager' | 'guard';
-};
+
+// Authentication-related types
+export interface User {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
 
 export type SidebarProps = {
   shops: Shop[];

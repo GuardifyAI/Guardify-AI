@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
+  
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
-    // Simulate loading time for better UX
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (email === 'guardifyai@gmail.com' && password === '1234') {
+    const result = await login(email, password);
+    
+    if (result.success) {
       navigate('/dashboard');
     } else {
-      setError('Incorrect email or password.');
+      setError(result.error || 'Login failed. Please try again.');
     }
-    setIsLoading(false);
   };
 
   return (
@@ -119,8 +117,9 @@ export default function LoginPage() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <p className="text-sm text-blue-800 text-center font-medium mb-2">Demo Credentials</p>
               <p className="text-xs text-blue-600 text-center">
-                Email: guardifyai@gmail.com<br />
-                Password: 1234
+                Email: aiguardify@gmail.com<br />
+                Password: demo_user<br />
+                <span className="text-blue-500 font-medium">Make sure the backend server is running on port 8574</span>
               </p>
             </div>
           </form>
