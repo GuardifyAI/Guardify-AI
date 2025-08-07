@@ -6,7 +6,7 @@ type Props = {
   title?: string;
 };
 
-export default function EventsOverTime({ events, title = "Events Over Times" }: Props) {
+export default function EventsOverTime({ events, title = "Events" }: Props) {
   const eventDates = events.map(e => e.date.slice(0, 10)).sort();
   const uniqueDates = Array.from(new Set(eventDates));
   const eventsPerDay = uniqueDates.map(date =>
@@ -15,7 +15,6 @@ export default function EventsOverTime({ events, title = "Events Over Times" }: 
 
   return (
     <div className="tile">
-      <h2>{title}</h2>
     <ChartComponent
       type="line"
       labels={uniqueDates}

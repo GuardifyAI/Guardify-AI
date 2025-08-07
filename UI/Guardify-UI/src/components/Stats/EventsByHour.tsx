@@ -6,7 +6,7 @@ type Props = {
   title?: string;
 };
 
-export default function EventsByHour({ events, title = "Events by Hour" }: Props) {
+export default function EventsByHour({ events }: Props) {
   const hoursCount = new Array(24).fill(0);
 
   events.forEach(event => {
@@ -21,12 +21,11 @@ export default function EventsByHour({ events, title = "Events by Hour" }: Props
 
   return (
     <div className="tile">
-      <h2>Events by Hour</h2>
       <ChartComponent
+        label="Events by Hour"
         type="bar"
         labels={data.map(d => d.hour)}
         data={data.map(d => d.count)}
-        label="Events"
       />
     </div>
   );

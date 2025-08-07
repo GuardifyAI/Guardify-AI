@@ -37,12 +37,11 @@ export default function EventsByCategory({ events }: Props) {
 
   return (
     <div className="tile">
-      <h2>Events by Category</h2>
       <ChartComponent
         type="pie"
         labels={labels}
         data={data}
-        label="Events"
+        label="Events by Category"
       />
     </div>
   );
