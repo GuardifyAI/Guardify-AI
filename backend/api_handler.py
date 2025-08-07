@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
-from backend.logic.app_logic import AppLogic
+from backend.services.user_service import UserService
+from backend.services.shops_service import ShopsService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
@@ -31,7 +32,8 @@ class ApiHandler:
             app (Flask): The Flask application instance to configure routes for
         """
         self.app = app
-        self.app_logic = AppLogic()
+        self.user_service = UserService()
+        self.shops_service = ShopsService()
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -61,7 +63,7 @@ class ApiHandler:
             if not auth_header:
                 raise ValueError("Authorization header is required")
             # Validate token and get user ID
-            user_id = self.app_logic.validate_token(auth_header)
+            user_id = self.user_service.validate_token(auth_header)
             # Add user_id to request context for use in the endpoint
             request.user_id = user_id
             return f(*args, **kwargs)
@@ -174,7 +176,7 @@ class ApiHandler:
             email = data.get("email")
             password = data.get("password")
             # Call the business logic
-            return self.app_logic.login(email, password)
+            return self.user_service.login(email, password)
 
         @self.app.route("/logout", methods=["GET"])
         def logout():
@@ -195,7 +197,7 @@ class ApiHandler:
             data = request.get_json(silent=True) or {}
             user_id = data.get("userId")
             # Call the business logic
-            return self.app_logic.logout(user_id, auth_header)
+            return self.user_service.logout(user_id, auth_header)
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
@@ -220,7 +222,7 @@ class ApiHandler:
             data = request.get_json(silent=True) or {}
             user_id = data.get("userId")
             # Call the business logic
-            return self.app_logic.get_user_shops(user_id)
+            return self.shops_service.get_user_shops(user_id)
 
         @self.app.after_request
         def wrap_success_response(response):
