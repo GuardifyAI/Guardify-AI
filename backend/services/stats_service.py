@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from datetime import datetime
 import logging
+from collections import Counter
 from backend.app.entities.event import EventDTO, Event
 from sqlalchemy import func, extract
 from backend.db import db
@@ -167,10 +168,9 @@ class StatsService:
 
     # Keep the DTO-based methods for backward compatibility
     def compute_events_per_day_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
-        """Compute events aggregated by day from DTOs (fallback method)."""
-        events_per_day = {}
-        skipped_events = 0
-        
+        """Compute events aggregated by day from DTOs using Counter."""
+        # Extract valid timestamps and format as YYYY-MM-DD
+        valid_timestamps = []
         for event in events:
             try:
                 timestamp = event.event_timestamp
@@ -179,27 +179,19 @@ class StatsService:
                 elif isinstance(timestamp, datetime):
                     dt = timestamp
                 else:
-                    skipped_events += 1
                     continue
                     
-                day_key = dt.strftime("%Y-%m-%d")
-                events_per_day[day_key] = events_per_day.get(day_key, 0) + 1
-                
-            except (ValueError, AttributeError) as e:
-                logger.warning(f"Skipping event with invalid timestamp: {e}")
-                skipped_events += 1
+                valid_timestamps.append(dt.strftime("%Y-%m-%d"))
+            except (ValueError, AttributeError):
                 continue
         
-        if skipped_events > 0:
-            logger.info(f"Skipped {skipped_events} events with invalid timestamps")
-        
-        return events_per_day
+        # Use Counter for efficient counting
+        return dict(Counter(valid_timestamps))
 
     def compute_events_by_hour_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
-        """Compute events aggregated by hour from DTOs (fallback method)."""
-        events_by_hour = {}
-        skipped_events = 0
-        
+        """Compute events aggregated by hour from DTOs using Counter."""
+        # Extract valid timestamps and format as HH
+        valid_hours = []
         for event in events:
             try:
                 timestamp = event.event_timestamp
@@ -208,38 +200,28 @@ class StatsService:
                 elif isinstance(timestamp, datetime):
                     dt = timestamp
                 else:
-                    skipped_events += 1
                     continue
                     
-                hour_key = dt.strftime("%H")
-                events_by_hour[hour_key] = events_by_hour.get(hour_key, 0) + 1
-                
-            except (ValueError, AttributeError) as e:
-                logger.warning(f"Skipping event with invalid timestamp: {e}")
-                skipped_events += 1
+                valid_hours.append(dt.strftime("%H"))
+            except (ValueError, AttributeError):
                 continue
         
-        if skipped_events > 0:
-            logger.info(f"Skipped {skipped_events} events with invalid timestamps")
-        
-        return events_by_hour
+        # Use Counter for efficient counting
+        return dict(Counter(valid_hours))
 
     def compute_events_by_camera_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
-        """Compute events aggregated by camera from DTOs (fallback method)."""
-        events_by_camera = {}
-        
+        """Compute events aggregated by camera from DTOs using Counter."""
+        # Extract valid camera names
+        valid_cameras = []
         for event in events:
             camera_name = event.camera_name
-            
-            if not camera_name or not str(camera_name).strip():
-                continue
-                
-            normalized_name = str(camera_name).strip()
-            events_by_camera[normalized_name] = events_by_camera.get(normalized_name, 0) + 1
+            if camera_name and str(camera_name).strip():
+                valid_cameras.append(str(camera_name).strip())
         
-        return events_by_camera
+        # Use Counter for efficient counting
+        return dict(Counter(valid_cameras))
 
     def compute_events_by_category_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
-        """Compute events aggregated by category from DTOs (fallback method)."""
+        """Compute events aggregated by category from DTOs using Counter."""
         # Temporary implementation - return empty dict since category field doesn't exist yet
         return {"TBD": 0} 
