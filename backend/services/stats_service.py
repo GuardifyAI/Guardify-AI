@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from backend.app.entities.event import EventDTO, Event
 from sqlalchemy import func, extract
-from sqlalchemy.orm import Session
+from backend.db import db
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,6 @@ class StatsService:
             StatsComputationError: If computation fails
         """
         try:
-            from backend.db import db
-            
             result = {
                 "events_per_day": self.compute_events_per_day_from_db(shop_id),
                 "events_by_hour": self.compute_events_by_hour_from_db(shop_id),
@@ -87,8 +85,6 @@ class StatsService:
         Returns:
             Dictionary with YYYY-MM-DD keys and event counts as values
         """
-        from backend.db import db
-        
         # Use SQLAlchemy's func.date() and func.count() for aggregation
         result = db.session.query(
             func.date(Event.event_timestamp).label('day'),
@@ -112,8 +108,6 @@ class StatsService:
         Returns:
             Dictionary with "00".."23" keys and event counts as values
         """
-        from backend.db import db
-        
         # Use SQLAlchemy's func.extract() for hour extraction
         result = db.session.query(
             func.extract('hour', Event.event_timestamp).label('hour'),
@@ -137,8 +131,6 @@ class StatsService:
         Returns:
             Dictionary with camera names as keys and event counts as values
         """
-        from backend.db import db
-        
         # Use SQLAlchemy's func.count() with camera relationship
         result = db.session.query(
             Event.camera_id,
