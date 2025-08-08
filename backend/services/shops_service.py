@@ -1,11 +1,11 @@
 from backend.app.entities.user import User
+from backend.app.entities.event import Event, EventDTO
+from backend.app.entities.shop import Shop
+from backend.app.entities.camera import Camera
 from werkzeug.exceptions import Unauthorized, NotFound
 from data_science.src.utils import load_env_variables
 load_env_variables()
 from typing import List, Dict
-from backend.app.entities.event import Event
-from backend.app.entities.shop import Shop
-from backend.app.entities.camera import Camera
 
 class ShopsService:
     def __init__(self, stats_service=None):
@@ -49,13 +49,13 @@ class ShopsService:
 
         return shops
 
-    def get_shop_events(self, shop_id: str) -> list:
+    def get_shop_events(self, shop_id: str) -> List[EventDTO]:
         """
         Get all events for a specific shop, including event_id, event_datetime, shop_name, camera_name, and description.
         Args:
             shop_id (str): The shop ID to get events for
         Returns:
-            list: List of event dicts as described in the API spec
+            List[EventDTO]: List of EventDTO objects with all required fields
         Raises:
             ValueError: If shop_id is null or empty
             NotFound: If shop does not exist
@@ -65,23 +65,10 @@ class ShopsService:
         shop = Shop.query.filter_by(shop_id=shop_id).first()
         if not shop:
             raise NotFound(f"Shop with ID '{shop_id}' does not exist")
-        # Query all events for this shop, join with camera
+        # Query all events for this shop with relationships loaded
         events = Event.query.filter_by(shop_id=shop_id).all()
-        result = []
-        for event in events:
-            # Get camera name (may be None)
-            camera_name = None
-            if event.camera_id:
-                camera = Camera.query.filter_by(camera_id=event.camera_id).first()
-                camera_name = camera.camera_name if camera else None
-            result.append({
-                "event_id": event.event_id,
-                "event_datetime": event.event_timestamp.isoformat() if event.event_timestamp else None,
-                "shop_name": shop.name,
-                "camera_name": camera_name,
-                "description": event.description
-            })
-        return result
+        # Convert to DTOs
+        return [event.to_dto() for event in events]
 
     def get_shop_stats(self, shop_id: str, include_category: bool = True) -> dict:
         """

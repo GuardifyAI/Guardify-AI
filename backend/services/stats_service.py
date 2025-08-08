@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from datetime import datetime
 import logging
+from backend.app.entities.event import EventDTO
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +15,12 @@ class StatsService:
             super().__init__(message)
             self.cause = cause
 
-    def compute_stats(self, events: List[Dict], include_category: bool = True) -> Dict:
+    def compute_stats(self, events: List[EventDTO], include_category: bool = True) -> Dict:
         """
         Compute aggregated statistics from a list of events.
         
         Args:
-            events: List of event dictionaries with timestamp, camera_name, etc.
+            events: List of EventDTO objects with timestamp, camera_name, etc.
             include_category: Boolean parameter - controls whether events_by_category is computed
             
         Returns:
@@ -42,12 +43,12 @@ class StatsService:
         except Exception as e:
             raise self.StatsComputationError(f"Failed to compute stats: {str(e)}", cause=e)
 
-    def compute_events_per_day(self, events: List[Dict]) -> Dict[str, int]:
+    def compute_events_per_day(self, events: List[EventDTO]) -> Dict[str, int]:
         """
         Compute events aggregated by day.
         
         Args:
-            events: List of event dictionaries
+            events: List of EventDTO objects
             
         Returns:
             Dictionary with YYYY-MM-DD keys and event counts as values
@@ -58,7 +59,7 @@ class StatsService:
         for event in events:
             try:
                 # Handle both ISO string and datetime object
-                timestamp = event.get("event_datetime")
+                timestamp = event.event_timestamp
                 if isinstance(timestamp, str):
                     dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 elif isinstance(timestamp, datetime):
@@ -81,12 +82,12 @@ class StatsService:
         
         return events_per_day
 
-    def compute_events_by_hour(self, events: List[Dict]) -> Dict[str, int]:
+    def compute_events_by_hour(self, events: List[EventDTO]) -> Dict[str, int]:
         """
         Compute events aggregated by hour.
         
         Args:
-            events: List of event dictionaries
+            events: List of EventDTO objects
             
         Returns:
             Dictionary with "00".."23" keys and event counts as values
@@ -97,7 +98,7 @@ class StatsService:
         for event in events:
             try:
                 # Handle both ISO string and datetime object
-                timestamp = event.get("event_datetime")
+                timestamp = event.event_timestamp
                 if isinstance(timestamp, str):
                     dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 elif isinstance(timestamp, datetime):
@@ -120,12 +121,12 @@ class StatsService:
         
         return events_by_hour
 
-    def compute_events_by_camera(self, events: List[Dict]) -> Dict[str, int]:
+    def compute_events_by_camera(self, events: List[EventDTO]) -> Dict[str, int]:
         """
         Compute events aggregated by camera.
         
         Args:
-            events: List of event dictionaries
+            events: List of EventDTO objects
             
         Returns:
             Dictionary with camera names as keys and event counts as values
@@ -133,7 +134,7 @@ class StatsService:
         events_by_camera = {}
         
         for event in events:
-            camera_name = event.get("camera_name")
+            camera_name = event.camera_name
             
             # Skip events with missing or empty camera names
             if not camera_name or not str(camera_name).strip():
@@ -145,7 +146,7 @@ class StatsService:
         
         return events_by_camera
 
-    def compute_events_by_category(self, events: List[Dict]) -> Dict[str, int]:
+    def compute_events_by_category(self, events: List[EventDTO]) -> Dict[str, int]:
         """
         Compute events aggregated by category.
         
@@ -154,7 +155,7 @@ class StatsService:
         when the category field is added to the database schema.
         
         Args:
-            events: List of event dictionaries
+            events: List of EventDTO objects
             
         Returns:
             Dictionary with category names as keys and event counts as values

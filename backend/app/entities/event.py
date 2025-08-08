@@ -10,6 +10,8 @@ class EventDTO:
     event_timestamp: datetime | None
     description: str | None
     video_url: str | None
+    shop_name: str | None
+    camera_name: str | None
 
 class Event(db.Model):
     __tablename__ = 'event'
@@ -20,6 +22,10 @@ class Event(db.Model):
     event_timestamp = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.String, nullable=True)
     video_url = db.Column(db.String, nullable=True)
+
+    # Relationships
+    shop = db.relationship('Shop', backref='events')
+    camera = db.relationship('Camera', backref='events')
 
     def __repr__(self):
         description_str = self.description if self.description is not None else "N/A"
@@ -33,6 +39,8 @@ class Event(db.Model):
             event_timestamp=self.event_timestamp,
             description=self.description,
             video_url=self.video_url,
+            shop_name=self.shop.name if self.shop else None,
+            camera_name=self.camera.camera_name if self.camera else None,
         )
     
 
