@@ -8,8 +8,8 @@ from backend.app.entities.shop import Shop
 from backend.app.entities.camera import Camera
 
 class ShopsService:
-    def __init__(self):
-        pass
+    def __init__(self, stats_service=None):
+        self.stats_service = stats_service
 
     def get_user_shops(self, user_id: str | None) -> List[Dict[str, str]]:
         """
@@ -82,3 +82,29 @@ class ShopsService:
                 "description": event.description
             })
         return result
+
+    def get_shop_stats(self, shop_id: str, include_category: bool = True) -> dict:
+        """
+        Get aggregated statistics for a specific shop.
+        
+        Args:
+            shop_id (str): The shop ID to get stats for
+            include_category (bool): Whether to include events_by_category in the result
+            
+        Returns:
+            dict: Dictionary containing computed statistics
+            
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+            StatsComputationError: If stats computation fails
+        """
+        # Validate input parameters
+        if not shop_id or str(shop_id).strip() == "":
+            raise ValueError("Shop ID is required")
+            
+        # Get events for the shop using existing method
+        events = self.get_shop_events(shop_id)
+        
+        # Delegate computation to stats service
+        return self.stats_service.compute_stats(events, include_category=include_category)

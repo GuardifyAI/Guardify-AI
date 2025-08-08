@@ -523,3 +523,89 @@ def test_get_shop_events(client, john_doe_login):
     # Compare using DeepDiff (ignore order)
     diff = DeepDiff(expected_events, events, ignore_order=True)
     assert not diff, f"Events mismatch:\n{diff}"
+
+def test_get_shop_stats(client, john_doe_login):
+    """
+    Test retrieval of statistics for shop 'guardify_ai_central'.
+    Verifies that the response contains the expected statistics structure.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Make request to the stats endpoint for the shop
+    response = client.get(
+        "/shops/guardify_ai_central/stats",
+        headers={"Authorization": auth_token}
+    )
+
+    # Check response status
+    assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    stats = data["result"]
+    assert isinstance(stats, dict), "Stats should be a dictionary"
+
+    # Check that all expected keys are present
+    expected_keys = ["events_per_day", "events_by_hour", "events_by_camera", "events_by_category"]
+    for key in expected_keys:
+        assert key in stats, f"Stats should contain '{key}' key"
+        assert isinstance(stats[key], dict), f"'{key}' should be a dictionary"
+
+    # Check that events_by_category is present (default behavior)
+    assert "events_by_category" in stats, "events_by_category should be included by default"
+
+    # Check that all values are integers
+    for key in expected_keys:
+        for value in stats[key].values():
+            assert isinstance(value, int), f"All values in '{key}' should be integers"
+
+    print("Shop stats test passed successfully!")
+    print(f"   Events per day: {len(stats['events_per_day'])} days")
+    print(f"   Events by hour: {len(stats['events_by_hour'])} hours")
+    print(f"   Events by camera: {len(stats['events_by_camera'])} cameras")
+    print(f"   Events by category: {len(stats['events_by_category'])} categories")
+
+
+def test_get_shop_stats_without_category(client, john_doe_login):
+    """
+    Test retrieval of statistics for shop 'guardify_ai_central' without category.
+    Verifies that events_by_category is not included when include_category=false.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Make request to the stats endpoint for the shop with include_category=false
+    response = client.get(
+        "/shops/guardify_ai_central/stats?include_category=false",
+        headers={"Authorization": auth_token}
+    )
+
+    # Check response status
+    assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    stats = data["result"]
+    assert isinstance(stats, dict), "Stats should be a dictionary"
+
+    # Check that events_by_category is NOT present
+    assert "events_by_category" not in stats, "events_by_category should not be included when include_category=false"
+
+    # Check that other expected keys are present
+    expected_keys = ["events_per_day", "events_by_hour", "events_by_camera"]
+    for key in expected_keys:
+        assert key in stats, f"Stats should contain '{key}' key"
+        assert isinstance(stats[key], dict), f"'{key}' should be a dictionary"
+
+    print("Shop stats without category test passed successfully!")
