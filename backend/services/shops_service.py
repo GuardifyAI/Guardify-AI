@@ -92,8 +92,10 @@ class ShopsService:
         if not shop_id or str(shop_id).strip() == "":
             raise ValueError("Shop ID is required")
             
-        # Get events for the shop using existing method
-        events = self.get_shop_events(shop_id)
+        # Check if shop exists
+        shop = Shop.query.filter_by(shop_id=shop_id).first()
+        if not shop:
+            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
         
-        # Delegate computation to stats service
-        return self.stats_service.compute_stats(events, include_category=include_category)
+        # Use database-based stats computation for better performance
+        return self.stats_service.compute_stats_from_db(shop_id, include_category=include_category)
