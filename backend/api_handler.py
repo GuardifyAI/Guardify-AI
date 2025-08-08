@@ -232,8 +232,7 @@ class ApiHandler:
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
             """
-            result = self.shops_service.get_shop_events(shop_id)
-            return result
+            return self.shops_service.get_shop_events(shop_id)
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
@@ -250,10 +249,8 @@ class ApiHandler:
             # Get include_category query parameter and cast to boolean
             include_category_str = request.args.get("include_category", "true")
             include_category = include_category_str.lower() == "true"
-            
             # Call the business logic
-            result = self.shops_service.get_shop_stats(shop_id, include_category=include_category)
-            return result
+            return self.shops_service.get_shop_stats(shop_id, include_category=include_category)
 
         @self.app.after_request
         def wrap_success_response(response):
