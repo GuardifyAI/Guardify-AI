@@ -564,7 +564,7 @@ def test_get_shop_events(client, john_doe_login):
 def test_get_shop_stats(client, john_doe_login):
     """
     Test retrieval of statistics for shop 'guardify_ai_central'.
-    Verifies that the response contains the expected statistics structure.
+    Verifies that the response contains the expected statistics based on the known events.
     """
     user_id, auth_token = john_doe_login
 
@@ -601,6 +601,37 @@ def test_get_shop_stats(client, john_doe_login):
     for key in expected_keys:
         for value in stats[key].values():
             assert isinstance(value, int), f"All values in '{key}' should be integers"
+
+    # Expected stats based on the two known events:
+    # Event 1: 2025-07-25T14:30:00, "Entrance" camera
+    # Event 2: 2025-07-27T10:45:00, "Checkout" camera
+    
+    # Check events_per_day
+    expected_events_per_day = {
+        "2025-07-25": 1,  # One event on 2025-07-25
+        "2025-07-27": 1   # One event on 2025-07-27
+    }
+    for day, expected_count in expected_events_per_day.items():
+        assert day in stats["events_per_day"], f"Day {day} should be in events_per_day"
+        assert stats["events_per_day"][day] == expected_count, f"Expected {expected_count} events on {day}, got {stats['events_per_day'][day]}"
+
+    # Check events_by_hour
+    expected_events_by_hour = {
+        "14": 1,  # One event at 14:30 (hour 14)
+        "10": 1   # One event at 10:45 (hour 10)
+    }
+    for hour, expected_count in expected_events_by_hour.items():
+        assert hour in stats["events_by_hour"], f"Hour {hour} should be in events_by_hour"
+        assert stats["events_by_hour"][hour] == expected_count, f"Expected {expected_count} events at hour {hour}, got {stats['events_by_hour'][hour]}"
+
+    # Check events_by_camera
+    expected_events_by_camera = {
+        "Entrance": 1,   # One event from Entrance camera
+        "Checkout": 1    # One event from Checkout camera
+    }
+    for camera, expected_count in expected_events_by_camera.items():
+        assert camera in stats["events_by_camera"], f"Camera {camera} should be in events_by_camera"
+        assert stats["events_by_camera"][camera] == expected_count, f"Expected {expected_count} events from {camera} camera, got {stats['events_by_camera'][camera]}"
 
     print("Shop stats test passed successfully!")
     print(f"   Events per day: {len(stats['events_per_day'])} days")

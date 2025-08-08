@@ -4,6 +4,7 @@ import logging
 from backend.app.entities.event import EventDTO, Event
 from sqlalchemy import func, extract
 from backend.db import db
+from backend.app.entities.camera import Camera
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class StatsService:
             super().__init__(message)
             self.cause = cause
 
-    def compute_stats(self, events: List[EventDTO], include_category: bool = True) -> Dict:
+    def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> Dict:
         """
         Compute aggregated statistics from a list of events.
         
@@ -131,25 +132,21 @@ class StatsService:
         Returns:
             Dictionary with camera names as keys and event counts as values
         """
-        # Use SQLAlchemy's func.count() with camera relationship
+        # Use SQLAlchemy's func.count() with camera join to get camera names
         result = db.session.query(
-            Event.camera_id,
+            Camera.camera_name,
             func.count(Event.event_id).label('count')
+        ).join(
+            Event, Event.camera_id == Camera.camera_id
         ).filter(
             Event.shop_id == shop_id,
-            Event.camera_id.isnot(None)
+            Event.camera_id.isnot(None),
+            Camera.camera_name.isnot(None)
         ).group_by(
-            Event.camera_id
+            Camera.camera_name
         ).all()
         
-        # Convert camera_id to camera_name (you might want to join with Camera table)
-        camera_stats = {}
-        for camera_id, count in result:
-            # For now, we'll use camera_id as key. In a real implementation,
-            # you'd join with the Camera table to get camera names
-            camera_stats[f"Camera_{camera_id}"] = count
-        
-        return camera_stats
+        return {camera_name: count for camera_name, count in result}
 
     def compute_events_by_category_from_db(self, shop_id: str) -> Dict[str, int]:
         """
