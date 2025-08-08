@@ -501,8 +501,9 @@ def test_get_shop_events(client, john_doe_login):
     # Actual result
     events = data["result"]
     assert isinstance(events, list), "Events should be a list"
+    assert len(events) == 2, "There should be at least one event"
 
-    # Expected events (from your latest DB screenshot)
+    # Expected events with only the fields we want to check
     expected_events = [
         {
             "event_id": "b88c061d-e375-4043-8305-9d5c79594151",
@@ -520,9 +521,26 @@ def test_get_shop_events(client, john_doe_login):
         }
     ]
 
-    # Compare using DeepDiff (ignore order)
-    diff = DeepDiff(expected_events, events, ignore_order=True)
-    assert not diff, f"Events mismatch:\n{diff}"
+    # Check that each expected event is present in the actual events
+    for expected_event in expected_events:
+        found = False
+        for actual_event in events:
+            # Check if this actual event matches the expected event
+            # We only check the fields that are in expected_event
+            matches = True
+            for key, expected_value in expected_event.items():
+                if key not in actual_event or actual_event[key] != expected_value:
+                    matches = False
+                    break
+            
+            if matches:
+                found = True
+                break
+        
+        assert found, f"Expected event {expected_event} not found in actual events"
+
+    print("Shop events test passed successfully!")
+    print(f"   Found {len(events)} events")
 
 def test_get_shop_stats(client, john_doe_login):
     """

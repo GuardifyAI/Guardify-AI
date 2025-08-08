@@ -4,6 +4,7 @@ from backend.app.entities.shop import Shop
 from backend.app.entities.camera import Camera
 from werkzeug.exceptions import Unauthorized, NotFound
 from data_science.src.utils import load_env_variables
+from sqlalchemy.orm import joinedload
 load_env_variables()
 from typing import List, Dict
 
@@ -65,8 +66,11 @@ class ShopsService:
         shop = Shop.query.filter_by(shop_id=shop_id).first()
         if not shop:
             raise NotFound(f"Shop with ID '{shop_id}' does not exist")
-        # Query all events for this shop with relationships loaded
-        events = Event.query.filter_by(shop_id=shop_id).all()
+        # Query all events for this shop with relationships eagerly loaded
+        events = Event.query.options(
+            joinedload(Event.shop),
+            joinedload(Event.camera)
+        ).filter_by(shop_id=shop_id).all()
         # Convert to DTOs
         return [event.to_dto() for event in events]
 
