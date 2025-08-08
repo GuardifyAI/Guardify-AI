@@ -1,7 +1,8 @@
 from backend.app.entities.user import User
 from backend.app.entities.event import Event, EventDTO
-from backend.app.entities.shop import Shop
+from backend.app.entities.shop import Shop, ShopDTO
 from backend.app.entities.camera import Camera
+from backend.app.entities.user_shop import UserShop, UserShopDTO
 from werkzeug.exceptions import Unauthorized, NotFound
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
@@ -12,7 +13,7 @@ class ShopsService:
     def __init__(self, stats_service=None):
         self.stats_service = stats_service
 
-    def get_user_shops(self, user_id: str | None) -> List[Dict[str, str]]:
+    def get_user_shops(self, user_id: str | None) -> List[ShopDTO]:
         """
         Get all shops associated with a user.
 
@@ -20,7 +21,7 @@ class ShopsService:
             user_id (str): The user ID to get shops for
 
         Returns:
-            dict: List of shops with shop_id and shop_name
+            List[ShopDTO]: List of ShopDTO objects with shop information
 
         Raises:
             ValueError: If user_id is null or empty
@@ -31,22 +32,19 @@ class ShopsService:
         if not user_id or user_id.strip() == "":
             raise ValueError("User ID is required")
 
-        # Check if user exists
-        user = User.query.filter_by(user_id=user_id).first()
+        # Check if user exists and load user_shops with shop relationships
+        user = User.query.options(
+            joinedload(User.user_shops).joinedload(UserShop.shop)
+        ).filter_by(user_id=user_id).first()
+        
         if not user:
             raise NotFound(f"User with ID '{user_id}' does not exist")
 
-        # Get shops for the user through the user_shop relationship
-        user_shops = user.user_shops
-
-        # Extract shop information
+        # Extract shop information from user_shops
         shops = []
-        for user_shop in user_shops:
-            shop = user_shop.shop
-            shops.append({
-                "shop_id": shop.shop_id,
-                "shop_name": shop.name
-            })
+        for user_shop in user.user_shops:
+            if user_shop.shop:
+                shops.append(user_shop.shop.to_dto())
 
         return shops
 
