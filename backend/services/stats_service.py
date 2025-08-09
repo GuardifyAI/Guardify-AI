@@ -4,13 +4,18 @@ from collections import Counter
 from dataclasses import dataclass
 from backend.app.entities.event import EventDTO, Event
 from sqlalchemy import func, extract
+from sqlalchemy.orm import joinedload
 from backend.db import db
 from backend.app.entities.camera import Camera
+from backend.app.entities.user import User
+from backend.app.entities.user_shop import UserShop
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 import pickle
 import os
+from functools import lru_cache
+from werkzeug.exceptions import NotFound
 
 
 class StatsService:
@@ -37,6 +42,7 @@ class StatsService:
             super().__init__(message)
             self.cause = cause
 
+    @lru_cache()
     def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
         """
         Compute aggregated statistics directly from database using SQLAlchemy aggregations.
@@ -61,6 +67,7 @@ class StatsService:
         except Exception as e:
             raise self.StatsComputationError(f"Failed to compute stats from DB: {str(e)}", cause=e)
 
+    @lru_cache()
     def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> StatsDTO:
         """
         Compute aggregated statistics from a list of events.
@@ -372,3 +379,58 @@ class StatsService:
             return category
         except Exception:
             return "other"
+
+    def compute_global_stats_from_db(self, user_id: str, include_category: bool = True) -> StatsDTO:
+        """
+        Compute global statistics aggregated across all shops for a user.
+        
+        Args:
+            user_id: The user ID to compute global stats for
+            include_category: Boolean parameter - controls whether events_by_category is computed
+            
+        Returns:
+            StatsDTO object containing global aggregated statistics
+            
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        try:
+            # Get all shops for the user
+            user = User.query.options(
+                joinedload(User.user_shops).joinedload(UserShop.shop)
+            ).filter_by(user_id=user_id).first()
+            
+            if not user:
+                raise NotFound(f"User with ID '{user_id}' does not exist")
+            
+            # Initialize aggregated counters
+            all_events_per_day = Counter()
+            all_events_by_hour = Counter()
+            all_events_by_camera = Counter()
+            all_events_by_category = Counter() if include_category else None
+            
+            # Process each shop using cached stats
+            for user_shop in user.user_shops:
+                if not user_shop.shop:
+                    continue
+                    
+                shop_id = user_shop.shop.shop_id
+                
+                # Get cached shop stats (using the cached compute_stats_from_db)
+                shop_stats = self.compute_stats_from_db(shop_id, include_category)
+                all_events_per_day.update(shop_stats.events_per_day)
+                all_events_by_hour.update(shop_stats.events_by_hour)
+                all_events_by_camera.update(shop_stats.events_by_camera)
+                # Aggregate events_by_category if included
+                if all_events_by_category is not None and include_category and shop_stats.events_by_category:
+                    all_events_by_category.update(shop_stats.events_by_category)
+            
+            return self.StatsDTO(
+                events_per_day=dict(all_events_per_day),
+                events_by_hour=dict(all_events_by_hour),
+                events_by_camera=dict(all_events_by_camera),
+                events_by_category=dict(all_events_by_category) if all_events_by_category else None
+            )
+            
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute global stats: {str(e)}", cause=e)

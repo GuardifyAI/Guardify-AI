@@ -694,3 +694,68 @@ def test_get_shop_stats_without_category(client, john_doe_login):
         assert isinstance(stats[key], dict), f"'{key}' should be a dictionary"
 
     print("Shop stats without category test passed successfully!")
+
+
+def test_get_global_stats(client, john_doe_login):
+    """
+    Test retrieval of global statistics for all shops that the user is connected to.
+    Verifies that the response contains aggregated statistics across all shops.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Make request to the global stats endpoint
+    response = client.get(
+        "/stats",
+        headers={"Authorization": auth_token}
+    )
+
+    # Check response status
+    assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    stats = data["result"]
+    assert isinstance(stats, dict), "Stats should be a dictionary"
+
+    # Check that all expected keys are present
+    expected_keys = ["events_per_day", "events_by_hour", "events_by_camera", "events_by_category"]
+    for key in expected_keys:
+        assert key in stats, f"Stats should contain '{key}' key"
+        assert isinstance(stats[key], dict), f"'{key}' should be a dictionary"
+
+    # Check that events_by_category is present (default behavior)
+    assert "events_by_category" in stats, "events_by_category should be included by default"
+
+    # Check that all values are integers
+    for key in expected_keys:
+        for value in stats[key].values():
+            assert isinstance(value, int), f"All values in '{key}' should be integers"
+
+    # Check that we have aggregated data from multiple shops
+    # The user should have access to multiple shops, so we should see aggregated data
+    assert len(stats["events_per_day"]) > 0, "Should have events per day data"
+    assert len(stats["events_by_hour"]) > 0, "Should have events by hour data"
+    assert len(stats["events_by_camera"]) > 0, "Should have events by camera data"
+    assert len(stats["events_by_category"]) > 0, "Should have events by category data"
+
+    print("Global stats test passed successfully!")
+    print(f"   Events per day: {len(stats['events_per_day'])} days")
+    print(f"   Events by hour: {len(stats['events_by_hour'])} hours")
+    print(f"   Events by camera: {len(stats['events_by_camera'])} cameras")
+    print(f"   Events by category: {len(stats['events_by_category'])} categories")
+
+
+def test_calling_get_global_stats_before_per_shop_makes_it_faster(client, john_doe_login):
+    # TODO: Implement test
+    assert True
+
+
+def test_get_global_stats_for_user_with_shops_without_events(client):
+    # TODO: Implement test
+    assert True

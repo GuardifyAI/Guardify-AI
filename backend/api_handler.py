@@ -212,23 +212,18 @@ class ApiHandler:
             Headers:
                 Authorization: Bearer <token> - The JWT token of the logged-in user
 
-            Expected JSON payload:
-                {
-                    "userId": str  - The user ID to get shops for
-                }
-
             Returns:
                 JSON response with:
                     - result: Array of shop objects with shop_id and shop_name
                     - errorMessage: None on success, error string on failure
             """
-            data = request.get_json(silent=True) or {}
-            user_id = data.get("userId")
+            user_id = request.user_id
             # Call the business logic
             return self.shops_service.get_user_shops(user_id)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth
+        @self.cache.memoize()
         def get_shop_events(shop_id):
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
@@ -237,6 +232,7 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
+        @self.cache.memoize()
         def get_shop_stats(shop_id):
             """
             Get aggregated statistics for a specific shop.
@@ -253,6 +249,28 @@ class ApiHandler:
             
             # Call the business logic and return StatsDTO converted to dict
             stats = self.shops_service.get_shop_stats(shop_id, include_category=include_category)
+            return asdict(stats)
+
+        @self.app.route("/stats", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_global_stats():
+            """
+            Get global statistics aggregated across all shops for the authenticated user.
+            
+            Query Parameters:
+                include_category (bool, optional): Whether to include events_by_category (default: true)
+                
+            Returns:
+                JSON response with global aggregated statistics
+            """
+            # Get include_category query parameter and cast to boolean
+            include_category_str = request.args.get("include_category", "true")
+            include_category = include_category_str.lower() == "true"
+            # Get user_id from request context (set by require_auth decorator)
+            user_id = request.user_id
+            # Call the business logic and return StatsDTO converted to dict
+            stats = self.stats_service.compute_global_stats_from_db(user_id, include_category=include_category)
             return asdict(stats)
 
         @self.app.after_request
