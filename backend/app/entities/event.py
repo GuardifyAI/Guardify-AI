@@ -1,15 +1,6 @@
-from backend.app import db
-from dataclasses import dataclass
+from backend.db import db
+from backend.app.dtos import EventDTO
 from datetime import datetime
-
-@dataclass
-class EventDTO:
-    event_id: str
-    shop_id: str
-    camera_id: str
-    event_timestamp: datetime | None
-    description: str | None
-    video_url: str | None
 
 class Event(db.Model):
     __tablename__ = 'event'
@@ -20,6 +11,10 @@ class Event(db.Model):
     event_timestamp = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.String, nullable=True)
     video_url = db.Column(db.String, nullable=True)
+
+    # Relationships
+    shop = db.relationship('Shop', backref='events', lazy='select')
+    camera = db.relationship('Camera', backref='events', lazy='select')
 
     def __repr__(self):
         description_str = self.description if self.description is not None else "N/A"
@@ -33,6 +28,9 @@ class Event(db.Model):
             event_timestamp=self.event_timestamp,
             description=self.description,
             video_url=self.video_url,
+            shop_name=self.shop.name if self.shop else None,
+            camera_name=self.camera.camera_name if self.camera else None,
+            event_datetime=self.event_timestamp.isoformat() if self.event_timestamp else None,
         )
     
 
