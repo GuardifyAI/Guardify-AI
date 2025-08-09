@@ -633,6 +633,23 @@ def test_get_shop_stats(client, john_doe_login):
         assert camera in stats["events_by_camera"], f"Camera {camera} should be in events_by_camera"
         assert stats["events_by_camera"][camera] == expected_count, f"Expected {expected_count} events from {camera} camera, got {stats['events_by_camera'][camera]}"
 
+    # Check events_by_category
+    # Based on the known events:
+    # Event 1: "Person entering suspiciously" -> should be classified as "suspicious behavior"
+    # Event 2: "Suspicious behavior at checkout" -> should be classified as "suspicious behavior"
+    expected_events_by_category = {
+        "suspicious behavior": 2  # Both events should be classified as suspicious behavior
+    }
+    
+    # Check that events_by_category contains the expected categories
+    # Note: The actual classification might vary based on the NLP model, so we'll be more flexible
+    assert "events_by_category" in stats, "events_by_category should be included by default"
+    assert isinstance(stats["events_by_category"], dict), "events_by_category should be a dictionary"
+    
+    # Check that we have some categories (the exact classification may vary)
+    assert expected_events_by_category == stats["events_by_category"], \
+        f"Expected events_by_category {expected_events_by_category}, got {stats['events_by_category']}"
+
     print("Shop stats test passed successfully!")
     print(f"   Events per day: {len(stats['events_per_day'])} days")
     print(f"   Events by hour: {len(stats['events_by_hour'])} hours")

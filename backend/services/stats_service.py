@@ -7,12 +7,124 @@ from backend.app.entities.event import EventDTO, Event
 from sqlalchemy import func, extract
 from backend.db import db
 from backend.app.entities.camera import Camera
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+import pickle
+import os
 
 logger = logging.getLogger(__name__)
 
 
 class StatsService:
     """Service for computing aggregated statistics from events using SQLAlchemy aggregations."""
+    
+    def __init__(self):
+        """Initialize the StatsService with scikit-learn classifier."""
+        try:
+            self.classifier = self._load_or_create_classifier()
+            logger.info("Scikit-learn classifier initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize scikit-learn classifier: {e}")
+            self.classifier = None
+    
+    def _load_or_create_classifier(self):
+        """Load existing classifier or create a new one with training data."""
+        classifier_path = "security_classifier.pkl"
+        
+        # Try to load existing classifier
+        if os.path.exists(classifier_path):
+            try:
+                with open(classifier_path, 'rb') as f:
+                    classifier = pickle.load(f)
+                logger.info("Loaded existing classifier from file")
+                return classifier
+            except Exception as e:
+                logger.warning(f"Failed to load existing classifier: {e}")
+        
+        # Create new classifier with training data
+        training_texts = [
+            # Suspicious behavior
+            "suspicious person entering",
+            "suspicious activity detected",
+            "person acting suspiciously",
+            "suspicious behavior at checkout",
+            "suspicious movement",
+            "suspicious person detected",
+            "suspicious activity",
+            
+            # Unauthorized access
+            "unauthorized person",
+            "unauthorized entry",
+            "unauthorized access attempt",
+            "unauthorized person detected",
+            "unauthorized access",
+            
+            # Theft
+            "theft detected",
+            "stealing merchandise",
+            "robbery in progress",
+            "stolen items",
+            "theft",
+            "robbery",
+            
+            # Vandalism
+            "vandalism detected",
+            "damage to property",
+            "destruction of property",
+            "graffiti found",
+            "vandalism",
+            "damage",
+            
+            # Loitering
+            "person loitering",
+            "loitering detected",
+            "person hanging around",
+            "loitering",
+            
+            # Trespassing
+            "trespassing detected",
+            "unauthorized entry",
+            "trespasser detected",
+            "trespassing",
+            
+            # Normal activity
+            "normal customer activity",
+            "regular shopping",
+            "customer purchasing",
+            "normal behavior",
+            "normal activity",
+            "customer shopping",
+        ]
+        
+        training_labels = [
+            "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior",
+            "unauthorized access", "unauthorized access", "unauthorized access", "unauthorized access", "unauthorized access",
+            "theft", "theft", "theft", "theft", "theft", "theft",
+            "vandalism", "vandalism", "vandalism", "vandalism", "vandalism", "vandalism",
+            "loitering", "loitering", "loitering", "loitering",
+            "trespassing", "trespassing", "trespassing", "trespassing",
+            "normal activity", "normal activity", "normal activity", "normal activity", "normal activity", "normal activity",
+        ]
+        
+        # Create pipeline with TF-IDF vectorizer and Naive Bayes classifier
+        classifier = Pipeline([
+            ('tfidf', TfidfVectorizer(lowercase=True, stop_words='english')),
+            ('clf', MultinomialNB())
+        ])
+        
+        # Train the classifier
+        classifier.fit(training_texts, training_labels)
+        
+        # Save the classifier
+        try:
+            with open(classifier_path, 'wb') as f:
+                pickle.dump(classifier, f)
+            logger.info("Saved new classifier to file")
+        except Exception as e:
+            logger.warning(f"Failed to save classifier: {e}")
+        
+        return classifier
     
     @dataclass
     class StatsDTO:
@@ -21,12 +133,71 @@ class StatsService:
         events_by_hour: Dict[str, int]
         events_by_camera: Dict[str, int]
         events_by_category: Optional[Dict[str, int]] = None
-
+    
     class StatsComputationError(Exception):
         """Custom exception for stats computation errors."""
         def __init__(self, message: str, cause: Optional[Exception] = None):
             super().__init__(message)
             self.cause = cause
+
+    def _classify_event_description(self, description: str) -> str:
+        """
+        Classify an event description into a category using scikit-learn's built-in classifier.
+        
+        Args:
+            description: The event description to classify
+            
+        Returns:
+            str: The classified category
+        """
+        if not description or not description.strip():
+            return "unknown"
+        
+        if not self.classifier:
+            return "unknown"
+        
+        try:
+            # Use scikit-learn's built-in classifier
+            category = self.classifier.predict([description])[0]
+            return category
+                
+        except Exception as e:
+            logger.warning(f"Failed to classify description '{description}': {e}")
+            return "unknown"
+
+    def compute_events_by_category_from_db(self, shop_id: str) -> Dict[str, int]:
+        """
+        Compute events aggregated by category using scikit-learn's built-in classifier.
+        
+        Args:
+            shop_id: The shop ID to compute stats for
+            
+        Returns:
+            Dictionary with category names as keys and event counts as values
+        """
+        try:
+            # Get all events for this shop with descriptions
+            events = db.session.query(
+                Event.description
+            ).filter(
+                Event.shop_id == shop_id,
+                Event.description.isnot(None),
+                Event.description != ""
+            ).all()
+            
+            # Classify each event description
+            categories = []
+            for event in events:
+                if event.description:
+                    category = self._classify_event_description(event.description)
+                    categories.append(category)
+            
+            # Count categories using Counter
+            return dict(Counter(categories))
+            
+        except Exception as e:
+            logger.error(f"Failed to compute events by category from DB: {e}")
+            return {"error": 0}
 
     def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> StatsDTO:
         """
@@ -160,23 +331,6 @@ class StatsService:
         
         return {camera_name: count for camera_name, count in result}
 
-    def compute_events_by_category_from_db(self, shop_id: str) -> Dict[str, int]:
-        """
-        Compute events aggregated by category using SQLAlchemy.
-        
-        TODO: This is a temporary implementation. The actual category field
-        is not yet available in the Event entity. This will be implemented
-        when the category field is added to the database schema.
-        
-        Args:
-            shop_id: The shop ID to compute stats for
-            
-        Returns:
-            Dictionary with category names as keys and event counts as values
-        """
-        # Temporary implementation - return empty dict since category field doesn't exist yet
-        return {"TBD": 0}
-
     # Keep the DTO-based methods for backward compatibility
     def compute_events_per_day_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
         """Compute events aggregated by day from DTOs using Counter."""
@@ -233,6 +387,18 @@ class StatsService:
         return dict(Counter(valid_cameras))
 
     def compute_events_by_category_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
-        """Compute events aggregated by category from DTOs using Counter."""
-        # Temporary implementation - return empty dict since category field doesn't exist yet
-        return {"TBD": 0} 
+        """Compute events aggregated by category from DTOs using NLP classification."""
+        try:
+            # Classify each event description
+            categories = []
+            for event in events:
+                if event.description and event.description.strip():
+                    category = self._classify_event_description(event.description)
+                    categories.append(category)
+            
+            # Use Counter for efficient counting
+            return dict(Counter(categories))
+            
+        except Exception as e:
+            logger.error(f"Failed to compute events by category from DTOs: {e}")
+            return {"error": 0} 

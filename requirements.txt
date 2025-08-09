@@ -16,6 +16,7 @@ pytest>=7.4.0
 vertexai~=1.71.1
 playwright~=1.54.0
 imageio-ffmpeg
+scikit-learn>=1.3.0
 
 # BE
 blinker==1.9.0
