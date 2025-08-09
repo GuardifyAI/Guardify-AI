@@ -1,13 +1,5 @@
 from backend.db import db
-from dataclasses import dataclass
-
-@dataclass
-class UserDTO:
-    user_id: str
-    first_name: str | None
-    last_name: str | None
-    email: str
-    password: str | None
+from backend.app.dtos import UserDTO
 
 class User(db.Model):
     __tablename__ = 'user'

@@ -1,12 +1,5 @@
 from backend.db import db
-from dataclasses import dataclass
-
-@dataclass
-class CameraDTO:
-    camera_id: str
-    shop_id: str
-    camera_name: str | None
-
+from backend.app.dtos import CameraDTO
 
 class Camera(db.Model):
     __tablename__ = 'camera'

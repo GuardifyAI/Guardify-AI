@@ -1,15 +1,6 @@
 from backend.db import db
-from dataclasses import dataclass
+from backend.app.dtos import ShopDTO
 from datetime import datetime
-
-@dataclass
-class ShopDTO:
-    shop_id: str
-    company_id: str
-    name: str | None
-    address: str | None
-    creation_date: datetime | None
-
 
 class Shop(db.Model):
     __tablename__ = 'shop'

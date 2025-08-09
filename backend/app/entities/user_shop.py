@@ -1,12 +1,5 @@
 from backend.app import db
-from dataclasses import dataclass
-
-
-@dataclass
-class UserShopDTO:
-    user_id: str
-    shop_id: str
-    shop_name: str | None
+from backend.app.dtos import UserShopDTO
 
 
 class UserShop(db.Model):

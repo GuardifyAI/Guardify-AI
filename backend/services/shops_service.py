@@ -1,7 +1,8 @@
 from backend.app.entities.user import User
-from backend.app.entities.event import Event, EventDTO
-from backend.app.entities.shop import Shop, ShopDTO
+from backend.app.entities.event import Event
+from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
+from backend.app.dtos import EventDTO, ShopDTO
 from werkzeug.exceptions import NotFound
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload

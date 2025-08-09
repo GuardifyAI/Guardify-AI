@@ -1,10 +1,5 @@
 from backend.db import db
-from dataclasses import dataclass
-
-@dataclass
-class CompanyDTO:
-    company_id: str
-    company_name: str | None
+from backend.app.dtos import CompanyDTO
 
 class Company(db.Model):
     __tablename__ = 'company'

@@ -1,8 +1,7 @@
 from typing import List, Dict
 from datetime import datetime
 from collections import Counter
-from dataclasses import dataclass
-from backend.app.entities.event import EventDTO, Event
+from backend.app.entities.event import Event
 from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
 from backend.db import db
@@ -17,6 +16,7 @@ import os
 from functools import lru_cache
 from werkzeug.exceptions import NotFound
 from backend.app.entities.shop import Shop
+from backend.app.dtos import StatsDTO, EventDTO
 
 
 class StatsService:
@@ -28,14 +28,6 @@ class StatsService:
             self.category_classifier = self._load_or_create_classifier()
         except Exception:
             self.category_classifier = None
-    
-    @dataclass
-    class StatsDTO:
-        """Data class for holding computed statistics."""
-        events_per_day: Dict[str, int]
-        events_by_hour: Dict[str, int]
-        events_by_camera: Dict[str, int]
-        events_by_category: Dict[str, int] | None = None
     
     class StatsComputationError(Exception):
         """Custom exception for stats computation errors."""
@@ -92,7 +84,7 @@ class StatsService:
                 if all_events_by_category is not None and include_category and shop_stats.events_by_category:
                     all_events_by_category.update(shop_stats.events_by_category)
 
-            return self.StatsDTO(
+            return StatsDTO(
                 events_per_day=dict(all_events_per_day),
                 events_by_hour=dict(all_events_by_hour),
                 events_by_camera=dict(all_events_by_camera),
@@ -146,7 +138,7 @@ class StatsService:
             StatsComputationError: If computation fails
         """
         try:
-            return self.StatsDTO(
+            return StatsDTO(
                 events_per_day=self.compute_events_per_day_from_db(shop_id),
                 events_by_hour=self.compute_events_by_hour_from_db(shop_id),
                 events_by_camera=self.compute_events_by_camera_from_db(shop_id),
@@ -171,7 +163,7 @@ class StatsService:
             StatsComputationError: If computation fails
         """
         try:
-            return self.StatsDTO(
+            return StatsDTO(
                 events_per_day=self.compute_events_per_day_from_dtos(events),
                 events_by_hour=self.compute_events_by_hour_from_dtos(events),
                 events_by_camera=self.compute_events_by_camera_from_dtos(events),
