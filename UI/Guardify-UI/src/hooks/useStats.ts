@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { shopsService } from '../services/shops';
 import { useAuth } from '../context/AuthContext';
-import type { GlobalStatsResponse } from '../types';
+import type { StatsResponse } from '../types';
 
-export function useGlobalStats(includeCategory: boolean = true) {
-  const [stats, setStats] = useState<GlobalStatsResponse | null>(null);
+export function useStats(shopId?: string, includeCategory: boolean = true) {
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token, isAuthenticated } = useAuth();
 
-  const fetchGlobalStats = async () => {
+  const fetchStats = async () => {
     if (!token || !isAuthenticated) {
       setStats(null);
       return;
@@ -19,16 +19,19 @@ export function useGlobalStats(includeCategory: boolean = true) {
     setError(null);
 
     try {
-      const response = await shopsService.getGlobalStats(token, includeCategory);
+      // If shopId provided, get shop stats; otherwise get global stats
+      const response = shopId 
+        ? await shopsService.getShopStats(shopId, token, includeCategory)
+        : await shopsService.getGlobalStats(token, includeCategory);
       
       if (response.result && !response.errorMessage) {
         setStats(response.result);
       } else {
-        setError(response.errorMessage || 'Failed to fetch global stats');
+        setError(response.errorMessage || 'Failed to fetch stats');
         setStats(null);
       }
     } catch (error) {
-      console.error('Error fetching global stats:', error);
+      console.error('Error fetching stats:', error);
       setError('Failed to connect to server');
       setStats(null);
     } finally {
@@ -37,17 +40,13 @@ export function useGlobalStats(includeCategory: boolean = true) {
   };
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      fetchGlobalStats();
-    } else {
-      setStats(null);
-    }
-  }, [isAuthenticated, token, includeCategory]);
+    fetchStats();
+  }, [shopId, token, isAuthenticated, includeCategory]);
 
   return {
     stats,
     loading,
     error,
-    refetch: fetchGlobalStats
+    refetch: fetchStats
   };
 }

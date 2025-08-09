@@ -78,15 +78,14 @@ export interface LoginResponse extends Omit<User, 'email'> {
   token: string;
 }
 
-// Add type for the API response
-export type UserShopsResponse = ApiShop[];
-export type ShopEventsResponse = ApiEvent[];
-
-// Add stats-related types based on actual API response
-export type GlobalStatsResponse = {
+export type StatsResponse = {
   events_by_camera: Record<string, number>;
   events_by_category: Record<string, number>;
   events_by_hour: Record<string, number>;
   events_per_day: Record<string, number>;
 };
 
+
+// Add type for the API response
+export type UserShopsResponse = ApiShop[];
+export type ShopEventsResponse = ApiEvent[];

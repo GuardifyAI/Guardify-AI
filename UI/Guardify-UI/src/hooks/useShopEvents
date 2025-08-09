@@ -3,6 +3,8 @@ import { shopsService } from '../services/shops';
 import { useAuth } from '../context/AuthContext';
 import { ApiEvent } from '../types';
 
+// This hook is used to fetch the events for a specific shop
+// isnt in use yet
 export function useShopEvents(shopId: string | null) {
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [loading, setLoading] = useState(false);

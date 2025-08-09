@@ -2,42 +2,28 @@ import EventsOverTime from '../Stats/EventsOverTime';
 import EventsByHour from '../Stats/EventsByHour';
 import EventCountBarChart from '../Stats/EventCountBarChart';
 import EventsByCategory from '../Stats/EventsByCategory';
-import { useGlobalStats } from '../../hooks/useGlobalStats';
+import { useStats } from '../../hooks/useStats';
+import LoadingSpinner from '../LoadingSpinnerProps';
+import ErrorDisplay from '../ErrorDisplay';
 import React from 'react';
 
-const AnalyticsCharts: React.FC = () => {
-  const { stats, loading, error } = useGlobalStats();
+interface AnalyticsChartsProps {
+  shopId?: string; // If provided, show shop stats; otherwise show global stats
+}
+
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ shopId }) => {
+  const { stats, loading, error } = useStats(shopId);
 
   if (loading) {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <LoadingSpinner message="Loading analytics..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-        <h3 className="text-red-800 font-semibold mb-2">Error Loading Analytics</h3>
-        <p className="text-red-600">{error}</p>
-      </div>
-    );
+    return <ErrorDisplay title="Error Loading Analytics" message={error} />;
   }
 
   if (!stats) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-        <p className="text-gray-600">No analytics data available</p>
-      </div>
-    );
+    return <ErrorDisplay title="No Data" message="No analytics data available" />;
   }
 
   return (
