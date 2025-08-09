@@ -37,6 +37,30 @@ class StatsService:
             super().__init__(message)
             self.cause = cause
 
+    def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
+        """
+        Compute aggregated statistics directly from database using SQLAlchemy aggregations.
+
+        Args:
+            shop_id: The shop ID to compute stats for
+            include_category: Boolean parameter - controls whether events_by_category is computed
+
+        Returns:
+            StatsDTO object containing computed statistics
+
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        try:
+            return self.StatsDTO(
+                events_per_day=self.compute_events_per_day_from_db(shop_id),
+                events_by_hour=self.compute_events_by_hour_from_db(shop_id),
+                events_by_camera=self.compute_events_by_camera_from_db(shop_id),
+                events_by_category=self.compute_events_by_category_from_db(shop_id) if include_category else None
+            )
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute stats from DB: {str(e)}", cause=e)
+
     def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> StatsDTO:
         """
         Compute aggregated statistics from a list of events.
@@ -52,50 +76,14 @@ class StatsService:
             StatsComputationError: If computation fails
         """
         try:
-            # Since we already have the events as DTOs, we'll compute stats from them
-            # In a real implementation, you might want to pass the shop_id and do DB queries
-            events_per_day = self.compute_events_per_day_from_dtos(events)
-            events_by_hour = self.compute_events_by_hour_from_dtos(events)
-            events_by_camera = self.compute_events_by_camera_from_dtos(events)
-            events_by_category = self.compute_events_by_category_from_dtos(events) if include_category else None
-            
             return self.StatsDTO(
-                events_per_day=events_per_day,
-                events_by_hour=events_by_hour,
-                events_by_camera=events_by_camera,
-                events_by_category=events_by_category
+                events_per_day=self.compute_events_per_day_from_dtos(events),
+                events_by_hour=self.compute_events_by_hour_from_dtos(events),
+                events_by_camera=self.compute_events_by_camera_from_dtos(events),
+                events_by_category=self.compute_events_by_category_from_dtos(events) if include_category else None
             )
         except Exception as e:
             raise self.StatsComputationError(f"Failed to compute stats: {str(e)}", cause=e)
-
-    def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
-        """
-        Compute aggregated statistics directly from database using SQLAlchemy aggregations.
-        
-        Args:
-            shop_id: The shop ID to compute stats for
-            include_category: Boolean parameter - controls whether events_by_category is computed
-            
-        Returns:
-            StatsDTO object containing computed statistics
-            
-        Raises:
-            StatsComputationError: If computation fails
-        """
-        try:
-            events_per_day = self.compute_events_per_day_from_db(shop_id)
-            events_by_hour = self.compute_events_by_hour_from_db(shop_id)
-            events_by_camera = self.compute_events_by_camera_from_db(shop_id)
-            events_by_category = self.compute_events_by_category_from_db(shop_id) if include_category else None
-            
-            return self.StatsDTO(
-                events_per_day=events_per_day,
-                events_by_hour=events_by_hour,
-                events_by_camera=events_by_camera,
-                events_by_category=events_by_category
-            )
-        except Exception as e:
-            raise self.StatsComputationError(f"Failed to compute stats from DB: {str(e)}", cause=e)
 
     def compute_events_per_day_from_db(self, shop_id: str) -> Dict[str, int]:
         """
