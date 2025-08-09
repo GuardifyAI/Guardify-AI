@@ -1,6 +1,6 @@
 from backend.app.entities.user import User
 import hashlib
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import Unauthorized, NotFound
 import jwt
 import datetime
 import uuid
@@ -8,7 +8,7 @@ import os
 from data_science.src.utils import load_env_variables
 load_env_variables()
 
-class AppLogic:
+class UserService:
     def __init__(self):
         # Secret key for JWT signing (in production, use environment variable)
         self.jwt_secret = os.getenv('JWT_SECRET_KEY')

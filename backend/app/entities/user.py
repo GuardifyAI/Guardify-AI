@@ -17,6 +17,8 @@ class User(db.Model):
     last_name = db.Column(db.Text, nullable=True)
     email = db.Column(db.Text, nullable=False, unique=True)
     password = db.Column(db.Text, nullable=True)
+    # The lazy='dynamic' parameter makes it a query object rather than loading all relationships immediately, which is more efficient.
+    user_shops = db.relationship('UserShop', back_populates='user', lazy='dynamic')
 
     def __repr__(self):
         first_name_str = self.first_name if self.first_name is not None else "N/A"

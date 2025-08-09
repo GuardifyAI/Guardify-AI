@@ -2,15 +2,16 @@ import pytest
 import jwt
 from http import HTTPStatus
 from backend.app import create_app
-from backend.controller import Controller
+from backend.api_handler import ApiHandler
 import os
 from data_science.src.utils import load_env_variables
 load_env_variables()
+from deepdiff import DeepDiff
 
 @pytest.fixture
 def client():
     app = create_app()
-    Controller(app)  # Set up routes
+    ApiHandler(app)  # Set up routes
     app.testing = True
     with app.test_client() as client:
         yield client
@@ -20,6 +21,19 @@ def login_data():
     return {
         "email": "aiguardify@gmail.com",
         "password": "demo_user"
+    }
+@pytest.fixture
+def john_doe():
+    return {
+        "email": "user_4ef9faf8-4fa4-4868-94ea-710be8598487@example.com",
+        "password": "john_doe"
+    }
+
+@pytest.fixture
+def jane_smith():
+    return {
+        "email": "user_4ef9faf8-4fa4-4868-94ea-710be8598487@example.com",
+        "password": "jane_smith"
     }
 
 def test_successful_login(client, login_data):
@@ -397,3 +411,115 @@ def test_logout_mismatched_user_id(client, login_data):
     assert expected_error in data["errorMessage"], f"Expected error: '{expected_error}', got: '{data['errorMessage']}'"
 
     print("Logout with mismatched user ID test passed!")
+
+
+@pytest.fixture
+def john_doe_login(client, john_doe):
+    # Make login request
+    response = client.post("/login", json=john_doe)
+    assert response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+    # Extract token from response
+    login_result = response.get_json()["result"]
+    token = login_result["token"]
+    user_id = login_result["userId"]
+    return user_id, token
+
+@pytest.fixture
+def jane_smith_login(client, jane_smith):
+    # Make login request
+    response = client.post("/login", json=jane_smith)
+    assert response.status_code == HTTPStatus.OK, "Login should succeed to get token"
+    # Extract token from response
+    login_result = response.get_json()["result"]
+    token = login_result["token"]
+    user_id = login_result["userId"]
+    return user_id, token
+
+def test_get_user_shops_success(client, john_doe, john_doe_login):
+    """
+    Test successful retrieval of user shops.
+
+    Verifies that:
+    - Request returns OK status
+    - Response contains the expected shop structure
+    - All expected shops are returned with correct IDs and names
+    """
+    user_id, john_doe_auth_token = john_doe_login
+
+    # Make shops request
+    shops_data = {"userId": user_id}
+    response = client.get("/shops", json=shops_data, headers={"Authorization": john_doe_auth_token})
+
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected OK status, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    shops = data["result"]
+
+    # Expected result
+    expected_shops = [
+        {"shop_id": "guardify_ai_central", "shop_name": "Guardify AI Central"},
+        {"shop_id": "guardify_ai_north", "shop_name": "Guardify AI North"},
+        {"shop_id": "guardify_ai_east", "shop_name": "Guardify AI East"},
+        {"shop_id": "guardify_ai_west", "shop_name": "Guardify AI West"}
+    ]
+
+    # Compare using DeepDiff
+    diff = DeepDiff(expected_shops, shops, ignore_order=True)
+    assert not diff, f"Shops mismatch:\n{diff}"
+
+def test_get_shop_events(client, john_doe_login):
+    """
+    Test retrieval of events for shop 'guardify_ai_central'.
+    Verifies that the response contains the expected event details.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Make request to the events endpoint for the shop
+    response = client.get(
+        "/shops/guardify_ai_central/events",
+        headers={"Authorization": auth_token}
+    )
+
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected 200 OK, got {response.status_code}"
+
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+
+    # Actual result
+    events = data["result"]
+    assert isinstance(events, list), "Events should be a list"
+
+    # Expected events (from your latest DB screenshot)
+    expected_events = [
+        {
+            "event_id": "b88c061d-e375-4043-8305-9d5c79594151",
+            "event_datetime": "2025-07-25T14:30:00",  # Adjust if your API returns a different format
+            "shop_name": "Guardify AI Central",              # Adjust if your DB has a different name
+            "camera_name": "Entrance",
+            "description": "Person entering suspiciously"
+        },
+        {
+            "event_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "event_datetime": "2025-07-27T10:45:00",  # Adjust if your API returns a different format
+            "shop_name": "Guardify AI Central",
+            "camera_name": "Checkout",
+            "description": "Suspicious behavior at checkout"
+        }
+    ]
+
+    # Compare using DeepDiff (ignore order)
+    diff = DeepDiff(expected_events, events, ignore_order=True)
+    assert not diff, f"Events mismatch:\n{diff}"
