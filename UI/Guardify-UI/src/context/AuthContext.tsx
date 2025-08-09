@@ -1,42 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { User, AuthContextType } from '../types';
-import { apiService } from '../services/api';
+import { authService } from '../services/auth.ts'
+import { cleanErrorMessage } from "../utils/errorUtils.ts";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-/**
- * Clean up error messages to be more user-friendly
- */
-function cleanErrorMessage(message: string): string {
-  if (!message) return 'An error occurred';
-  
-  let cleanMessage = message.trim();
-  
-  // Remove various HTTP status code and error type formats
-  cleanMessage = cleanMessage.replace(/^HTTP\s*\d+:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/^\d+\s*:\s*/, '');
-  cleanMessage = cleanMessage.replace(/^\d+\s+Unauthorized:\s*/i, ''); // "401 Unauthorized: "
-  cleanMessage = cleanMessage.replace(/^\d+\s+Bad\s+Request:\s*/i, ''); // "400 Bad Request: "
-  cleanMessage = cleanMessage.replace(/^\d+\s+[A-Za-z\s]+:\s*/, ''); // any "### Status: " pattern
-  
-  // Remove common technical prefixes
-  cleanMessage = cleanMessage.replace(/^Error:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/^Exception:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/^Unauthorized:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/^Bad\s+Request:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/^Internal\s+Server\s+Error:\s*/i, '');
-  
-  // Trim any remaining whitespace
-  cleanMessage = cleanMessage.trim();
-  
-  // Capitalize first letter if it's not already
-  if (cleanMessage.length > 0) {
-    cleanMessage = cleanMessage.charAt(0).toUpperCase() + cleanMessage.slice(1);
-  }
-  
-  return cleanMessage || 'An error occurred';
-}
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
@@ -78,7 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     
     try {
-      const data = await apiService.login(email, password);
+      const data = await authService.login(email, password);
 
       if (data.result && !data.errorMessage) {
         const { userId, firstName, lastName, token: authToken } = data.result;

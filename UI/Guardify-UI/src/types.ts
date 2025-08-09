@@ -47,4 +47,9 @@ export type SidebarProps = {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   setSelectedShop: (shopId: string | null) => void;
-};
+}
+
+// Login request/response types
+export interface LoginResponse extends Omit<User, 'email'> {
+  token: string;
+}
