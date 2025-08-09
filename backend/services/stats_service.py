@@ -1,0 +1,461 @@
+from typing import List, Dict
+from datetime import datetime
+from collections import Counter
+from backend.app.entities.event import Event
+from sqlalchemy import func, extract
+from sqlalchemy.orm import joinedload
+from backend.db import db
+from backend.app.entities.camera import Camera
+from backend.app.entities.user import User
+from backend.app.entities.user_shop import UserShop
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+import pickle
+import os
+from functools import lru_cache
+from werkzeug.exceptions import NotFound
+from backend.app.entities.shop import Shop
+from backend.app.dtos import StatsDTO, EventDTO
+
+
+class StatsService:
+    """Service for computing aggregated statistics from events using SQLAlchemy aggregations."""
+    
+    def __init__(self):
+        """Initialize the StatsService with scikit-learn classifier."""
+        try:
+            self.category_classifier = self._load_or_create_classifier()
+        except Exception:
+            self.category_classifier = None
+    
+    class StatsComputationError(Exception):
+        """Custom exception for stats computation errors."""
+        def __init__(self, message: str, cause: Exception | None = None):
+            super().__init__(message)
+            self.cause = cause
+
+    def get_global_stats(self, user_id: str | None, include_category: bool = True) -> StatsDTO:
+        """
+        Compute global statistics aggregated across all shops for a user.
+
+        Args:
+            user_id: The user ID to compute global stats for
+            include_category: Boolean parameter - controls whether events_by_category is computed
+
+        Returns:
+            StatsDTO object containing global aggregated statistics
+
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        # Validate input parameters
+        if not user_id or str(user_id).strip() == "":
+            raise ValueError("User ID is required")
+
+        try:
+            # Get all shops for the user
+            user = User.query.options(
+                joinedload(User.user_shops).joinedload(UserShop.shop)
+            ).filter_by(user_id=user_id).first()
+
+            if not user:
+                raise NotFound(f"User with ID '{user_id}' does not exist")
+
+            # Initialize aggregated counters
+            all_events_per_day = Counter()
+            all_events_by_hour = Counter()
+            all_events_by_camera = Counter()
+            all_events_by_category = Counter() if include_category else None
+
+            # Process each shop using cached stats
+            for user_shop in user.user_shops:
+                if not user_shop.shop:
+                    continue
+
+                shop_id = user_shop.shop.shop_id
+
+                # Get cached shop stats (using the cached compute_stats_from_db)
+                shop_stats = self.compute_stats_from_db(shop_id, include_category)
+                all_events_per_day.update(shop_stats.events_per_day)
+                all_events_by_hour.update(shop_stats.events_by_hour)
+                all_events_by_camera.update(shop_stats.events_by_camera)
+                # Aggregate events_by_category if included
+                if all_events_by_category is not None and include_category and shop_stats.events_by_category:
+                    all_events_by_category.update(shop_stats.events_by_category)
+
+            return StatsDTO(
+                events_per_day=dict(all_events_per_day),
+                events_by_hour=dict(all_events_by_hour),
+                events_by_camera=dict(all_events_by_camera),
+                events_by_category=dict(all_events_by_category) if all_events_by_category else None
+            )
+
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute global stats: {str(e)}", cause=e)
+
+    def get_shop_stats(self, shop_id: str | None, include_category: bool = True) -> StatsDTO:
+        """
+        Get aggregated statistics for a specific shop.
+
+        Args:
+            shop_id (str): The shop ID to get stats for
+            include_category (bool): Whether to include events_by_category in the result
+
+        Returns:
+            StatsDTO: Object containing computed statistics
+
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+            StatsComputationError: If stats computation fails
+        """
+        # Validate input parameters
+        if not shop_id or str(shop_id).strip() == "":
+            raise ValueError("Shop ID is required")
+
+        # Check if shop exists
+        shop = Shop.query.filter_by(shop_id=shop_id).first()
+        if not shop:
+            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
+
+        # Use database-based stats computation for better performance
+        return self.compute_stats_from_db(shop_id, include_category=include_category)
+
+    @lru_cache()
+    def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
+        """
+        Compute aggregated statistics directly from database using SQLAlchemy aggregations.
+
+        Args:
+            shop_id: The shop ID to compute stats for
+            include_category: Boolean parameter - controls whether events_by_category is computed
+
+        Returns:
+            StatsDTO object containing computed statistics
+
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        try:
+            return StatsDTO(
+                events_per_day=self.compute_events_per_day_from_db(shop_id),
+                events_by_hour=self.compute_events_by_hour_from_db(shop_id),
+                events_by_camera=self.compute_events_by_camera_from_db(shop_id),
+                events_by_category=self.compute_events_by_category_from_db(shop_id) if include_category else None
+            )
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute stats from DB: {str(e)}", cause=e)
+
+    @lru_cache()
+    def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> StatsDTO:
+        """
+        Compute aggregated statistics from a list of events.
+        
+        Args:
+            events: List of EventDTO objects with timestamp, camera_name, etc.
+            include_category: Boolean parameter - controls whether events_by_category is computed
+            
+        Returns:
+            StatsDTO object containing computed statistics
+            
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        try:
+            return StatsDTO(
+                events_per_day=self.compute_events_per_day_from_dtos(events),
+                events_by_hour=self.compute_events_by_hour_from_dtos(events),
+                events_by_camera=self.compute_events_by_camera_from_dtos(events),
+                events_by_category=self.compute_events_by_category_from_dtos(events) if include_category else None
+            )
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute stats: {str(e)}", cause=e)
+
+    def compute_events_per_day_from_db(self, shop_id: str) -> Dict[str, int]:
+        """
+        Compute events aggregated by day using SQLAlchemy.
+        
+        Args:
+            shop_id: The shop ID to compute stats for
+            
+        Returns:
+            Dictionary with YYYY-MM-DD keys and event counts as values
+        """
+        # Use SQLAlchemy's func.date() and func.count() for aggregation
+        result = db.session.query(
+            func.date(Event.event_timestamp).label('day'),
+            func.count(Event.event_id).label('count')
+        ).filter(
+            Event.shop_id == shop_id,
+            Event.event_timestamp.isnot(None)
+        ).group_by(
+            func.date(Event.event_timestamp)
+        ).all()
+        
+        return {str(day): count for day, count in result}
+
+    def compute_events_by_hour_from_db(self, shop_id: str) -> Dict[str, int]:
+        """
+        Compute events aggregated by hour using SQLAlchemy.
+        
+        Args:
+            shop_id: The shop ID to compute stats for
+            
+        Returns:
+            Dictionary with "00".."23" keys and event counts as values
+        """
+        # Use SQLAlchemy's func.extract() for hour extraction
+        result = db.session.query(
+            func.extract('hour', Event.event_timestamp).label('hour'),
+            func.count(Event.event_id).label('count')
+        ).filter(
+            Event.shop_id == shop_id,
+            Event.event_timestamp.isnot(None)
+        ).group_by(
+            func.extract('hour', Event.event_timestamp)
+        ).all()
+        
+        return {f"{int(hour):02d}": count for hour, count in result}
+
+    def compute_events_by_camera_from_db(self, shop_id: str) -> Dict[str, int]:
+        """
+        Compute events aggregated by camera using SQLAlchemy.
+        
+        Args:
+            shop_id: The shop ID to compute stats for
+            
+        Returns:
+            Dictionary with camera names as keys and event counts as values
+        """
+        # Use SQLAlchemy's func.count() with camera join to get camera names
+        result = db.session.query(
+            Camera.camera_name,
+            func.count(Event.event_id).label('count')
+        ).join(
+            Event, Event.camera_id == Camera.camera_id
+        ).filter(
+            Event.shop_id == shop_id,
+            Event.camera_id.isnot(None),
+            Camera.camera_name.isnot(None)
+        ).group_by(
+            Camera.camera_name
+        ).all()
+        
+        return {camera_name: count for camera_name, count in result}
+
+    def compute_events_by_category_from_db(self, shop_id: str) -> Dict[str, int]:
+        """
+        Compute events aggregated by category using scikit-learn's built-in classifier.
+        
+        Args:
+            shop_id: The shop ID to compute stats for
+            
+        Returns:
+            Dictionary with category names as keys and event counts as values
+        """
+        # Get all events for this shop with descriptions
+        events = db.session.query(
+            Event.description
+        ).filter(
+            Event.shop_id == shop_id,
+            Event.description.isnot(None),
+            Event.description != ""
+        ).all()
+        
+        # Classify each event description
+        categories = []
+        for event in events:
+            if event.description:
+                category = self._classify_event_description(event.description)
+                categories.append(category.title())
+        
+        # Count categories using Counter
+        return dict(Counter(categories))
+
+    # Keep the DTO-based methods for backward compatibility
+    def compute_events_per_day_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
+        """Compute events aggregated by day from DTOs using Counter."""
+        # Extract valid timestamps and format as YYYY-MM-DD
+        valid_timestamps = []
+        for event in events:
+            try:
+                timestamp = event.event_timestamp
+                if isinstance(timestamp, str):
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                elif isinstance(timestamp, datetime):
+                    dt = timestamp
+                else:
+                    continue
+                    
+                valid_timestamps.append(dt.strftime("%Y-%m-%d"))
+            except (ValueError, AttributeError):
+                continue
+        
+        # Use Counter for efficient counting
+        return dict(Counter(valid_timestamps))
+
+    def compute_events_by_hour_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
+        """Compute events aggregated by hour from DTOs using Counter."""
+        # Extract valid timestamps and format as HH
+        valid_hours = []
+        for event in events:
+            try:
+                timestamp = event.event_timestamp
+                if isinstance(timestamp, str):
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                elif isinstance(timestamp, datetime):
+                    dt = timestamp
+                else:
+                    continue
+                    
+                valid_hours.append(dt.strftime("%H"))
+            except (ValueError, AttributeError):
+                continue
+        
+        # Use Counter for efficient counting
+        return dict(Counter(valid_hours))
+
+    def compute_events_by_camera_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
+        """Compute events aggregated by camera from DTOs using Counter."""
+        # Extract valid camera names
+        valid_cameras = []
+        for event in events:
+            camera_name = event.camera_name
+            if camera_name and str(camera_name).strip():
+                valid_cameras.append(str(camera_name).strip())
+        
+        # Use Counter for efficient counting
+        return dict(Counter(valid_cameras))
+
+    def compute_events_by_category_from_dtos(self, events: List[EventDTO]) -> Dict[str, int]:
+        """Compute events aggregated by category from DTOs using scikit-learn's built-in classifier."""
+        # Classify each event description
+        categories = []
+        for event in events:
+            if event.description and event.description.strip():
+                category = self._classify_event_description(event.description)
+                categories.append(category)
+        
+        # Use Counter for efficient counting
+        return dict(Counter(categories))
+
+    # Helper functions moved to bottom
+    def _load_or_create_classifier(self):
+        """Load existing classifier or create a new one with training data."""
+        classifier_path = "security_classifier.pkl"
+        
+        # Try to load existing classifier
+        if os.path.exists(classifier_path):
+            try:
+                with open(classifier_path, 'rb') as f:
+                    category_classifier = pickle.load(f)
+                return category_classifier
+            except Exception:
+                pass
+        
+        # Create new classifier with training data
+        training_texts = [
+            # Suspicious behavior
+            "suspicious person entering",
+            "suspicious activity detected",
+            "person acting suspiciously",
+            "suspicious behavior at checkout",
+            "suspicious movement",
+            "suspicious person detected",
+            "suspicious activity",
+            
+            # Unauthorized access
+            "unauthorized person",
+            "unauthorized entry",
+            "unauthorized access attempt",
+            "unauthorized person detected",
+            "unauthorized access",
+            
+            # Theft
+            "theft detected",
+            "stealing merchandise",
+            "robbery in progress",
+            "stolen items",
+            "theft",
+            "robbery",
+            
+            # Vandalism
+            "vandalism detected",
+            "damage to property",
+            "destruction of property",
+            "graffiti found",
+            "vandalism",
+            "damage",
+            
+            # Loitering
+            "person loitering",
+            "loitering detected",
+            "person hanging around",
+            "loitering",
+            
+            # Trespassing
+            "trespassing detected",
+            "unauthorized entry",
+            "trespasser detected",
+            "trespassing",
+            
+            # Normal activity
+            "normal customer activity",
+            "regular shopping",
+            "customer purchasing",
+            "normal behavior",
+            "normal activity",
+            "customer shopping",
+        ]
+        
+        training_labels = [
+            "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior", "suspicious behavior",
+            "unauthorized access", "unauthorized access", "unauthorized access", "unauthorized access", "unauthorized access",
+            "theft", "theft", "theft", "theft", "theft", "theft",
+            "vandalism", "vandalism", "vandalism", "vandalism", "vandalism", "vandalism",
+            "loitering", "loitering", "loitering", "loitering",
+            "trespassing", "trespassing", "trespassing", "trespassing",
+            "normal activity", "normal activity", "normal activity", "normal activity", "normal activity", "normal activity",
+        ]
+        
+        # Create pipeline with TF-IDF vectorizer and Naive Bayes classifier
+        category_classifier = Pipeline([
+            ('tfidf', TfidfVectorizer(lowercase=True, stop_words='english')),
+            ('clf', MultinomialNB())
+        ])
+        
+        # Train the classifier
+        category_classifier.fit(training_texts, training_labels)
+        
+        # Save the classifier
+        try:
+            with open(classifier_path, 'wb') as f:
+                pickle.dump(category_classifier, f)
+        except Exception:
+            pass
+        
+        return category_classifier
+
+    def _classify_event_description(self, description: str) -> str:
+        """
+        Classify an event description into a category using scikit-learn's built-in classifier.
+        
+        Args:
+            description: The event description to classify
+            
+        Returns:
+            str: The classified category
+        """
+        if not description or not description.strip():
+            return "other"
+        
+        if not self.category_classifier:
+            return "other"
+        
+        try:
+            # Use scikit-learn's built-in classifier
+            category = self.category_classifier.predict([description])[0]
+            return category
+        except Exception:
+            return "other"

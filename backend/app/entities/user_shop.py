@@ -1,11 +1,5 @@
 from backend.app import db
-from dataclasses import dataclass
-
-
-@dataclass
-class UserShopDTO:
-    user_id: str
-    shop_id: str
+from backend.app.dtos import UserShopDTO
 
 
 class UserShop(db.Model):
@@ -15,8 +9,8 @@ class UserShop(db.Model):
     shop_id = db.Column(db.Text, db.ForeignKey('shop.shop_id'), primary_key=True)
 
     # Relationships
-    user = db.relationship('User', back_populates='user_shops')
-    shop = db.relationship('Shop', backref='user_shops')
+    user = db.relationship('User', back_populates='user_shops', lazy='select')
+    shop = db.relationship('Shop', backref='user_shops', lazy='select')
 
     def __repr__(self):
         return f"<UserShop user_id={self.user_id} shop_id={self.shop_id}>"
@@ -25,4 +19,5 @@ class UserShop(db.Model):
         return UserShopDTO(
             user_id=self.user_id,
             shop_id=self.shop_id,
+            shop_name=self.shop.name if self.shop else None,
         )

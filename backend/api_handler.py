@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
+from backend.services.stats_service import StatsService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
 from functools import wraps
+from dataclasses import asdict
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -26,13 +28,14 @@ class ApiHandler:
 
     def __init__(self, app: Flask):
         """
-        Initialize the controller with Flask app and configure caching.
+        Initialize the handler with Flask app and configure caching.
 
         Args:
             app (Flask): The Flask application instance to configure routes for
         """
         self.app = app
         self.user_service = UserService()
+        self.stats_service = StatsService()
         self.shops_service = ShopsService()
 
         # Configure Flask-Caching
@@ -61,7 +64,7 @@ class ApiHandler:
             # Get token from Authorization header
             auth_header = request.headers.get("Authorization")
             if not auth_header:
-                raise ValueError("Authorization header is required")
+                raise Unauthorized("Authorization header is required")
             # Validate token and get user ID
             user_id = self.user_service.validate_token(auth_header)
             # Add user_id to request context for use in the endpoint
@@ -209,29 +212,66 @@ class ApiHandler:
             Headers:
                 Authorization: Bearer <token> - The JWT token of the logged-in user
 
-            Expected JSON payload:
-                {
-                    "userId": str  - The user ID to get shops for
-                }
-
             Returns:
                 JSON response with:
                     - result: Array of shop objects with shop_id and shop_name
                     - errorMessage: None on success, error string on failure
             """
-            data = request.get_json(silent=True) or {}
-            user_id = data.get("userId")
+            user_id = getattr(request, "user_id", None)
             # Call the business logic
             return self.shops_service.get_user_shops(user_id)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth
+        @self.cache.memoize()
         def get_shop_events(shop_id):
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
             """
-            result = self.shops_service.get_shop_events(shop_id)
-            return result
+            return self.shops_service.get_shop_events(shop_id)
+
+        @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_shop_stats(shop_id):
+            """
+            Get aggregated statistics for a specific shop.
+            
+            Query Parameters:
+                include_category (bool, optional): Whether to include events_by_category (default: true)
+                
+            Returns:
+                JSON response with computed statistics
+            """
+            # Get include_category query parameter and cast to boolean
+            include_category_str = request.args.get("include_category", "true")
+            include_category = include_category_str.lower() == "true"
+            
+            # Call the business logic and return StatsDTO converted to dict
+            stats = self.stats_service.get_shop_stats(shop_id, include_category=include_category)
+            return asdict(stats)
+
+        @self.app.route("/stats", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize(make_name=lambda fname: f"{fname}|{request.query_string.decode()}") #Make query params part of cache key
+        def get_global_stats():
+            """
+            Get global statistics aggregated across all shops for the authenticated user.
+            
+            Query Parameters:
+                include_category (bool, optional): Whether to include events_by_category (default: true)
+                
+            Returns:
+                JSON response with global aggregated statistics
+            """
+            # Get include_category query parameter and cast to boolean
+            include_category_str = request.args.get("include_category", "true")
+            include_category = include_category_str.lower() == "true"
+            # Get user_id from request context (set by require_auth decorator)
+            user_id = getattr(request, "user_id", None)
+            # Call the business logic and return StatsDTO converted to dict
+            stats = self.stats_service.get_global_stats(user_id, include_category=include_category)
+            return asdict(stats)
 
         @self.app.after_request
         def wrap_success_response(response):
@@ -290,7 +330,8 @@ class ApiHandler:
             Status:
                 HTTP 401: For Unauthorized exceptions
                 HTTP 400: For ValueError (bad request)
-                HTTP 500: For all other exceptions (internal server error)
+                HTTP 404: For NotFound exceptions
+                HTTP 500: For StatsComputationError and all other exceptions (internal server error)
             """
             if isinstance(e, Unauthorized):
                 status = HTTPStatus.UNAUTHORIZED
@@ -298,6 +339,8 @@ class ApiHandler:
                 status = HTTPStatus.BAD_REQUEST
             elif isinstance(e, NotFound):
                 status = HTTPStatus.NOT_FOUND
+            elif isinstance(e, StatsService.StatsComputationError):
+                status = HTTPStatus.INTERNAL_SERVER_ERROR
             else:
                 status = HTTPStatus.INTERNAL_SERVER_ERROR
 

@@ -1,13 +1,6 @@
 from backend.db import db
-from dataclasses import dataclass
+from backend.app.dtos import UserDTO
 
-@dataclass
-class UserDTO:
-    user_id: str
-    first_name: str | None
-    last_name: str | None
-    email: str
-    password: str | None
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -17,14 +10,14 @@ class User(db.Model):
     last_name = db.Column(db.Text, nullable=True)
     email = db.Column(db.Text, nullable=False, unique=True)
     password = db.Column(db.Text, nullable=True)
-    # The lazy='dynamic' parameter makes it a query object rather than loading all relationships immediately, which is more efficient.
-    user_shops = db.relationship('UserShop', back_populates='user', lazy='dynamic')
+    # The lazy='select' parameter loads relationships when accessed, which is more efficient for our use case.
+    user_shops = db.relationship('UserShop', back_populates='user', lazy='select')
 
     def __repr__(self):
         first_name_str = self.first_name if self.first_name is not None else "N/A"
         last_name_str = self.last_name if self.last_name is not None else "N/A"
         return f"<User {self.user_id} | Name {first_name_str} {last_name_str} | Email {self.email}>"
-    
+
     def to_dto(self) -> UserDTO:
         return UserDTO(
             user_id=self.user_id,
