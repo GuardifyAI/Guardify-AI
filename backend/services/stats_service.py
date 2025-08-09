@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 from datetime import datetime
 from collections import Counter
 from dataclasses import dataclass
@@ -35,11 +35,11 @@ class StatsService:
         events_per_day: Dict[str, int]
         events_by_hour: Dict[str, int]
         events_by_camera: Dict[str, int]
-        events_by_category: Optional[Dict[str, int]] = None
+        events_by_category: Dict[str, int] | None = None
     
     class StatsComputationError(Exception):
         """Custom exception for stats computation errors."""
-        def __init__(self, message: str, cause: Optional[Exception] = None):
+        def __init__(self, message: str, cause: Exception | None = None):
             super().__init__(message)
             self.cause = cause
 
