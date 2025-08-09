@@ -24,9 +24,9 @@ class StatsService:
     def __init__(self):
         """Initialize the StatsService with scikit-learn classifier."""
         try:
-            self.classifier = self._load_or_create_classifier()
+            self.category_classifier = self._load_or_create_classifier()
         except Exception:
-            self.classifier = None
+            self.category_classifier = None
     
     @dataclass
     class StatsDTO:
@@ -269,8 +269,8 @@ class StatsService:
         if os.path.exists(classifier_path):
             try:
                 with open(classifier_path, 'rb') as f:
-                    classifier = pickle.load(f)
-                return classifier
+                    category_classifier = pickle.load(f)
+                return category_classifier
             except Exception:
                 pass
         
@@ -340,22 +340,22 @@ class StatsService:
         ]
         
         # Create pipeline with TF-IDF vectorizer and Naive Bayes classifier
-        classifier = Pipeline([
+        category_classifier = Pipeline([
             ('tfidf', TfidfVectorizer(lowercase=True, stop_words='english')),
             ('clf', MultinomialNB())
         ])
         
         # Train the classifier
-        classifier.fit(training_texts, training_labels)
+        category_classifier.fit(training_texts, training_labels)
         
         # Save the classifier
         try:
             with open(classifier_path, 'wb') as f:
-                pickle.dump(classifier, f)
+                pickle.dump(category_classifier, f)
         except Exception:
             pass
         
-        return classifier
+        return category_classifier
 
     def _classify_event_description(self, description: str) -> str:
         """
@@ -370,12 +370,12 @@ class StatsService:
         if not description or not description.strip():
             return "other"
         
-        if not self.classifier:
+        if not self.category_classifier:
             return "other"
         
         try:
             # Use scikit-learn's built-in classifier
-            category = self.classifier.predict([description])[0]
+            category = self.category_classifier.predict([description])[0]
             return category
         except Exception:
             return "other"
