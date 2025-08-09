@@ -16,6 +16,7 @@ import pickle
 import os
 from functools import lru_cache
 from werkzeug.exceptions import NotFound
+from backend.app.entities.shop import Shop
 
 
 class StatsService:
@@ -41,6 +42,93 @@ class StatsService:
         def __init__(self, message: str, cause: Optional[Exception] = None):
             super().__init__(message)
             self.cause = cause
+
+    def get_global_stats(self, user_id: str | None, include_category: bool = True) -> StatsDTO:
+        """
+        Compute global statistics aggregated across all shops for a user.
+
+        Args:
+            user_id: The user ID to compute global stats for
+            include_category: Boolean parameter - controls whether events_by_category is computed
+
+        Returns:
+            StatsDTO object containing global aggregated statistics
+
+        Raises:
+            StatsComputationError: If computation fails
+        """
+        # Validate input parameters
+        if not user_id or str(user_id).strip() == "":
+            raise ValueError("User ID is required")
+
+        try:
+            # Get all shops for the user
+            user = User.query.options(
+                joinedload(User.user_shops).joinedload(UserShop.shop)
+            ).filter_by(user_id=user_id).first()
+
+            if not user:
+                raise NotFound(f"User with ID '{user_id}' does not exist")
+
+            # Initialize aggregated counters
+            all_events_per_day = Counter()
+            all_events_by_hour = Counter()
+            all_events_by_camera = Counter()
+            all_events_by_category = Counter() if include_category else None
+
+            # Process each shop using cached stats
+            for user_shop in user.user_shops:
+                if not user_shop.shop:
+                    continue
+
+                shop_id = user_shop.shop.shop_id
+
+                # Get cached shop stats (using the cached compute_stats_from_db)
+                shop_stats = self.compute_stats_from_db(shop_id, include_category)
+                all_events_per_day.update(shop_stats.events_per_day)
+                all_events_by_hour.update(shop_stats.events_by_hour)
+                all_events_by_camera.update(shop_stats.events_by_camera)
+                # Aggregate events_by_category if included
+                if all_events_by_category is not None and include_category and shop_stats.events_by_category:
+                    all_events_by_category.update(shop_stats.events_by_category)
+
+            return self.StatsDTO(
+                events_per_day=dict(all_events_per_day),
+                events_by_hour=dict(all_events_by_hour),
+                events_by_camera=dict(all_events_by_camera),
+                events_by_category=dict(all_events_by_category) if all_events_by_category else None
+            )
+
+        except Exception as e:
+            raise self.StatsComputationError(f"Failed to compute global stats: {str(e)}", cause=e)
+
+    def get_shop_stats(self, shop_id: str | None, include_category: bool = True) -> StatsDTO:
+        """
+        Get aggregated statistics for a specific shop.
+
+        Args:
+            shop_id (str): The shop ID to get stats for
+            include_category (bool): Whether to include events_by_category in the result
+
+        Returns:
+            StatsDTO: Object containing computed statistics
+
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+            StatsComputationError: If stats computation fails
+        """
+        # Validate input parameters
+        if not shop_id or str(shop_id).strip() == "":
+            raise ValueError("Shop ID is required")
+
+        # Check if shop exists
+        shop = Shop.query.filter_by(shop_id=shop_id).first()
+        if not shop:
+            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
+
+        # Use database-based stats computation for better performance
+        return self.compute_stats_from_db(shop_id, include_category=include_category)
 
     @lru_cache()
     def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
@@ -379,58 +467,3 @@ class StatsService:
             return category
         except Exception:
             return "other"
-
-    def compute_global_stats_from_db(self, user_id: str, include_category: bool = True) -> StatsDTO:
-        """
-        Compute global statistics aggregated across all shops for a user.
-        
-        Args:
-            user_id: The user ID to compute global stats for
-            include_category: Boolean parameter - controls whether events_by_category is computed
-            
-        Returns:
-            StatsDTO object containing global aggregated statistics
-            
-        Raises:
-            StatsComputationError: If computation fails
-        """
-        try:
-            # Get all shops for the user
-            user = User.query.options(
-                joinedload(User.user_shops).joinedload(UserShop.shop)
-            ).filter_by(user_id=user_id).first()
-            
-            if not user:
-                raise NotFound(f"User with ID '{user_id}' does not exist")
-            
-            # Initialize aggregated counters
-            all_events_per_day = Counter()
-            all_events_by_hour = Counter()
-            all_events_by_camera = Counter()
-            all_events_by_category = Counter() if include_category else None
-            
-            # Process each shop using cached stats
-            for user_shop in user.user_shops:
-                if not user_shop.shop:
-                    continue
-                    
-                shop_id = user_shop.shop.shop_id
-                
-                # Get cached shop stats (using the cached compute_stats_from_db)
-                shop_stats = self.compute_stats_from_db(shop_id, include_category)
-                all_events_per_day.update(shop_stats.events_per_day)
-                all_events_by_hour.update(shop_stats.events_by_hour)
-                all_events_by_camera.update(shop_stats.events_by_camera)
-                # Aggregate events_by_category if included
-                if all_events_by_category is not None and include_category and shop_stats.events_by_category:
-                    all_events_by_category.update(shop_stats.events_by_category)
-            
-            return self.StatsDTO(
-                events_per_day=dict(all_events_per_day),
-                events_by_hour=dict(all_events_by_hour),
-                events_by_camera=dict(all_events_by_camera),
-                events_by_category=dict(all_events_by_category) if all_events_by_category else None
-            )
-            
-        except Exception as e:
-            raise self.StatsComputationError(f"Failed to compute global stats: {str(e)}", cause=e)

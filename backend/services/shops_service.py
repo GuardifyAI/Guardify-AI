@@ -1,18 +1,14 @@
 from backend.app.entities.user import User
 from backend.app.entities.event import Event, EventDTO
 from backend.app.entities.shop import Shop, ShopDTO
-from backend.app.entities.camera import Camera
-from backend.app.entities.user_shop import UserShop, UserShopDTO
-from backend.services.stats_service import StatsService
-from werkzeug.exceptions import Unauthorized, NotFound
+from backend.app.entities.user_shop import UserShop
+from werkzeug.exceptions import NotFound
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
-from typing import List, Dict
+from typing import List
 
 class ShopsService:
-    def __init__(self, stats_service=None):
-        self.stats_service = stats_service
 
     def get_user_shops(self, user_id: str | None) -> List[ShopDTO]:
         """
@@ -72,31 +68,3 @@ class ShopsService:
         ).filter_by(shop_id=shop_id).all()
         # Convert to DTOs
         return [event.to_dto() for event in events]
-
-    def get_shop_stats(self, shop_id: str, include_category: bool = True) -> StatsService.StatsDTO:
-        """
-        Get aggregated statistics for a specific shop.
-        
-        Args:
-            shop_id (str): The shop ID to get stats for
-            include_category (bool): Whether to include events_by_category in the result
-            
-        Returns:
-            StatsDTO: Object containing computed statistics
-            
-        Raises:
-            ValueError: If shop_id is null or empty
-            NotFound: If shop does not exist
-            StatsComputationError: If stats computation fails
-        """
-        # Validate input parameters
-        if not shop_id or str(shop_id).strip() == "":
-            raise ValueError("Shop ID is required")
-            
-        # Check if shop exists
-        shop = Shop.query.filter_by(shop_id=shop_id).first()
-        if not shop:
-            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
-        
-        # Use database-based stats computation for better performance
-        return self.stats_service.compute_stats_from_db(shop_id, include_category=include_category)

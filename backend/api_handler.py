@@ -36,7 +36,7 @@ class ApiHandler:
         self.app = app
         self.user_service = UserService()
         self.stats_service = StatsService()
-        self.shops_service = ShopsService(stats_service=self.stats_service)
+        self.shops_service = ShopsService()
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -217,7 +217,7 @@ class ApiHandler:
                     - result: Array of shop objects with shop_id and shop_name
                     - errorMessage: None on success, error string on failure
             """
-            user_id = request.user_id
+            user_id = getattr(request, "user_id", None)
             # Call the business logic
             return self.shops_service.get_user_shops(user_id)
 
@@ -248,7 +248,7 @@ class ApiHandler:
             include_category = include_category_str.lower() == "true"
             
             # Call the business logic and return StatsDTO converted to dict
-            stats = self.shops_service.get_shop_stats(shop_id, include_category=include_category)
+            stats = self.stats_service.get_shop_stats(shop_id, include_category=include_category)
             return asdict(stats)
 
         @self.app.route("/stats", methods=["GET"])
@@ -268,9 +268,9 @@ class ApiHandler:
             include_category_str = request.args.get("include_category", "true")
             include_category = include_category_str.lower() == "true"
             # Get user_id from request context (set by require_auth decorator)
-            user_id = request.user_id
+            user_id = getattr(request, "user_id", None)
             # Call the business logic and return StatsDTO converted to dict
-            stats = self.stats_service.compute_global_stats_from_db(user_id, include_category=include_category)
+            stats = self.stats_service.get_global_stats(user_id, include_category=include_category)
             return asdict(stats)
 
         @self.app.after_request
