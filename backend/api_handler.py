@@ -253,7 +253,7 @@ class ApiHandler:
 
         @self.app.route("/stats", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(make_name=lambda fname: f"{fname}|{request.query_string.decode()}") #Make query params part of cache key
         def get_global_stats():
             """
             Get global statistics aggregated across all shops for the authenticated user.
