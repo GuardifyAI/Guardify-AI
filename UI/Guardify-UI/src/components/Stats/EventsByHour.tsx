@@ -1,31 +1,25 @@
 import ChartComponent from './ChartComponent';
-import type { Event } from '../../types';
 
 type Props = {
-  events: Event[];
-  title?: string;
+  data: Record<string, number>;
 };
 
-export default function EventsByHour({ events }: Props) {
-  const hoursCount = new Array(24).fill(0);
-
-  events.forEach(event => {
-    const hour = new Date(event.date).getHours();
-    hoursCount[hour]++;
-  });
-
-  const data = hoursCount.map((count, hour) => ({
-    hour: `${hour}:00`,
-    count
-  }));
+export default function EventsByHour({ data }: Props) {
+  // Convert stats data to chart format
+  const chartData = Object.entries(data)
+    .map(([hour, count]) => ({
+      hour: `${hour.padStart(2, '0')}:00`,
+      count
+    }))
+    .sort((a, b) => a.hour.localeCompare(b.hour));
 
   return (
     <div className="tile">
       <ChartComponent
         label="Events by Hour"
         type="bar"
-        labels={data.map(d => d.hour)}
-        data={data.map(d => d.count)}
+        labels={chartData.map(d => d.hour)}
+        data={chartData.map(d => d.count)}
       />
     </div>
   );
