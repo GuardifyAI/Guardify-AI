@@ -3,6 +3,7 @@ from backend.app.entities.event import Event, EventDTO
 from backend.app.entities.shop import Shop, ShopDTO
 from backend.app.entities.camera import Camera
 from backend.app.entities.user_shop import UserShop, UserShopDTO
+from backend.services.stats_service import StatsService
 from werkzeug.exceptions import Unauthorized, NotFound
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
@@ -72,7 +73,7 @@ class ShopsService:
         # Convert to DTOs
         return [event.to_dto() for event in events]
 
-    def get_shop_stats(self, shop_id: str, include_category: bool = True) -> dict:
+    def get_shop_stats(self, shop_id: str, include_category: bool = True) -> StatsService.StatsDTO:
         """
         Get aggregated statistics for a specific shop.
         
@@ -81,7 +82,7 @@ class ShopsService:
             include_category (bool): Whether to include events_by_category in the result
             
         Returns:
-            dict: Dictionary containing computed statistics
+            StatsDTO: Object containing computed statistics
             
         Raises:
             ValueError: If shop_id is null or empty

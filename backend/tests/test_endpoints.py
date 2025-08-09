@@ -668,7 +668,7 @@ def test_get_shop_stats_without_category(client, john_doe_login):
     assert isinstance(stats, dict), "Stats should be a dictionary"
 
     # Check that events_by_category is NOT present
-    assert "events_by_category" not in stats, "events_by_category should not be included when include_category=false"
+    assert stats.get("events_by_category") is None, "events_by_category should not be included when include_category=false"
 
     # Check that other expected keys are present
     expected_keys = ["events_per_day", "events_by_hour", "events_by_camera"]

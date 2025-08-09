@@ -7,6 +7,7 @@ from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
 from functools import wraps
+from dataclasses import asdict
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
@@ -249,8 +250,10 @@ class ApiHandler:
             # Get include_category query parameter and cast to boolean
             include_category_str = request.args.get("include_category", "true")
             include_category = include_category_str.lower() == "true"
-            # Call the business logic
-            return self.shops_service.get_shop_stats(shop_id, include_category=include_category)
+            
+            # Call the business logic and return StatsDTO converted to dict
+            stats = self.shops_service.get_shop_stats(shop_id, include_category=include_category)
+            return asdict(stats)
 
         @self.app.after_request
         def wrap_success_response(response):
