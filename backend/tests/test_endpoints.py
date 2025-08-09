@@ -910,6 +910,65 @@ def test_calling_get_global_stats_before_per_shop_makes_it_faster(client, john_d
     print("Global stats caching test passed successfully!")
 
 
+def test_compute_stats_from_db_cache_behavior(client, john_doe_login):
+    """
+    Test that compute_stats_from_db is not called twice for the same shop_id and parameters.
+    This test verifies the actual caching behavior at the service level.
+    
+    Note: This test uses a new StatsService instance for testing purposes since we can't easily
+    access the actual service instance used by the API without modifying the application code.
+    The test demonstrates the caching behavior by showing that the LRU cache works correctly.
+    """
+    user_id, auth_token = john_doe_login
+
+    # Create a new StatsService instance for testing the cache behavior
+    from backend.services.stats_service import StatsService
+    stats_service = StatsService()
+    
+    # Clear the cache to start fresh
+    stats_service.compute_stats_from_db.cache_clear()
+    
+    # Check initial cache info
+    initial_cache_info = stats_service.compute_stats_from_db.cache_info()
+    initial_hits = initial_cache_info.hits
+    initial_misses = initial_cache_info.misses
+    
+    print(f"Initial cache - Hits: {initial_hits}, Misses: {initial_misses}")
+    
+    # Simulate the behavior by calling compute_stats_from_db directly
+    # First call should be a miss
+    shop_stats1 = stats_service.compute_stats_from_db("guardify_ai_central", include_category=True)
+    after_first_cache_info = stats_service.compute_stats_from_db.cache_info()
+    after_first_hits = after_first_cache_info.hits
+    after_first_misses = after_first_cache_info.misses
+    
+    print(f"After first call - Hits: {after_first_hits}, Misses: {after_first_misses}")
+    
+    # Should have one miss
+    assert after_first_misses == initial_misses + 1, "First call should be a cache miss"
+    
+    # Second call with same parameters should be a hit
+    shop_stats2 = stats_service.compute_stats_from_db("guardify_ai_central", include_category=True)
+    after_second_cache_info = stats_service.compute_stats_from_db.cache_info()
+    after_second_hits = after_second_cache_info.hits
+    after_second_misses = after_second_cache_info.misses
+    
+    print(f"After second call - Hits: {after_second_hits}, Misses: {after_second_misses}")
+    
+    # Should have one hit and same number of misses
+    assert after_second_hits == after_first_hits + 1, "Second call should be a cache hit"
+    assert after_second_misses == after_first_misses, "Second call should not be a cache miss"
+    
+    # The results should be identical
+    assert shop_stats1.events_per_day == shop_stats2.events_per_day, "Cached results should be identical"
+    assert shop_stats1.events_by_hour == shop_stats2.events_by_hour, "Cached results should be identical"
+    assert shop_stats1.events_by_camera == shop_stats2.events_by_camera, "Cached results should be identical"
+    assert shop_stats1.events_by_category == shop_stats2.events_by_category, "Cached results should be identical"
+    
+    print("Cache behavior test passed successfully!")
+    print(f"   Final cache hit ratio: {after_second_hits / (after_second_hits + after_second_misses) * 100:.1f}%")
+
+
 def test_get_global_stats_for_user_with_shops_without_events(client):
     """
     Test global stats for a user who has shops but no events.
