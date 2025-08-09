@@ -193,7 +193,7 @@ class StatsService:
         for event in events:
             if event.description:
                 category = self._classify_event_description(event.description)
-                categories.append(category)
+                categories.append(category.title())
         
         # Count categories using Counter
         return dict(Counter(categories))
@@ -373,14 +373,14 @@ class StatsService:
             str: The classified category
         """
         if not description or not description.strip():
-            return "unknown"
+            return "other"
         
         if not self.classifier:
-            return "unknown"
+            return "other"
         
         try:
             # Use scikit-learn's built-in classifier
             category = self.classifier.predict([description])[0]
             return category
         except Exception:
-            return "unknown" 
+            return "other"

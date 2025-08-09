@@ -638,7 +638,7 @@ def test_get_shop_stats(client, john_doe_login):
     # Event 1: "Person entering suspiciously" -> should be classified as "suspicious behavior"
     # Event 2: "Suspicious behavior at checkout" -> should be classified as "suspicious behavior"
     expected_events_by_category = {
-        "suspicious behavior": 2  # Both events should be classified as suspicious behavior
+        "Suspicious Behavior": 2  # Both events should be classified as suspicious behavior
     }
     
     # Check that events_by_category contains the expected categories
