@@ -7,6 +7,12 @@ import os
 from data_science.src.utils import load_env_variables
 load_env_variables()
 from deepdiff import DeepDiff
+from flask import Flask
+from backend.api_handler import ApiHandler
+from backend.app import create_app
+import requests
+import time
+import threading
 
 @pytest.fixture
 def client():
@@ -35,6 +41,82 @@ def jane_smith():
         "email": "user_4ef9faf8-4fa4-4868-94ea-710be8598487@example.com",
         "password": "jane_smith"
     }
+
+def test_login_with_real_app():
+    """
+    Test login functionality using a real Flask app and ApiHandler instance.
+    This test simulates the actual production environment by creating a real app
+    instead of using the testing client.
+    """
+    # Create a real Flask app
+    app = create_app()
+    api_handler = ApiHandler(app)
+
+    # Start the app in a separate thread
+    def run_app():
+        api_handler.run(host='127.0.0.1', port=5001)
+
+    server_thread = threading.Thread(target=run_app, daemon=True)
+    server_thread.start()
+
+    # Wait for the server to start
+    time.sleep(2)
+
+    try:
+        # Test data
+        login_data = {
+            "email": "aiguardify@gmail.com",
+            "password": "demo_user"
+        }
+
+        # Make a real HTTP request to the running server
+        response = requests.post(
+            "http://127.0.0.1:5001/login",
+            json=login_data,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+
+        # Check response status
+        assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
+
+        # Parse response
+        data = response.json()
+        assert data is not None, "Response should be JSON"
+        assert "result" in data, "Response should contain 'result' key"
+        assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+        assert data["errorMessage"] is None, "Should not have error message"
+
+        # Check result structure
+        result = data["result"]
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "userId" in result, "Result should contain userId"
+        assert "firstName" in result, "Result should contain firstName"
+        assert "lastName" in result, "Result should contain lastName"
+        assert "token" in result, "Result should contain token"
+
+        # Check user data
+        assert result["userId"] == "demo_user", f"Expected userId 'demo_user', got '{result['userId']}'"
+        assert result["firstName"] == "Demo", f"Expected firstName 'Demo', got '{result['firstName']}'"
+        assert result["lastName"] == "User", f"Expected lastName 'User', got '{result['lastName']}'"
+
+        # Validate token format
+        token = result["token"]
+        assert token.startswith("Bearer "), "Token should start with 'Bearer '"
+
+        print("Real app login test passed successfully!")
+        print(f"   User ID: {result['userId']}")
+        print(f"   First Name: {result['firstName']}")
+        print(f"   Last Name: {result['lastName']}")
+        print(f"   Token: {token[:20]}...")
+
+    except requests.exceptions.RequestException as e:
+        pytest.fail(f"Failed to connect to the test server: {e}")
+    except Exception as e:
+        pytest.fail(f"Test failed with error: {e}")
+    finally:
+        # Clean up - the server will be stopped when the thread ends
+        pass
 
 def test_successful_login(client, login_data):
     """
