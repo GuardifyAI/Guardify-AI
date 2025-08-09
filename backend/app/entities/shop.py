@@ -1,6 +1,6 @@
 from backend.db import db
 from backend.app.dtos import ShopDTO
-from datetime import datetime
+
 
 class Shop(db.Model):
     __tablename__ = 'shop'

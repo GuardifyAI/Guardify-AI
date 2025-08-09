@@ -1,6 +1,7 @@
 from backend.db import db
 from backend.app.dtos import CameraDTO
 
+
 class Camera(db.Model):
     __tablename__ = 'camera'
 
@@ -9,11 +10,11 @@ class Camera(db.Model):
     camera_name = db.Column(db.String, nullable=True)
 
     shop = db.relationship('Shop', backref='cameras')
-    
+
     def __repr__(self):
         camera_name_str = self.camera_name if self.camera_name is not None else "N/A"
         return f"<Camera {self.camera_id} | Shop {self.shop_id} | Name {camera_name_str}>"
-    
+
     def to_dto(self) -> CameraDTO:
         return CameraDTO(
             camera_id=self.camera_id,

@@ -4,172 +4,43 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="merged ui and backend changes">
-      <change afterPath="$PROJECT_DIR$/debug_flask_app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/entities/analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/analysis.py" afterDir="false" />
+    <list default="true" id="7188081c-ad51-4283-bddd-b9968775bdf6" name="Changes" comment="fixed comments">
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/analysis_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/camera_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/company_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/event_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/shop_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/stats_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/user_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/app/dtos/user_shop_dto.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/services/stats_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app/entities/camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/camera.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app/entities/company.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/company.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app/entities/event.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/event.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app/entities/shop.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/shop.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app/entities/user.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/user.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/logic/app_logic.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/logic/app_logic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/user_shop.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/user_shop.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/services/shops_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/shops_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_endpoints.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/tests/test_endpoints.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="Python Script" />
-      </list>
-    </option>
-  </component>
-  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
-    <envs>
-      <env key="FLASK_APP" value="app" />
-    </envs>
-    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
-    <option name="myEnvs">
-      <map>
-        <entry key="FLASK_APP" value="app" />
-      </map>
-    </option>
-  </component>
-  <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-  </component>
-  <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/analyze_shoplifting.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/extract_frames.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/test_analyze_frame.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$USER_HOME$/AppData/Local/Programs/Python/Python39/Lib/runpy.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/azure_blob_helpers.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/utils.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/data_science/src/azure/manager.py" root0="FORCE_HIGHLIGHTING" />
-  </component>
-  <component name="MarkdownSettingsMigration">
-    <option name="stateVersion" value="1" />
-  </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 4
-}</component>
-  <component name="ProjectId" id="2rUlOQ5GySXnGkFRjzSt1Sge7rD" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
-  <component name="ProjectViewState">
-    <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showLibraryContents" value="true" />
-  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "Python tests.Python tests in test_shoplifting_analysis.py.executor": "Run",
-    "Python.analyze_shoplifting.executor": "Debug",
-    "Python.extract_frames.executor": "Run",
-    "Python.main (1).executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main2.executor": "Run",
-    "Python.main_unified.executor": "Run",
-    "Python.video_recorder.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "connect-be-ui-login",
-    "last_opened_file_path": "C:/Users/asafl/PycharmProjects/Guardify-AI/main_unified.py",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "ts.external.directory.path": "C:\\Users\\asafl\\PycharmProjects\\Guardify-AI\\UI\\Guardify-UI\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+    "git-widget-placeholder": "Merging connect-be-ui-login",
+    "ts.external.directory.path": "C:\\Users\\asafl\\PycharmProjects\\Guardify-AI\\UI\\Guardify-UI\\node_modules\\typescript\\lib"
   }
 }]]></component>
-  <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI\data_science\src" />
-      <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI\data_science\src\model\pipeline" />
-      <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI\gcp_client" />
-      <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI\data_science\src\model\unified\prompt" />
-      <recent name="C:\Users\asafl\PycharmProjects\Guardify-AI" />
-    </key>
-  </component>
-  <component name="RunManager" selected="Python.run">
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="Guardify-AI" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.12 (Guardify-AI)" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/data_science/src/google/main.py" />
-      <option name="PARAMETERS" value="--strategy agentic --export --labels-csv-path &quot;C:\Users\asafl\Desktop\סדנא\bengurion-labels.csv&quot; --max-videos 1" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main2" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="Guardify-AI" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend/video" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/backend/video/main.py" />
-      <option name="PARAMETERS" value="--camera &quot;Back storage 2&quot; --duration 30" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main_unified" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="Guardify-AI" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.12 (Guardify-AI)" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main_unified.py" />
-      <option name="PARAMETERS" value="--frames data-science/extracted_frames --output data-science/analysis_results" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager">
     <configuration name="run" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Guardify-AI" />
       <option name="ENV_FILES" value="" />
@@ -193,250 +64,19 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="video_recorder" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Guardify-AI" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/data_science/src" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="C:\Users\asafl\PycharmProjects\Guardify-AI\backend\video\video_recorder.py" />
-      <option name="PARAMETERS" value="--camera &quot;Back storage 2&quot; --duration 30" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <list>
-      <item itemvalue="Python.main" />
-      <item itemvalue="Python.main_unified" />
-      <item itemvalue="Python.run" />
-      <item itemvalue="Python.main2" />
-      <item itemvalue="Python.video_recorder" />
-    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.run" />
-        <item itemvalue="Python.main2" />
-        <item itemvalue="Python.video_recorder" />
       </list>
     </recent_temporary>
   </component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-python-sdk-50da183f06c8-2887949eec09-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-233.13135.95" />
-      </set>
-    </attachedChunks>
-  </component>
-  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
-    <task active="true" id="Default" summary="Default task">
-      <changelist id="4256ffa4-14df-4945-958d-27216ec5d9f1" name="Changes" comment="" />
-      <created>1736621502138</created>
-      <option name="number" value="Default" />
-      <option name="presentableId" value="Default" />
-      <updated>1736621502138</updated>
-      <workItem from="1736621503392" duration="8117000" />
-      <workItem from="1736698866120" duration="1863000" />
-      <workItem from="1747996808203" duration="24451000" />
-      <workItem from="1748847791733" duration="3862000" />
-    </task>
-    <task id="LOCAL-00001" summary="works to connect to gpt-4o model and can analyze frames">
-      <option name="closed" value="true" />
-      <created>1742765442757</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1742765442757</updated>
-    </task>
-    <task id="LOCAL-00002" summary="works to connect to gpt-4o model and can analyze frames">
-      <option name="closed" value="true" />
-      <created>1742765459911</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1742765459911</updated>
-    </task>
-    <task id="LOCAL-00003" summary="deleted redudnant analysis">
-      <option name="closed" value="true" />
-      <created>1742765546151</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1742765546151</updated>
-    </task>
-    <task id="LOCAL-00004" summary="fixed imports + added log to analyze_shoplifting.py for seeing the video name that was analyzed + changed max frames to analyze 200">
-      <option name="closed" value="true" />
-      <created>1745323660793</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1745323660793</updated>
-    </task>
-    <task id="LOCAL-00005" summary="fixed output json to look better + upload analysis json after every analysis + make analysis sequential">
-      <option name="closed" value="true" />
-      <created>1745344214888</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1745344214888</updated>
-    </task>
-    <task id="LOCAL-00006" summary="raised batches amount to 50 from 10">
-      <option name="closed" value="true" />
-      <created>1745393189981</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1745393189981</updated>
-    </task>
-    <task id="LOCAL-00007" summary="wip">
-      <option name="closed" value="true" />
-      <created>1746392077993</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1746392077993</updated>
-    </task>
-    <task id="LOCAL-00008" summary="small fixes">
-      <option name="closed" value="true" />
-      <created>1748099914656</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1748099914656</updated>
-    </task>
-    <task id="LOCAL-00009" summary="fixed some comments2">
-      <option name="closed" value="true" />
-      <created>1748512598412</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1748512598412</updated>
-    </task>
-    <task id="LOCAL-00010" summary="added response schema to cv model, added argument of labels-csv-path to main, removed some unused functions, made the same schems to unified + agentic model">
-      <option name="closed" value="true" />
-      <created>1748625984845</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1748625984845</updated>
-    </task>
-    <task id="LOCAL-00011" summary="added response schema to cv model, added argument of labels-csv-path to main, removed some unused functions, made the same schems to unified + agentic model">
-      <option name="closed" value="true" />
-      <created>1748625995081</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1748625995081</updated>
-    </task>
-    <task id="LOCAL-00012" summary="made ShopliftingAnalyzer not optional in PipelineManager.py">
-      <option name="closed" value="true" />
-      <created>1748631064290</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1748631064290</updated>
-    </task>
-    <task id="LOCAL-00013" summary="removed duplicates + seperated long function to smaller functions + removed defaults">
-      <option name="closed" value="true" />
-      <created>1748636684763</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1748636684763</updated>
-    </task>
-    <task id="LOCAL-00014" summary="pull changes back">
-      <option name="closed" value="true" />
-      <created>1748699546246</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1748699546246</updated>
-    </task>
-    <task id="LOCAL-00015" summary="fixed csv export, there was a problem with file extensions">
-      <option name="closed" value="true" />
-      <created>1748788658510</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1748788658510</updated>
-    </task>
-    <task id="LOCAL-00016" summary="removed default arguments in function">
-      <option name="closed" value="true" />
-      <created>1748850744045</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1748850744045</updated>
-    </task>
-    <task id="LOCAL-00017" summary="can record a video">
-      <option name="closed" value="true" />
-      <created>1753886170391</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1753886170391</updated>
-    </task>
-    <task id="LOCAL-00018" summary="upload to bucket non stop">
-      <option name="closed" value="true" />
-      <created>1753893020236</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1753893020236</updated>
-    </task>
-    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
-  <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="3" />
-  </component>
-  <component name="UnknownFeatures">
-    <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
-  </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="TAB_STATES">
-      <map>
-        <entry key="MAIN">
-          <value>
-            <State />
-          </value>
-        </entry>
-      </map>
-    </option>
-  </component>
   <component name="VcsManagerConfiguration">
-    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="works to connect to gpt-4o model and can analyze frames" />
-    <MESSAGE value="deleted redudnant analysis" />
-    <MESSAGE value="tried to connect to cameras" />
-    <MESSAGE value="fixed imports + added log to analyze_shoplifting.py for seeing the video name that was analyzed + changed max frames to analyze 200" />
-    <MESSAGE value="fixed output json to look better + upload analysis json after every analysis + make analysis sequential" />
-    <MESSAGE value="raised batches amount to 50 from 10" />
-    <MESSAGE value="wip" />
-    <MESSAGE value="wip3" />
-    <MESSAGE value="small fixes" />
-    <MESSAGE value="fixed some comments2" />
-    <MESSAGE value="added response schema to cv model, added argument of labels-csv-path to main, removed some unused functions, made the same schems to unified + agentic model" />
-    <MESSAGE value="made ShopliftingAnalyzer not optional in PipelineManager.py" />
-    <MESSAGE value="removed duplicates + seperated long function to smaller functions + removed defaults" />
-    <MESSAGE value="pull changes back" />
-    <MESSAGE value="fixed csv export, there was a problem with file extensions" />
-    <MESSAGE value="removed default arguments in function" />
-    <MESSAGE value="can record a video" />
-    <MESSAGE value="upload to bucket non stop" />
-    <MESSAGE value="moved to seperated files, moved to backend folder" />
-    <option name="LAST_COMMIT_MESSAGE" value="moved to seperated files, moved to backend folder" />
+    <MESSAGE value="fixed flask issue" />
+    <MESSAGE value="fixed comments" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed comments" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Guardify_AI$video_recorder.coverage" NAME="video_recorder Coverage Results" MODIFIED="1754212551264" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src" />
@@ -445,7 +85,7 @@
     <SUITE FILE_PATH="coverage/Guardify_AI$python__m_data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746379837733" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/SurveillanceAI$main.coverage" NAME="main Coverage Results" MODIFIED="1736698585531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$run.coverage" NAME="run Coverage Results" MODIFIED="1754579580321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$run.coverage" NAME="run Coverage Results" MODIFIED="1754740115138" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
     <SUITE FILE_PATH="coverage/Guardify_AI$ComputerVisionModel.coverage" NAME="ComputerVisionModel Coverage Results" MODIFIED="1747918916186" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/google" />
     <SUITE FILE_PATH="coverage/Guardify_AI$analyze_shoplifting.coverage" NAME="analyze_shoplifting Coverage Results" MODIFIED="1747920579352" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Guardify_AI$data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746389268325" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

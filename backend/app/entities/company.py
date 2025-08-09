@@ -1,6 +1,7 @@
 from backend.db import db
 from backend.app.dtos import CompanyDTO
 
+
 class Company(db.Model):
     __tablename__ = 'company'
 
@@ -10,7 +11,7 @@ class Company(db.Model):
     def __repr__(self):
         company_name_str = self.company_name if self.company_name is not None else "N/A"
         return f"<Company {self.company_id} | Name {self.company_name}>"
-    
+
     def to_dto(self) -> CompanyDTO:
         return CompanyDTO(
             company_id=self.company_id,

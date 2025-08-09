@@ -1,6 +1,7 @@
 from backend.db import db
 from backend.app.dtos import UserDTO
 
+
 class User(db.Model):
     __tablename__ = 'user'
 
@@ -16,7 +17,7 @@ class User(db.Model):
         first_name_str = self.first_name if self.first_name is not None else "N/A"
         last_name_str = self.last_name if self.last_name is not None else "N/A"
         return f"<User {self.user_id} | Name {first_name_str} {last_name_str} | Email {self.email}>"
-    
+
     def to_dto(self) -> UserDTO:
         return UserDTO(
             user_id=self.user_id,

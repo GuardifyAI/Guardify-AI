@@ -10,12 +10,14 @@ import {
   User,
   MapPin
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import type { SidebarProps } from '../types';
 
 export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, setSelectedShop }: SidebarProps) {
+  const { logout, user } = useAuth();
+  
   const handleLogout = () => {
-    // In a real app, you'd clear authentication tokens here
-    window.location.href = '/';
+    logout();
   };
 
   return (
@@ -40,7 +42,7 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
             <User className="w-5 h-5 text-gray-300" />
           </div>
           <div>
-            <p className="font-medium text-white">John Doe</p>
+            <p className="font-medium text-white">{user ? `${user.firstName} ${user.lastName}` : 'User'}</p>
             <p className="text-sm text-gray-400">Security Manager</p>
           </div>
         </div>

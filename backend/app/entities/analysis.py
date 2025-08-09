@@ -1,6 +1,6 @@
 from backend.db import db
 from backend.app.dtos import AnalysisDTO
-from datetime import datetime
+
 
 class Analysis(db.Model):
     __tablename__ = 'analysis'

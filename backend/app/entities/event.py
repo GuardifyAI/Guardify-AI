@@ -1,6 +1,6 @@
 from backend.db import db
 from backend.app.dtos import EventDTO
-from datetime import datetime
+
 
 class Event(db.Model):
     __tablename__ = 'event'
