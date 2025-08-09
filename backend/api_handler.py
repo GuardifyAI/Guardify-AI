@@ -64,7 +64,7 @@ class ApiHandler:
             # Get token from Authorization header
             auth_header = request.headers.get("Authorization")
             if not auth_header:
-                raise ValueError("Authorization header is required")
+                raise Unauthorized("Authorization header is required")
             # Validate token and get user ID
             user_id = self.user_service.validate_token(auth_header)
             # Add user_id to request context for use in the endpoint
