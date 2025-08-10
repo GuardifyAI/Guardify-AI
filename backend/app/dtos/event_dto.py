@@ -3,7 +3,7 @@ from datetime import datetime
 
 @dataclass
 class EventDTO:
-    event_id: str | None
+    event_id: str
     shop_id: str
     camera_id: str
     event_timestamp: datetime | None
