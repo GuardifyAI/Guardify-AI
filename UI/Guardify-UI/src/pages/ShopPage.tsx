@@ -1,15 +1,12 @@
 import type { Event, Shop } from '../types';
 import EventsGrid from '../components/EventsGrid';
-import EventsOverTime from '../components/Stats/EventsOverTime';
-import EventsByHour from '../components/Stats/EventsByHour';
-import EventCountBarChart from '../components/Stats/EventCountBarChart';
-import EventsByCategorySimple from '../components/Stats/EventsByCategory';
+import AnalyticsCharts from '../components/Dashboard/AnalyticsCharts';
 import './ShopPage.css';
 
 type Props = {
   shop: Shop;
   events: Event[];
-  tab: 'statistics' | 'events' | 'cameras';
+  tab: 'dashboard' | 'statistics' | 'events' | 'cameras';
 };
 
 export default function ShopPage({ shop, events, tab }: Props) {
@@ -17,27 +14,10 @@ export default function ShopPage({ shop, events, tab }: Props) {
 
   return (
     <div className="page-layout">
-      {tab === 'statistics' && (
+      {(tab === 'dashboard' || tab === 'statistics') && (
         <section className="tiles">
-          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events Over Time</h3>
-            <EventsOverTime events={filteredEvents} />
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Hour</h3>
-            <EventsByHour events={filteredEvents} />
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Events by Camera</h3>
-            <EventCountBarChart
-              events={filteredEvents}
-              groupBy="camera"
-            />
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Categories</h3>
-            <EventsByCategorySimple events={filteredEvents} />
-          </div>
+          {/* Use the new AnalyticsCharts component with shop ID */}
+          <AnalyticsCharts shopId={shop.id} />
         </section>
       )}
 

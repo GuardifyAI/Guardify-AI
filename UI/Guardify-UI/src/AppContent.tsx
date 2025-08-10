@@ -1,28 +1,42 @@
 import { useState } from 'react';
 import ShopPage from './pages/ShopPage';
 import Sidebar from './components/Sidebar'; 
-import type { Shop } from './types';
+import type { Shop, ApiShop } from './types';
 import { useEvents } from './context/EventsContext';
+import { useShops } from './hooks/useShops';
 import KeyMetrics from './components/Dashboard/KeyMetrics';
 import AnalyticsCharts from './components/Dashboard/AnalyticsCharts';
 import EventsGrid from './components/EventsGrid';
-
+import LoadingSpinner from './components/LoadingSpinnerProps';
+import ErrorDisplay from './components/ErrorDisplay';
 
 export default function AppContent() {
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+
   const events = useEvents();
-  const shops: Shop[] = Array.from(
-    events.reduce((map, event) => {
-      if (!map.has(event.shopId)) {
-        map.set(event.shopId, { id: event.shopId, name: event.shopName, incidents: 0 });
-      }
-      map.get(event.shopId)!.incidents += 1;
-      return map;
-    }, new Map<string, Shop>())
-  ).map(([, shop]) => shop);
+  
+  // Use the real shops API instead of deriving from events
+  const { shops: apiShops, loading: shopsLoading, error: shopsError } = useShops();
+  
+  // Convert API shops to the format expected by the UI components
+  const shops: Shop[] = (apiShops as ApiShop[]).map(shop => ({
+    id: shop.shop_id,
+    name: shop.name,
+    incidents: events.filter(event => event.shopId === shop.shop_id).length // Count incidents
+  }));
   
   const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
+  
+  // Show loading state
+  if (shopsLoading) {
+    return <LoadingSpinner fullScreen message="Loading shops..." />;
+  }
+  
+  // Show error state
+  if (shopsError) {
+    return <ErrorDisplay fullScreen title="Error Loading Shops" message={shopsError} onRetry={() => window.location.reload()} />;
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,7 +45,9 @@ export default function AppContent() {
         selectedShop={selectedShop}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        setSelectedShop={setSelectedShop}
+        setSelectedShop={(shopId) => {
+          setSelectedShop(shopId);
+        }} 
       />
 
       <main className="lg:ml-72 p-4 lg:p-8 animate-fade-in">
@@ -53,12 +69,14 @@ export default function AppContent() {
           </div>
         </div>
 
+
+
         {activeTab === 'dashboard' && (
           <>
             {/* Key Metrics */}
             <KeyMetrics events={events} shops={shops} />
             {/* Analytics Charts */}
-            <AnalyticsCharts events={events} />
+            <AnalyticsCharts />
             {/* Recent Events */}
             <EventsGrid
               events={sortedEvents}

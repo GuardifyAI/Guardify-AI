@@ -1,26 +1,26 @@
 import ChartComponent from './ChartComponent';
-import type { Event } from '../../types';
 
 type Props = {
-  events: Event[];
-  title?: string;
+  data: Record<string, number>;
 };
 
-export default function EventsOverTime({ events, title = "Events" }: Props) {
-  const eventDates = events.map(e => e.date.slice(0, 10)).sort();
-  const uniqueDates = Array.from(new Set(eventDates));
-  const eventsPerDay = uniqueDates.map(date =>
-    events.filter(e => e.date.startsWith(date)).length
-  );
+export default function EventsOverTime({ data }: Props) {
+  // Convert stats data to chart format and sort by date
+  const chartData = Object.entries(data)
+    .map(([date, count]) => ({
+      date,
+      count
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="tile">
-    <ChartComponent
-      type="line"
-      labels={uniqueDates}
-      data={eventsPerDay}
-      label={title}
-    />
+      <ChartComponent
+        label="Events Over Time"
+        type="line"
+        labels={chartData.map(d => d.date)}
+        data={chartData.map(d => d.count)}
+      />
     </div>
   );
 }
