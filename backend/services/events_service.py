@@ -1,6 +1,7 @@
 import uuid
 from backend.app.entities.event import Event
 from backend.app.dtos import EventDTO
+from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.db import db
 from data_science.src.utils import load_env_variables
 load_env_variables()
@@ -8,12 +9,13 @@ load_env_variables()
 
 class EventsService:
 
-    def create_event(self, event: EventDTO) -> EventDTO:
+    def create_event(self, shop_id: str, event_req_body: EventRequestBody) -> EventDTO:
         """
         Create a new event entity in the Events table.
         
         Args:
-            event (EventDTO): The event data transfer object containing event details
+            shop_id (str): The shop ID
+            event_req_body (EventRequestBody): The event request data
             
         Returns:
             Event: The created event entity
@@ -25,14 +27,14 @@ class EventsService:
             # Generate UUID for event_id
             event_id = str(uuid.uuid4())
             
-            # Create Event entity from DTO
+            # Create Event entity
             new_event = Event(
                 event_id=event_id,
-                shop_id=event.shop_id,
-                camera_id=event.camera_id,
-                event_timestamp=event.event_timestamp,
-                description=event.description,
-                video_url=event.video_url
+                shop_id=shop_id,
+                camera_id=event_req_body.camera_id,
+                event_timestamp=event_req_body.event_timestamp,
+                description=event_req_body.description,
+                video_url=event_req_body.video_url
             )
             
             # Add to database session

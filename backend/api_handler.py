@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
 from backend.app.dtos import EventDTO
+from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
@@ -256,20 +257,14 @@ class ApiHandler:
                 except ValueError:
                     raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
             
-            # Create EventDTO with shop_id from URL path
-            event_dto = EventDTO(
-                event_id=None,  # Will be auto-generated
-                shop_id=shop_id,  # Use shop_id from URL path
+            event_req_body = EventRequestBody(
                 camera_id=data.get("camera_id"),
                 event_timestamp=event_timestamp,
                 description=data.get("description"),
-                video_url=data.get("video_url"),
-                shop_name=None,  # Will be populated via relationships
-                camera_name=None,
-                event_datetime=None
+                video_url=data.get("video_url")
             )
 
-            return asdict(self.event_service.create_event(event_dto))
+            return asdict(self.event_service.create_event(shop_id, event_req_body))
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
