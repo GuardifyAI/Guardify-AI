@@ -249,13 +249,11 @@ class ApiHandler:
             """
             data = request.get_json(silent=True) or {}
             
-            # Parse timestamp string to datetime object if provided
-            event_timestamp = None
-            if data.get("event_timestamp"):
-                try:
-                    event_timestamp = datetime.fromisoformat(data["event_timestamp"])
-                except ValueError:
-                    raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
+            # Parse timestamp string (the timestamp of the event) to datetime object
+            try:
+                event_timestamp = datetime.fromisoformat(data["event_timestamp"])
+            except ValueError:
+                raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
             
             event_req_body = EventRequestBody(
                 camera_id=data.get("camera_id"),

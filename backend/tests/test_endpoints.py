@@ -6,6 +6,8 @@ from data_science.src.utils import load_env_variables
 load_env_variables()
 from backend.api_handler import ApiHandler
 from backend.app import create_app
+from backend.db import db
+from backend.app.entities.event import Event
 import requests
 import time
 import threading
@@ -17,6 +19,37 @@ def client():
     app.testing = True
     with app.test_client() as client:
         yield client
+
+@pytest.fixture
+def cleanup_test_events():
+    """
+    Fixture to help clean up test events that might be created during testing.
+    Yields a cleanup function that can be called to delete events by event_id.
+    """
+    created_event_ids = []
+    
+    def cleanup_function(event_id):
+        """Add event_id to cleanup list"""
+        if event_id:
+            created_event_ids.append(event_id)
+    
+    def cleanup_all():
+        """Clean up all tracked events"""
+        for event_id in created_event_ids:
+            try:
+                event = Event.query.filter_by(event_id=event_id).first()
+                if event:
+                    db.session.delete(event)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted event {event_id}")
+            except Exception as e:
+                print(f"   Warning: Failed to clean up event {event_id}: {e}")
+    
+    # Yield the cleanup function
+    yield cleanup_function
+    
+    # Cleanup after test completes
+    cleanup_all()
 
 @pytest.fixture
 def login_data():
@@ -1204,6 +1237,17 @@ def test_post_shop_event_success(client, john_doe_login):
     assert result["shop_name"] is not None, "Shop name should be populated from relationship"
     assert result["camera_name"] is not None, "Camera name should be populated from relationship"
     
+    # Clean up: Delete the created event to avoid interfering with other tests
+    try:
+        created_event = Event.query.filter_by(event_id=event_id).first()
+        if created_event:
+            db.session.delete(created_event)
+            db.session.commit()
+            print(f"   Cleaned up: Deleted event {event_id}")
+    except Exception as e:
+        print(f"   Warning: Failed to clean up event {event_id}: {e}")
+        # Don't fail the test if cleanup fails
+    
     print("POST event test passed successfully!")
     print(f"   Created event ID: {result['event_id']}")
     print(f"   Shop: {result['shop_name']}")
@@ -1257,8 +1301,8 @@ def test_post_shop_event_missing_fields(client, john_doe_login):
     incomplete_event_data = {
         "description": "Test event",
         "event_timestamp": "2025-08-10T12:16:28.525538",
-        "video_url": "gs://test-bucket/test_video.mp4"
-        # camera_id is missing
+        "video_url": "gs://test-bucket/test_video.mp4",
+        "camera_id": "guardify_ai_central_entrance"
     }
     
     # Make POST request with incomplete data
@@ -1272,6 +1316,20 @@ def test_post_shop_event_missing_fields(client, john_doe_login):
     # Either behavior is acceptable depending on implementation
     assert response.status_code in [HTTPStatus.OK, HTTPStatus.BAD_REQUEST], \
         f"Expected 200 OK or 400 Bad Request, got {response.status_code}"
+    
+    # Clean up if event was created successfully
+    if response.status_code == HTTPStatus.OK:
+        try:
+            data = response.get_json()
+            if data and data.get("result") and data["result"].get("event_id"):
+                event_id = data["result"]["event_id"]
+                created_event = Event.query.filter_by(event_id=event_id).first()
+                if created_event:
+                    db.session.delete(created_event)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted event {event_id}")
+        except Exception as e:
+            print(f"   Warning: Failed to clean up event: {e}")
     
     print("POST event missing fields test passed!")
 
