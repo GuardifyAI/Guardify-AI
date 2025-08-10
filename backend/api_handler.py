@@ -3,7 +3,6 @@ from datetime import datetime
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
-from backend.app.dtos import EventDTO
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
@@ -262,7 +261,14 @@ class ApiHandler:
                 video_url=data.get("video_url")
             )
 
-            return asdict(self.event_service.create_event(shop_id, event_req_body))
+            return asdict(self.shops_service.create_shop_event(shop_id, event_req_body))
+
+        @self.app.route("/analysis/<event_id>", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_event_analysis(event_id: str):
+            analysis = self.event_service.get_event_analysis(event_id)
+            return asdict(analysis)
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
