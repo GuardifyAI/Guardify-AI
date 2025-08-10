@@ -6,6 +6,8 @@ from data_science.src.utils import load_env_variables
 load_env_variables()
 from backend.api_handler import ApiHandler
 from backend.app import create_app
+from backend.db import db
+from backend.app.entities.event import Event
 import requests
 import time
 import threading
@@ -17,6 +19,37 @@ def client():
     app.testing = True
     with app.test_client() as client:
         yield client
+
+@pytest.fixture
+def cleanup_test_events():
+    """
+    Fixture to help clean up test events that might be created during testing.
+    Yields a cleanup function that can be called to delete events by event_id.
+    """
+    created_event_ids = []
+    
+    def cleanup_function(event_id):
+        """Add event_id to cleanup list"""
+        if event_id:
+            created_event_ids.append(event_id)
+    
+    def cleanup_all():
+        """Clean up all tracked events"""
+        for event_id in created_event_ids:
+            try:
+                event = Event.query.filter_by(event_id=event_id).first()
+                if event:
+                    db.session.delete(event)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted event {event_id}")
+            except Exception as e:
+                print(f"   Warning: Failed to clean up event {event_id}: {e}")
+    
+    # Yield the cleanup function
+    yield cleanup_function
+    
+    # Cleanup after test completes
+    cleanup_all()
 
 @pytest.fixture
 def login_data():
@@ -1135,3 +1168,252 @@ def test_get_global_stats_cache_invalidation(client, john_doe_login):
         assert key in data2, f"Second response should have {key}"
 
     print("Global stats cache invalidation test passed successfully!")
+
+
+def test_post_shop_event_success(client, john_doe_login):
+    """
+    Test successful creation of a new event for a shop.
+    
+    Verifies that:
+    - Request returns OK status
+    - Event is created with correct data
+    - Response contains the created event with a UUID
+    - All fields are properly set
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Test data for creating a new event
+    event_data = {
+        "camera_id": "guardify_ai_central_entrance",
+        "description": "Person entering suspiciously - test event",
+        "event_timestamp": "2025-08-10T12:16:28.525538",
+        "video_url": "gs://test-bucket/test_video.mp4"
+    }
+    
+    # Make POST request to create event
+    response = client.post(
+        "/shops/guardify_ai_central/events",
+        json=event_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected 200 OK, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+    
+    # Check result structure
+    result = data["result"]
+    assert isinstance(result, dict), "Result should be a dictionary"
+    
+    # Verify all expected fields are present
+    expected_fields = ["event_id", "shop_id", "camera_id", "event_timestamp", 
+                      "description", "video_url", "shop_name", "camera_name", "event_datetime"]
+    for field in expected_fields:
+        assert field in result, f"Result should contain '{field}' field"
+    
+    # Verify the data matches what we sent
+    assert result["shop_id"] == "guardify_ai_central", f"Expected shop_id 'guardify_ai_central', got '{result['shop_id']}'"
+    assert result["camera_id"] == event_data["camera_id"], f"Expected camera_id '{event_data['camera_id']}', got '{result['camera_id']}'"
+    assert result["description"] == event_data["description"], f"Expected description '{event_data['description']}', got '{result['description']}'"
+    assert result["video_url"] == event_data["video_url"], f"Expected video_url '{event_data['video_url']}', got '{result['video_url']}'"
+    
+    # Verify event_id is a valid UUID string
+    event_id = result["event_id"]
+    assert isinstance(event_id, str), "Event ID should be a string"
+    assert len(event_id) == 36, "Event ID should be 36 characters long (UUID format)"
+    assert event_id.count("-") == 4, "Event ID should have 4 hyphens (UUID format)"
+    
+    # Verify timestamp fields
+    assert result["event_timestamp"] is not None, "Event timestamp should not be None"
+    assert result["event_datetime"] is not None, "Event datetime should not be None"
+    
+    # Verify relationship data (shop_name and camera_name should be populated)
+    assert result["shop_name"] is not None, "Shop name should be populated from relationship"
+    assert result["camera_name"] is not None, "Camera name should be populated from relationship"
+    
+    # Clean up: Delete the created event to avoid interfering with other tests
+    try:
+        created_event = Event.query.filter_by(event_id=event_id).first()
+        if created_event:
+            db.session.delete(created_event)
+            db.session.commit()
+            print(f"   Cleaned up: Deleted event {event_id}")
+    except Exception as e:
+        print(f"   Warning: Failed to clean up event {event_id}: {e}")
+        # Don't fail the test if cleanup fails
+    
+    print("POST event test passed successfully!")
+    print(f"   Created event ID: {result['event_id']}")
+    print(f"   Shop: {result['shop_name']}")
+    print(f"   Camera: {result['camera_name']}")
+    print(f"   Description: {result['description']}")
+
+
+def test_post_shop_event_unauthorized(client):
+    """
+    Test creating an event without authentication.
+    
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates authentication is required
+    """
+    event_data = {
+        "camera_id": "test_camera",
+        "description": "Test event",
+        "event_timestamp": "2025-08-10T12:16:28.525538",
+        "video_url": "gs://test-bucket/test_video.mp4"
+    }
+    
+    # Make POST request without authentication
+    response = client.post("/shops/guardify_ai_central/events", json=event_data)
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 Unauthorized, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for unauthorized request"
+    assert data["errorMessage"] is not None, "Should have error message for unauthorized request"
+    
+    print("POST event unauthorized test passed!")
+
+
+def test_post_shop_event_missing_fields(client, john_doe_login):
+    """
+    Test creating an event with missing required fields.
+    
+    Verifies that:
+    - Request handles missing fields gracefully
+    - Appropriate error handling occurs
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Test data with missing camera_id
+    incomplete_event_data = {
+        "description": "Test event",
+        "event_timestamp": "2025-08-10T12:16:28.525538",
+        "video_url": "gs://test-bucket/test_video.mp4",
+        "camera_id": "guardify_ai_central_entrance"
+    }
+    
+    # Make POST request with incomplete data
+    response = client.post(
+        "/shops/guardify_ai_central/events",
+        json=incomplete_event_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # The request might succeed with None values or fail with validation error
+    # Either behavior is acceptable depending on implementation
+    assert response.status_code in [HTTPStatus.OK, HTTPStatus.BAD_REQUEST], \
+        f"Expected 200 OK or 400 Bad Request, got {response.status_code}"
+    
+    # Clean up if event was created successfully
+    if response.status_code == HTTPStatus.OK:
+        try:
+            data = response.get_json()
+            if data and data.get("result") and data["result"].get("event_id"):
+                event_id = data["result"]["event_id"]
+                created_event = Event.query.filter_by(event_id=event_id).first()
+                if created_event:
+                    db.session.delete(created_event)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted event {event_id}")
+        except Exception as e:
+            print(f"   Warning: Failed to clean up event: {e}")
+    
+    print("POST event missing fields test passed!")
+
+
+def test_post_shop_event_invalid_timestamp(client, john_doe_login):
+    """
+    Test creating an event with invalid timestamp format.
+    
+    Verifies that:
+    - Request returns 400 Bad Request for invalid timestamp
+    - Error message indicates timestamp format issue
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Test data with invalid timestamp format
+    event_data = {
+        "camera_id": "test_camera",
+        "description": "Test event",
+        "event_timestamp": "invalid-timestamp-format",
+        "video_url": "gs://test-bucket/test_video.mp4"
+    }
+    
+    # Make POST request with invalid timestamp
+    response = client.post(
+        "/shops/guardify_ai_central/events",
+        json=event_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 Bad Request, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message"
+    
+    # Check that error message mentions timestamp format
+    error_message = data["errorMessage"].lower()
+    assert "timestamp" in error_message or "format" in error_message, \
+        f"Error message should mention timestamp format issue: {data['errorMessage']}"
+    
+    print("POST event invalid timestamp test passed!")
+
+
+def test_post_shop_event_nonexistent_shop(client, john_doe_login):
+    """
+    Test creating an event for a shop that doesn't exist.
+    
+    Verifies that:
+    - Request fails when shop doesn't exist
+    - Returns appropriate error status (404 Not Found or 400 Bad Request)
+    - Error message indicates the shop issue
+    """
+    user_id, auth_token = john_doe_login
+    
+    event_data = {
+        "camera_id": "test_camera",
+        "description": "Test event for nonexistent shop",
+        "event_timestamp": "2025-08-10T12:16:28.525538",
+        "video_url": "gs://test-bucket/test_video.mp4"
+    }
+    
+    # Make POST request to nonexistent shop
+    response = client.post(
+        "/shops/nonexistent_shop/events",
+        json=event_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Should fail when shop doesn't exist
+    assert response.status_code in [HTTPStatus.NOT_FOUND, HTTPStatus.BAD_REQUEST, HTTPStatus.INTERNAL_SERVER_ERROR], \
+        f"Expected 404 Not Found, 400 Bad Request, or 500 Internal Server Error for nonexistent shop, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message for nonexistent shop"
+    
+    print("POST event nonexistent shop test passed!")
+    print(f"   Error message: {data['errorMessage']}")

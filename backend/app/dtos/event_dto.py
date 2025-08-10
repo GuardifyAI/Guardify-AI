@@ -11,4 +11,4 @@ class EventDTO:
     video_url: str | None
     shop_name: str | None
     camera_name: str | None
-    event_datetime: str | None 
+    event_datetime: str | None
