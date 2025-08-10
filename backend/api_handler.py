@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
 from backend.app.dtos import EventDTO
+from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
@@ -39,6 +42,7 @@ class ApiHandler:
         self.user_service = UserService()
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
+        self.event_service = EventsService()
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -61,6 +65,7 @@ class ApiHandler:
         Returns:
             The decorated function that validates the token before execution
         """
+
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Get token from Authorization header
@@ -235,9 +240,36 @@ class ApiHandler:
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
         @self.require_auth
         @self.cache.memoize()
-        def post_shop_event(event_dto: EventDTO):
+        def post_shop_event(shop_id):
+            """
+            Creates a new event for a specific shop
+            :param shop_id: The shop ID from the URL path
+            :return: The new event that was created
+            """
+            data = request.get_json(silent=True) or {}
+            
+            # Parse timestamp string to datetime object if provided
+            event_timestamp = None
+            if data.get("event_timestamp"):
+                try:
+                    event_timestamp = datetime.fromisoformat(data["event_timestamp"])
+                except ValueError:
+                    raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
+            
+            # Create EventDTO with shop_id from URL path
+            event_dto = EventDTO(
+                event_id=None,  # Will be auto-generated
+                shop_id=shop_id,  # Use shop_id from URL path
+                camera_id=data.get("camera_id"),
+                event_timestamp=event_timestamp,
+                description=data.get("description"),
+                video_url=data.get("video_url"),
+                shop_name=None,  # Will be populated via relationships
+                camera_name=None,
+                event_datetime=None
+            )
 
-
+            return asdict(self.event_service.create_event(event_dto))
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
@@ -255,14 +287,15 @@ class ApiHandler:
             # Get include_category query parameter and cast to boolean
             include_category_str = request.args.get("include_category", "true")
             include_category = include_category_str.lower() == "true"
-            
+
             # Call the business logic and return StatsDTO converted to dict
             stats = self.stats_service.get_shop_stats(shop_id, include_category=include_category)
             return asdict(stats)
 
         @self.app.route("/stats", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(make_name=lambda fname: f"{fname}|{request.query_string.decode()}") #Make query params part of cache key
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_global_stats():
             """
             Get global statistics aggregated across all shops for the authenticated user.

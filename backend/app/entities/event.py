@@ -5,9 +5,9 @@ from backend.app.dtos import EventDTO
 class Event(db.Model):
     __tablename__ = 'event'
 
-    event_id = db.Column(db.Integer, primary_key=True)
-    shop_id = db.Column(db.Integer, db.ForeignKey('shop.shop_id'))
-    camera_id = db.Column(db.Integer, db.ForeignKey('camera.camera_id'))
+    event_id = db.Column(db.String, primary_key=True)
+    shop_id = db.Column(db.String, db.ForeignKey('shop.shop_id'))
+    camera_id = db.Column(db.String, db.ForeignKey('camera.camera_id'))
     event_timestamp = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.String, nullable=True)
     video_url = db.Column(db.String, nullable=True)
