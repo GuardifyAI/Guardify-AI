@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { events } from './events';
 
+
 export default function App() {
   return (
     <AuthProvider>
@@ -23,6 +24,7 @@ export default function App() {
                 </ProtectedRoute>
               } 
             />
+
             <Route 
               path="/event/:id" 
               element={
@@ -37,6 +39,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-// This is the main entry point for the Guardify UI application.
-// It sets up the routing for the application, allowing users to navigate between the login page and the dashboard content.
-// The `LoginPage` component is displayed at the root path ("/"), and the `AppContent` component is displayed at the "/dashboard" path.

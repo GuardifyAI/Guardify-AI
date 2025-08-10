@@ -1,0 +1,51 @@
+import { useState, useEffect } from 'react';
+import { shopsService } from '../services/shops';
+import { useAuth } from '../context/AuthContext';
+import { ApiEvent } from '../types';
+
+// This hook is used to fetch the events for a specific shop
+// isnt in use yet
+export function useShopEvents(shopId: string | null) {
+  const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { token, isAuthenticated } = useAuth();
+
+  const fetchShopEvents = async () => {
+    if (!shopId || !token || !isAuthenticated) {
+      setEvents([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await shopsService.getShopEvents(shopId, token);
+      
+      if (response.result && !response.errorMessage) {
+        setEvents(response.result);
+      } else {
+        setError(response.errorMessage || 'Failed to fetch shop events');
+        setEvents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching shop events:', error);
+      setError('Failed to connect to server');
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShopEvents();
+  }, [shopId, token, isAuthenticated]);
+
+  return {
+    events,
+    loading,
+    error,
+    refetch: fetchShopEvents
+  };
+}
