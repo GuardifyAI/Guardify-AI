@@ -3,7 +3,7 @@ from datetime import datetime
 
 @dataclass
 class EventDTO:
-    event_id: str
+    event_id: str | None
     shop_id: str
     camera_id: str
     event_timestamp: datetime | None
@@ -11,4 +11,4 @@ class EventDTO:
     video_url: str | None
     shop_name: str | None
     camera_name: str | None
-    event_datetime: str | None 
+    event_datetime: str | None

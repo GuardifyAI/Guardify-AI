@@ -32,5 +32,3 @@ class Event(db.Model):
             camera_name=self.camera.camera_name if self.camera else None,
             event_datetime=self.event_timestamp.isoformat() if self.event_timestamp else None,
         )
-    
-

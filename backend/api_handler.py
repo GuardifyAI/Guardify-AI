@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
+
+from backend.app.dtos import EventDTO
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
@@ -229,6 +231,13 @@ class ApiHandler:
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
             """
             return self.shops_service.get_shop_events(shop_id)
+
+        @self.app.route("/shops/<shop_id>/events", methods=["POST"])
+        @self.require_auth
+        @self.cache.memoize()
+        def post_shop_event(event_dto: EventDTO):
+
+
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
