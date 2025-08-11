@@ -1,9 +1,15 @@
+import uuid
+from datetime import datetime
+
+from backend.db import db
 from backend.app.entities.user import User
 from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
 from backend.app.dtos import EventDTO, ShopDTO
 from werkzeug.exceptions import NotFound
+
+from backend.app.request_bodies.event_request_body import EventRequestBody
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
@@ -69,3 +75,49 @@ class ShopsService:
         ).filter_by(shop_id=shop_id).all()
         # Convert to DTOs
         return [event.to_dto() for event in events]
+
+    def create_shop_event(self, shop_id: str, event_req_body: EventRequestBody) -> EventDTO:
+        """
+        Create a new event entity in the Events table.
+
+        Args:
+            shop_id (str): The shop ID
+            event_req_body (EventRequestBody): The event request data
+
+        Returns:
+            Event: The created event entity
+
+        Raises:
+            Exception: If there's an error during database operations
+        """
+        try:
+            # Generate UUID for event_id
+            event_id = str(uuid.uuid4())
+
+            # Create Event entity
+            new_event = Event(
+                event_id=event_id,
+                shop_id=shop_id,
+                camera_id=event_req_body.camera_id,
+                description=event_req_body.description,
+                video_url=event_req_body.video_url,
+                event_timestamp=datetime.fromisoformat(datetime.now().isoformat())
+            )
+
+            # Add to database session
+            db.session.add(new_event)
+
+            # Commit the transaction
+            db.session.commit()
+
+            # Refresh to get the assigned event_id
+            db.session.refresh(new_event)
+
+            # Convert to DTO - this might be where the error occurs
+            result_dto = new_event.to_dto()
+            return result_dto
+
+        except Exception as e:
+            # Rollback in case of error
+            db.session.rollback()
+            raise Exception(f"Failed to create event: {str(e)}")

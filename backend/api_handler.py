@@ -1,9 +1,7 @@
-from datetime import datetime
-
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
-from backend.app.dtos import EventDTO
+from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
@@ -249,20 +247,39 @@ class ApiHandler:
             """
             data = request.get_json(silent=True) or {}
             
-            # Parse timestamp string (the timestamp of the event) to datetime object
-            try:
-                event_timestamp = datetime.fromisoformat(data["event_timestamp"])
-            except ValueError:
-                raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
-            
             event_req_body = EventRequestBody(
                 camera_id=data.get("camera_id"),
-                event_timestamp=event_timestamp,
                 description=data.get("description"),
                 video_url=data.get("video_url")
             )
 
-            return asdict(self.event_service.create_event(shop_id, event_req_body))
+            return asdict(self.shops_service.create_shop_event(shop_id, event_req_body))
+
+        @self.app.route("/analysis/<event_id>", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_event_analysis(event_id: str):
+            """
+            Get analysis for a specific event ID
+            :param event_id: The event ID from the URL path
+            :return: The analysis for that event ID
+            """
+            analysis = self.event_service.get_event_analysis(event_id)
+            return asdict(analysis)
+
+        @self.app.route("/analysis/<event_id>", methods=["POST"])
+        @self.require_auth
+        @self.cache.memoize()
+        def post_event_analysis(event_id: str):
+            data = request.get_json(silent=True) or {}
+
+            analysis_req_body = AnalysisRequestBody(
+                final_detection=data.get("final_detection"),
+                final_confidence=data.get("final_confidence"),
+                decision_reasoning=data.get("decision_reasoning")
+            )
+
+            return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
