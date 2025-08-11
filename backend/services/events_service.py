@@ -4,7 +4,7 @@ from backend.app.entities import Event
 from backend.app.entities.analysis import Analysis
 from backend.app.dtos import AnalysisDTO
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
-from backend.db import db
+from backend.db import db, save_and_refresh
 from data_science.src.utils import load_env_variables
 load_env_variables()
 
@@ -45,14 +45,8 @@ class EventsService:
                 analysis_timestamp=datetime.fromisoformat(datetime.now().isoformat()),
             )
 
-            # Add to database session
-            db.session.add(new_analysis)
-
-            # Commit the transaction
-            db.session.commit()
-
-            # Refresh to get the assigned event_id
-            db.session.refresh(new_analysis)
+            # Save and refresh the entity
+            save_and_refresh(new_analysis)
 
             # Convert to DTO - this might be where the error occurs
             result_dto = new_analysis.to_dto()
