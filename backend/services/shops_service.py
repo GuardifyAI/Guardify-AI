@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from backend.app.entities import Camera
 from backend.db import db
 from backend.app.entities.user import User
 from backend.app.entities.event import Event
@@ -16,6 +17,13 @@ load_env_variables()
 from typing import List
 
 class ShopsService:
+
+    def _verify_shop_exists(self, shop_id):
+        if not shop_id or str(shop_id).strip() == "":
+            raise ValueError("Shop ID is required")
+        shop = Shop.query.filter_by(shop_id=shop_id).first()
+        if not shop:
+            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
 
     def get_user_shops(self, user_id: str | None) -> List[ShopDTO]:
         """
@@ -63,18 +71,24 @@ class ShopsService:
             ValueError: If shop_id is null or empty
             NotFound: If shop does not exist
         """
-        if not shop_id or str(shop_id).strip() == "":
-            raise ValueError("Shop ID is required")
-        shop = Shop.query.filter_by(shop_id=shop_id).first()
-        if not shop:
-            raise NotFound(f"Shop with ID '{shop_id}' does not exist")
+        self._verify_shop_exists(shop_id)
+
         # Query all events for this shop with relationships eagerly loaded
         events = Event.query.options(
             joinedload(Event.shop),
             joinedload(Event.camera)
         ).filter_by(shop_id=shop_id).all()
+
         # Convert to DTOs
         return [event.to_dto() for event in events]
+
+    def get_shop_cameras(self, shop_id: str):
+        self._verify_shop_exists(shop_id)
+
+        cameras = Camera.query.filter_by(shop_id=shop_id).all()
+
+        # Convert to DTOs
+        return [camera.to_dto() for camera in cameras]
 
     def create_shop_event(self, shop_id: str, event_req_body: EventRequestBody) -> EventDTO:
         """

@@ -281,6 +281,12 @@ class ApiHandler:
 
             return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
 
+        @self.app.route("/shops/<shop_id>/cameras", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_shop_cameras(shop_id):
+            return self.shops_service.get_shop_cameras(shop_id)
+
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
         @self.cache.memoize()
