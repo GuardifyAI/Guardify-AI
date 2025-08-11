@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
+from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
@@ -250,7 +249,6 @@ class ApiHandler:
             
             event_req_body = EventRequestBody(
                 camera_id=data.get("camera_id"),
-                event_timestamp=datetime.fromisoformat(datetime.now().isoformat()),
                 description=data.get("description"),
                 video_url=data.get("video_url")
             )
@@ -273,7 +271,15 @@ class ApiHandler:
         @self.require_auth
         @self.cache.memoize()
         def post_event_analysis(event_id: str):
+            data = request.get_json(silent=True) or {}
 
+            analysis_req_body = AnalysisRequestBody(
+                final_detection=data.get("final_detection"),
+                final_confidence=data.get("final_confidence"),
+                decision_reasoning=data.get("decision_reasoning")
+            )
+
+            return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth

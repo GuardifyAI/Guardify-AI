@@ -1,8 +1,11 @@
+from datetime import datetime
+
 from werkzeug.exceptions import NotFound
 
 from backend.app.entities import Event
 from backend.app.entities.analysis import Analysis
 from backend.app.dtos import AnalysisDTO
+from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.db import db
 from data_science.src.utils import load_env_variables
 load_env_variables()
@@ -24,3 +27,32 @@ class EventsService:
 
         # Convert to DTOs
         return analysis.to_dto()
+
+    def create_event_analysis(self, event_id: str, analysis_req_body: AnalysisRequestBody) -> AnalysisDTO:
+        try:
+            # Create Event entity
+            new_analysis = Analysis(
+                event_id=event_id,
+                final_detection=analysis_req_body.final_detection,
+                final_confidence=analysis_req_body.final_confidence,
+                decision_reasoning=analysis_req_body.decision_reasoning,
+                analysis_timestamp=datetime.fromisoformat(datetime.now().isoformat()),
+            )
+
+            # Add to database session
+            db.session.add(new_analysis)
+
+            # Commit the transaction
+            db.session.commit()
+
+            # Refresh to get the assigned event_id
+            db.session.refresh(new_analysis)
+
+            # Convert to DTO - this might be where the error occurs
+            result_dto = new_analysis.to_dto()
+            return result_dto
+
+        except Exception as e:
+            # Rollback in case of error
+            db.session.rollback()
+            raise Exception(f"Failed to create event analysis: {str(e)}")

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from backend.db import db
 from backend.app.entities.user import User
@@ -98,9 +99,9 @@ class ShopsService:
                 event_id=event_id,
                 shop_id=shop_id,
                 camera_id=event_req_body.camera_id,
-                event_timestamp=event_req_body.event_timestamp,
                 description=event_req_body.description,
-                video_url=event_req_body.video_url
+                video_url=event_req_body.video_url,
+                event_timestamp=datetime.fromisoformat(datetime.now().isoformat())
             )
 
             # Add to database session
