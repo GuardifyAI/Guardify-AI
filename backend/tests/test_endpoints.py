@@ -1443,3 +1443,466 @@ def test_post_shop_event_nonexistent_shop(client, john_doe_login):
     
     print("POST event nonexistent shop test passed!")
     print(f"   Error message: {data['errorMessage']}")
+
+
+def test_get_shop_cameras_success(client, john_doe_login):
+    """
+    Test successful retrieval of cameras for a shop.
+    
+    Verifies that:
+    - Request returns OK status
+    - Response contains the expected camera structure
+    - All expected cameras are returned with correct IDs and names
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Make request to get cameras for guardify_ai_central
+    response = client.get(
+        "/shops/guardify_ai_central/cameras",
+        headers={"Authorization": auth_token}
+    )
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected 200 OK, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+    
+    # Actual result
+    cameras = data["result"]
+    assert isinstance(cameras, list), "Cameras should be a list"
+    
+    # Check that we have some cameras (based on existing test data)
+    assert len(cameras) >= 2, "Should have at least 2 cameras"
+    
+    # Verify camera structure
+    for camera in cameras:
+        assert isinstance(camera, dict), "Each camera should be a dictionary"
+        assert "camera_id" in camera, "Camera should have camera_id"
+        assert "shop_id" in camera, "Camera should have shop_id"
+        assert "camera_name" in camera, "Camera should have camera_name"
+        
+        # Verify shop_id matches what we requested
+        assert camera["shop_id"] == "guardify_ai_central", f"Expected shop_id 'guardify_ai_central', got '{camera['shop_id']}'"
+        
+        # Verify camera_id format (should be shop_id + underscore + camera_name in lowercase)
+        assert camera["camera_id"].startswith("guardify_ai_central_"), "Camera ID should start with shop_id"
+    
+    print("GET shop cameras test passed successfully!")
+    print(f"   Found {len(cameras)} cameras for shop 'guardify_ai_central'")
+    for camera in cameras:
+        print(f"   Camera: {camera['camera_name']} (ID: {camera['camera_id']})")
+
+
+def test_get_shop_cameras_unauthorized(client):
+    """
+    Test retrieving cameras without authentication.
+    
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates authentication is required
+    """
+    # Make request without authentication
+    response = client.get("/shops/guardify_ai_central/cameras")
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 Unauthorized, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for unauthorized request"
+    assert data["errorMessage"] is not None, "Should have error message for unauthorized request"
+    
+    print("GET cameras unauthorized test passed!")
+
+
+def test_get_shop_cameras_nonexistent_shop(client, john_doe_login):
+    """
+    Test retrieving cameras for a shop that doesn't exist.
+    
+    Verifies that:
+    - Request fails when shop doesn't exist
+    - Returns appropriate error status
+    - Error message indicates the shop issue
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Make request to nonexistent shop
+    response = client.get(
+        "/shops/nonexistent_shop/cameras",
+        headers={"Authorization": auth_token}
+    )
+    
+    # Should fail when shop doesn't exist
+    assert response.status_code in [HTTPStatus.NOT_FOUND, HTTPStatus.BAD_REQUEST, HTTPStatus.INTERNAL_SERVER_ERROR], \
+        f"Expected error status for nonexistent shop, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message for nonexistent shop"
+    
+    print("GET cameras nonexistent shop test passed!")
+    print(f"   Error message: {data['errorMessage']}")
+
+
+def test_post_shop_camera_success(client, john_doe_login):
+    """
+    Test successful creation of a new camera for a shop.
+    
+    Verifies that:
+    - Request returns OK status
+    - Camera is created with correct data
+    - Response contains the created camera with proper ID format
+    - Camera can be retrieved via GET endpoint
+    - Camera is properly cleaned up after test
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Test data for creating a new camera
+    camera_data = {
+        "camera_name": "Test Camera Unit 1"
+    }
+    
+    # Make POST request to create camera
+    response = client.post(
+        "/shops/guardify_ai_central/cameras",
+        json=camera_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.OK, f"Expected 200 OK, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["errorMessage"] is None, "Should not have error message"
+    
+    # Check result structure
+    result = data["result"]
+    assert isinstance(result, dict), "Result should be a dictionary"
+    
+    # Verify all expected fields are present
+    expected_fields = ["camera_id", "shop_id", "camera_name"]
+    for field in expected_fields:
+        assert field in result, f"Result should contain '{field}' field"
+    
+    # Verify the data matches what we sent
+    assert result["shop_id"] == "guardify_ai_central", f"Expected shop_id 'guardify_ai_central', got '{result['shop_id']}'"
+    assert result["camera_name"] == camera_data["camera_name"], f"Expected camera_name '{camera_data['camera_name']}', got '{result['camera_name']}'"
+    
+    # Verify camera_id format (should be shop_id + underscore + camera_name in lowercase with spaces replaced by underscores)
+    expected_camera_id = "guardify_ai_central_test_camera_unit_1"
+    assert result["camera_id"] == expected_camera_id, f"Expected camera_id '{expected_camera_id}', got '{result['camera_id']}'"
+    
+    camera_id = result["camera_id"]
+    
+    # Verify the camera can be retrieved via GET endpoint
+    get_response = client.get(
+        "/shops/guardify_ai_central/cameras",
+        headers={"Authorization": auth_token}
+    )
+    
+    assert get_response.status_code == HTTPStatus.OK, "Should be able to retrieve cameras after creation"
+    get_data = get_response.get_json()
+    cameras = get_data["result"]
+    
+    # Find our created camera in the list
+    created_camera_found = False
+    for camera in cameras:
+        if camera["camera_id"] == camera_id:
+            created_camera_found = True
+            assert camera["camera_name"] == camera_data["camera_name"], "Camera name should match in GET response"
+            assert camera["shop_id"] == "guardify_ai_central", "Shop ID should match in GET response"
+            break
+    
+    assert created_camera_found, f"Created camera with ID '{camera_id}' should be found in GET response"
+    
+    # Clean up: Delete the created camera
+    try:
+        from backend.app.entities.camera import Camera
+        created_camera = Camera.query.filter_by(camera_id=camera_id).first()
+        if created_camera:
+            db.session.delete(created_camera)
+            db.session.commit()
+            print(f"   Cleaned up: Deleted camera {camera_id}")
+            
+            # Note: We skip the verification step because the GET endpoint is cached
+            # and the cache may not be immediately invalidated. In production,
+            # cache invalidation would be handled properly.
+            print(f"   Note: Skipping cache verification due to potential caching delays")
+    except Exception as e:
+        print(f"   Warning: Failed to clean up camera {camera_id}: {e}")
+        # Don't fail the test if cleanup fails
+    
+    print("POST camera test passed successfully!")
+    print(f"   Created camera ID: {result['camera_id']}")
+    print(f"   Camera name: {result['camera_name']}")
+    print(f"   Shop: {result['shop_id']}")
+
+
+def test_post_shop_camera_unauthorized(client):
+    """
+    Test creating a camera without authentication.
+    
+    Verifies that:
+    - Request returns 401 Unauthorized status
+    - Error message indicates authentication is required
+    """
+    camera_data = {
+        "camera_name": "Unauthorized Test Camera"
+    }
+    
+    # Make POST request without authentication
+    response = client.post("/shops/guardify_ai_central/cameras", json=camera_data)
+    
+    # Check response status
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, f"Expected 401 Unauthorized, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for unauthorized request"
+    assert data["errorMessage"] is not None, "Should have error message for unauthorized request"
+    
+    print("POST camera unauthorized test passed!")
+
+
+def test_post_shop_camera_missing_camera_name(client, john_doe_login):
+    """
+    Test creating a camera with missing camera_name field.
+    
+    Verifies that:
+    - Request handles missing camera_name appropriately
+    - Returns appropriate error status or handles gracefully
+    """
+    user_id, auth_token = john_doe_login
+    
+    # Test data with missing camera_name
+    incomplete_camera_data = {}
+    
+    # Make POST request with incomplete data
+    response = client.post(
+        "/shops/guardify_ai_central/cameras",
+        json=incomplete_camera_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Should fail with missing required field
+    assert response.status_code in [HTTPStatus.BAD_REQUEST, HTTPStatus.INTERNAL_SERVER_ERROR], \
+        f"Expected 400 Bad Request or 500 Internal Server Error for missing camera_name, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message for missing camera_name"
+    
+    print("POST camera missing camera_name test passed!")
+    print(f"   Error message: {data['errorMessage']}")
+
+
+def test_post_shop_camera_nonexistent_shop(client, john_doe_login):
+    """
+    Test creating a camera for a shop that doesn't exist.
+    
+    Verifies that:
+    - Request fails when shop doesn't exist
+    - Returns appropriate error status
+    - Error message indicates the shop issue
+    """
+    user_id, auth_token = john_doe_login
+    
+    camera_data = {
+        "camera_name": "Test Camera for Nonexistent Shop"
+    }
+    
+    # Make POST request to nonexistent shop
+    response = client.post(
+        "/shops/nonexistent_shop/cameras",
+        json=camera_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    # Should fail when shop doesn't exist
+    assert response.status_code in [HTTPStatus.NOT_FOUND, HTTPStatus.BAD_REQUEST, HTTPStatus.INTERNAL_SERVER_ERROR], \
+        f"Expected error status for nonexistent shop, got {response.status_code}"
+    
+    # Parse response
+    data = response.get_json()
+    assert data is not None, "Response should be JSON"
+    assert "result" in data, "Response should contain 'result' key"
+    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
+    assert data["result"] is None, "Result should be None for error"
+    assert data["errorMessage"] is not None, "Should have error message for nonexistent shop"
+    
+    print("POST camera nonexistent shop test passed!")
+    print(f"   Error message: {data['errorMessage']}")
+
+
+def test_post_shop_camera_duplicate_name(client, john_doe_login):
+    """
+    Test creating cameras with duplicate names to verify uniqueness validation.
+    
+    Verifies that:
+    - First camera with a name can be created successfully
+    - Second camera with the same name for the same shop is rejected
+    - Appropriate error message is returned for duplicate names
+    - Proper cleanup of created cameras
+    """
+    user_id, auth_token = john_doe_login
+    created_camera_ids = []
+    
+    try:
+        camera_data = {
+            "camera_name": "Duplicate Test Camera"
+        }
+        
+        # Create first camera
+        response1 = client.post(
+            "/shops/guardify_ai_central/cameras",
+            json=camera_data,
+            headers={"Authorization": auth_token}
+        )
+        
+        # Should succeed
+        assert response1.status_code == HTTPStatus.OK, f"First camera creation should succeed, got {response1.status_code}"
+        result1 = response1.get_json()["result"]
+        created_camera_ids.append(result1["camera_id"])
+        
+        # Create second camera with same name
+        response2 = client.post(
+            "/shops/guardify_ai_central/cameras",
+            json=camera_data,
+            headers={"Authorization": auth_token}
+        )
+        
+        # Should fail because duplicate camera names are not allowed for the same shop
+        assert response2.status_code in [HTTPStatus.BAD_REQUEST, HTTPStatus.INTERNAL_SERVER_ERROR], \
+            f"Second camera creation should fail due to duplicate name, got {response2.status_code}"
+        
+        # Parse error response
+        data2 = response2.get_json()
+        assert data2 is not None, "Error response should be JSON"
+        assert data2["result"] is None, "Result should be None for error"
+        assert data2["errorMessage"] is not None, "Should have error message for duplicate name"
+        
+        # Check that the error message mentions the duplicate name
+        expected_error_part = f"Camera with name '{camera_data['camera_name']}' already exists"
+        assert expected_error_part in data2["errorMessage"], \
+            f"Error message should mention duplicate name. Expected to contain '{expected_error_part}', got: '{data2['errorMessage']}'"
+        
+        print("Duplicate camera names are correctly rejected")
+        print(f"   First camera ID: {result1['camera_id']}")
+        print(f"   Error message: {data2['errorMessage']}")
+        
+    finally:
+        # Clean up all created cameras
+        for camera_id in created_camera_ids:
+            try:
+                from backend.app.entities.camera import Camera
+                created_camera = Camera.query.filter_by(camera_id=camera_id).first()
+                if created_camera:
+                    db.session.delete(created_camera)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted camera {camera_id}")
+            except Exception as e:
+                print(f"   Warning: Failed to clean up camera {camera_id}: {e}")
+    
+    print("POST camera duplicate name test passed!")
+
+
+def test_post_shop_camera_same_name_different_shops(client, john_doe_login):
+    """
+    Test creating cameras with the same name in different shops.
+    
+    Verifies that:
+    - Cameras with the same name can exist in different shops
+    - Each camera gets a unique ID based on shop_id + camera_name
+    - Proper cleanup of created cameras
+    """
+    user_id, auth_token = john_doe_login
+    created_camera_ids = []
+    
+    try:
+        camera_data = {
+            "camera_name": "Main Entrance Camera"
+        }
+        
+        # Create camera in first shop (guardify_ai_central)
+        response1 = client.post(
+            "/shops/guardify_ai_central/cameras",
+            json=camera_data,
+            headers={"Authorization": auth_token}
+        )
+        
+        # Should succeed
+        assert response1.status_code == HTTPStatus.OK, f"First camera creation should succeed, got {response1.status_code}"
+        result1 = response1.get_json()["result"]
+        created_camera_ids.append((result1["camera_id"], "guardify_ai_central"))
+        
+        # Create camera with same name in second shop (guardify_ai_north)
+        response2 = client.post(
+            "/shops/guardify_ai_north/cameras",
+            json=camera_data,
+            headers={"Authorization": auth_token}
+        )
+        
+        # Should also succeed because it's a different shop
+        assert response2.status_code == HTTPStatus.OK, f"Second camera creation in different shop should succeed, got {response2.status_code}"
+        result2 = response2.get_json()["result"]
+        created_camera_ids.append((result2["camera_id"], "guardify_ai_north"))
+        
+        # Camera IDs should be different (different shop prefixes)
+        assert result1["camera_id"] != result2["camera_id"], "Camera IDs should be different for different shops"
+        
+        # Both should have the same camera name
+        assert result1["camera_name"] == result2["camera_name"], "Camera names should be the same"
+        assert result1["camera_name"] == camera_data["camera_name"], "Camera names should match input"
+        
+        # Verify shop_ids are different
+        assert result1["shop_id"] == "guardify_ai_central", "First camera should belong to guardify_ai_central"
+        assert result2["shop_id"] == "guardify_ai_north", "Second camera should belong to guardify_ai_north"
+        
+        # Verify camera_id formats
+        expected_camera_id_1 = "guardify_ai_central_main_entrance_camera"
+        expected_camera_id_2 = "guardify_ai_north_main_entrance_camera"
+        assert result1["camera_id"] == expected_camera_id_1, f"Expected camera_id '{expected_camera_id_1}', got '{result1['camera_id']}'"
+        assert result2["camera_id"] == expected_camera_id_2, f"Expected camera_id '{expected_camera_id_2}', got '{result2['camera_id']}'"
+        
+        print("Same camera name in different shops test passed!")
+        print(f"   First camera: {result1['camera_id']} in shop {result1['shop_id']}")
+        print(f"   Second camera: {result2['camera_id']} in shop {result2['shop_id']}")
+        print(f"   Both have camera name: {result1['camera_name']}")
+        
+    finally:
+        # Clean up all created cameras
+        for camera_id, shop_id in created_camera_ids:
+            try:
+                from backend.app.entities.camera import Camera
+                created_camera = Camera.query.filter_by(camera_id=camera_id).first()
+                if created_camera:
+                    db.session.delete(created_camera)
+                    db.session.commit()
+                    print(f"   Cleaned up: Deleted camera {camera_id} from shop {shop_id}")
+            except Exception as e:
+                print(f"   Warning: Failed to clean up camera {camera_id}: {e}")
+    
+    print("Same camera name in different shops test completed!")

@@ -239,7 +239,6 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
         @self.require_auth
-        @self.cache.memoize()
         def post_shop_event(shop_id):
             """
             Creates a new event for a specific shop
@@ -270,7 +269,6 @@ class ApiHandler:
 
         @self.app.route("/analysis/<event_id>", methods=["POST"])
         @self.require_auth
-        @self.cache.memoize()
         def post_event_analysis(event_id: str):
             """
             Post analysis for a specific event ID
@@ -300,7 +298,6 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/cameras", methods=["POST"])
         @self.require_auth
-        @self.cache.memoize()
         def post_shop_camera(shop_id: str):
             """
             Post camera for a specific shop

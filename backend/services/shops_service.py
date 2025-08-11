@@ -126,13 +126,22 @@ class ShopsService:
             CameraDTO: The created camera as a DTO
             
         Raises:
-            ValueError: If shop_id is null or empty
+            ValueError: If shop_id is null or empty, or if camera name already exists for this shop
             NotFound: If shop does not exist
             Exception: If there's an error during database operations
         """
         self._verify_shop_exists(shop_id)
 
         try:
+            # Check if camera with same name already exists for this shop
+            existing_camera = Camera.query.filter_by(
+                shop_id=shop_id, 
+                camera_name=camera_req_body.camera_name
+            ).first()
+            
+            if existing_camera:
+                raise ValueError(f"Camera with name '{camera_req_body.camera_name}' already exists for shop '{shop_id}'")
+            
             # Generate camera_id as a combination of shop_id and camera_name.
             # For example: shop_id = "guardify_ai_central", camera_name = "Sweets 1"
             # Will get: camera_id = guardify_ai_central_sweets_1
