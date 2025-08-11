@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_caching import Cache
 
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
+from backend.app.request_bodies.camera_request_body import CameraRequestBody
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
@@ -238,7 +239,6 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
         @self.require_auth
-        @self.cache.memoize()
         def post_shop_event(shop_id):
             """
             Creates a new event for a specific shop
@@ -269,8 +269,12 @@ class ApiHandler:
 
         @self.app.route("/analysis/<event_id>", methods=["POST"])
         @self.require_auth
-        @self.cache.memoize()
         def post_event_analysis(event_id: str):
+            """
+            Post analysis for a specific event ID
+            :param event_id: The analysis for that event ID
+            :return: The analysis that was posted for that event ID
+            """
             data = request.get_json(silent=True) or {}
 
             analysis_req_body = AnalysisRequestBody(
@@ -280,6 +284,33 @@ class ApiHandler:
             )
 
             return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
+
+        @self.app.route("/shops/<shop_id>/cameras", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_shop_cameras(shop_id: str):
+            """
+            Get all cameras for a specific shop
+            :param shop_id: The shop ID from the URL path
+            :return: The cameras for that shop
+            """
+            return self.shops_service.get_shop_cameras(shop_id)
+
+        @self.app.route("/shops/<shop_id>/cameras", methods=["POST"])
+        @self.require_auth
+        def post_shop_camera(shop_id: str):
+            """
+            Post camera for a specific shop
+            :param shop_id: The shop ID from the URL path
+            :return: The camera that was posted for that shop
+            """
+            data = request.get_json(silent=True) or {}
+
+            camera_req_body = CameraRequestBody(
+                camera_name=data.get("camera_name")
+            )
+
+            return asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
