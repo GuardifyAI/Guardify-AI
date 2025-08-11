@@ -32,10 +32,31 @@ export default function AppContent() {
   if (shopsLoading) {
     return <LoadingSpinner fullScreen message="Loading shops..." />;
   }
-  
+
   // Show error state
   if (shopsError) {
     return <ErrorDisplay fullScreen title="Error Loading Shops" message={shopsError} onRetry={() => window.location.reload()} />;
+  }
+
+  // Show message if no shops exist
+  if (!shops || shops.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Sidebar
+          shops={[]}
+          selectedShop={selectedShop}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          setSelectedShop={setSelectedShop}
+        />
+        <main className="lg:ml-72 p-4 lg:p-8 animate-fade-in flex flex-col items-center justify-center">
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2 text-gray-800">No Shops Available</h2>
+            <p className="text-gray-600">Please ask your administrator to add shops to the system.</p>
+          </div>
+        </main>
+      </div>
+    );
   }
   
   return (
