@@ -1443,3 +1443,37 @@ def test_post_shop_event_nonexistent_shop(client, john_doe_login):
     
     print("POST event nonexistent shop test passed!")
     print(f"   Error message: {data['errorMessage']}")
+
+def test_get_user_events_success(client, john_doe_login):
+    """
+    Should return all events across the user's shops.
+    """
+    user_id, auth_token = john_doe_login
+
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    assert resp.status_code == HTTPStatus.OK, f"Expected 200, got {resp.status_code}"
+
+    data = resp.get_json()
+    assert data is not None and "result" in data and "errorMessage" in data
+    assert data["errorMessage"] is None
+
+    events = data["result"]
+    assert isinstance(events, list)
+
+    for ev in events:
+        for key in ["event_id", "event_datetime", "shop_id", "final_confidence", "shop_name", "camera_id", "camera_name", "description"]:
+            assert key in ev, f"Missing '{key}' in event"
+        # Basic types
+        assert isinstance(ev["event_id"], str)
+        assert isinstance(ev["shop_id"], str)
+        assert isinstance(ev["camera_id"], str)
+        assert isinstance(ev["description"], str)
+
+def test_get_user_events_unauthorized(client):
+    """
+    Should require auth.
+    """
+    resp = client.get("/events")
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+    data = resp.get_json()
+    assert data is not None and data["result"] is None and data["errorMessage"]

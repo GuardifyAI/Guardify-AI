@@ -210,7 +210,6 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)  # 30 minutes cache
         def get_user_shops():
             """
             Get all shops for the current authenticated user.
@@ -225,7 +224,33 @@ class ApiHandler:
             """
             user_id = getattr(request, "user_id", None)
             # Call the business logic
-            return self.shops_service.get_user_shops(user_id)
+            # Get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header:
+                raise Unauthorized("Authorization header is required")
+            return self.shops_service.get_user_shops(user_id, auth_header)
+
+        @self.app.route("/events", methods=["GET"])
+        @self.require_auth
+        def get_user_events():
+            """
+            Get all events for the current authenticated user.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Returns:
+                JSON response with:
+                    - result: Array of events objects
+                    - errorMessage: None on success, error string on failure
+            """
+            user_id = getattr(request, "user_id", None)
+            auth_header = request.headers.get("Authorization")
+            if not auth_header:
+                raise Unauthorized("Authorization header is required")
+
+            # Call the business logic
+            return self.user_service.get_events(user_id, auth_header)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth

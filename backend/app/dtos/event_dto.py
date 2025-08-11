@@ -12,3 +12,4 @@ class EventDTO:
     shop_name: str | None
     camera_name: str | None
     event_datetime: str | None
+    final_confidence: int | None

@@ -6,6 +6,13 @@ import datetime
 import uuid
 import os
 from data_science.src.utils import load_env_variables
+from backend.app.dtos import EventDTO
+from backend.app.entities.event import Event
+from backend.app.entities.user_shop import UserShop
+from backend.db import db
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select
+
 load_env_variables()
 
 class UserService:
@@ -156,3 +163,48 @@ class UserService:
             str: Encoded string
         """
         return hashlib.sha256(text.encode()).hexdigest()
+
+    def get_events(self, user_id: str, token:str | None) -> list[EventDTO]:
+        """
+        Get all events for a specific user.
+
+        Args:
+            user_id (str): The user ID
+
+        Returns:
+            list[EventDTO]: List of EventDTO objects for the user's events
+
+        Raises:
+            ValueError: If user_id is not provided
+            NotFound: If user does not exist
+        """
+        if not user_id or str(user_id).strip() == "":
+            raise ValueError("User ID is required")
+        user = User.query.filter_by(user_id=user_id).first()
+        if not user:
+            raise NotFound(f"User with ID '{user_id}' does not exist")
+        
+        # Validate token and get the user ID from it
+        token_user_id = self.validate_token(token)
+        # Check if the token belongs to the specified user
+        if token_user_id != user_id:
+            raise Unauthorized(f"Token does not belong to user '{user_id}'")
+
+        # subquery of shop_ids this user has access to
+        shop_ids_sq = (
+            db.session.query(UserShop.shop_id)
+            .filter(UserShop.user_id == user_id)
+            .subquery()
+        )
+
+        # Query all events for this user with relationships eagerly loaded
+        events = (
+            Event.query.options(
+                joinedload(Event.shop),
+                joinedload(Event.camera),
+                joinedload(Event.analysis),
+            )
+            .filter(Event.shop_id.in_(select(shop_ids_sq.c.shop_id))).all())
+
+        # Convert to DTOs
+        return [event.to_dto() for event in events]

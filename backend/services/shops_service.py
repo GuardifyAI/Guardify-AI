@@ -7,9 +7,10 @@ from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
 from backend.app.dtos import EventDTO, ShopDTO
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, Unauthorized
 
 from backend.app.request_bodies.event_request_body import EventRequestBody
+from backend.services.user_service import UserService
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
@@ -17,7 +18,7 @@ from typing import List
 
 class ShopsService:
 
-    def get_user_shops(self, user_id: str | None) -> List[ShopDTO]:
+    def get_user_shops(self, user_id: str | None, token: str | None) -> List[ShopDTO]:
         """
         Get all shops associated with a user.
 
@@ -35,7 +36,13 @@ class ShopsService:
         # Validate input parameters
         if not user_id or user_id.strip() == "":
             raise ValueError("User ID is required")
-
+        
+        # Validate token and get the user ID from it
+        user_service = UserService()
+        token_user_id = user_service.validate_token(token)
+        if token_user_id != user_id:
+            raise Unauthorized(f"Token does not belong to user '{user_id}'")
+        
         # Check if user exists and load user_shops with shop relationships
         user = User.query.options(
             joinedload(User.user_shops).joinedload(UserShop.shop)
