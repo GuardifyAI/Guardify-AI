@@ -248,15 +248,9 @@ class ApiHandler:
             """
             data = request.get_json(silent=True) or {}
             
-            # Parse timestamp string (the timestamp of the event) to datetime object
-            try:
-                event_timestamp = datetime.fromisoformat(data["event_timestamp"])
-            except ValueError:
-                raise ValueError(f"Invalid timestamp format: {data['event_timestamp']}")
-            
             event_req_body = EventRequestBody(
                 camera_id=data.get("camera_id"),
-                event_timestamp=event_timestamp,
+                event_timestamp=datetime.fromisoformat(datetime.now().isoformat()),
                 description=data.get("description"),
                 video_url=data.get("video_url")
             )
@@ -267,8 +261,19 @@ class ApiHandler:
         @self.require_auth
         @self.cache.memoize()
         def get_event_analysis(event_id: str):
+            """
+            Get analysis for a specific event ID
+            :param event_id: The event ID from the URL path
+            :return: The analysis for that event ID
+            """
             analysis = self.event_service.get_event_analysis(event_id)
             return asdict(analysis)
+
+        @self.app.route("/analysis/<event_id>", methods=["POST"])
+        @self.require_auth
+        @self.cache.memoize()
+        def post_event_analysis(event_id: str):
+
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
