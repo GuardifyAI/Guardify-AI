@@ -1,5 +1,5 @@
-from backend.app import create_app
-from backend.api_handler import ApiHandler
+from app import create_app
+from api_handler import ApiHandler
 
 app = create_app()
 HOST = "0.0.0.0"

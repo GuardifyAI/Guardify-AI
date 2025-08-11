@@ -11,6 +11,7 @@ from backend.app.entities.event import Event
 import requests
 import time
 import threading
+import uuid
 
 @pytest.fixture
 def client():
@@ -1940,3 +1941,47 @@ def test_get_user_events_unauthorized(client):
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
     data = resp.get_json()
     assert data is not None and data["result"] is None and data["errorMessage"]
+
+def test_get_event_happy_path(client, john_doe_login):
+    """
+    Should return 200 for a valid (shop_id, event_id) pair for John Doe.
+    """
+    user_id, auth_token = john_doe_login
+
+    # John Doe has 3 events, so fetch them
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    assert resp.status_code == HTTPStatus.OK
+    events = resp.get_json()["result"]
+    assert len(events) >= 3
+
+    ev = events[0]  # pick first event
+    r = client.get(f"/shops/{ev['shop_id']}/events/{ev['event_id']}",
+                   headers={"Authorization": auth_token})
+    assert r.status_code == HTTPStatus.OK
+    result = r.get_json()["result"]
+    assert result["event_id"] == ev["event_id"]
+    assert result["shop_id"] == ev["shop_id"]
+
+def test_get_event_wrong_shop_404(client, john_doe_login):
+    """
+    Same event_id but wrong shop_id must return 404.
+    """
+    user_id, auth_token = john_doe_login
+
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    events = resp.get_json()["result"]
+    ev = events[0]
+
+    # Use a shop_id from a different event (or fake one)
+    wrong_shop_id = events[1]["shop_id"] if len(events) > 1 else "shop-" + uuid.uuid4().hex
+
+    r = client.get(f"/shops/{wrong_shop_id}/events/{ev['event_id']}",
+                   headers={"Authorization": auth_token})
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+def test_get_event_unauthorized(client):
+    """
+    Missing auth should return 401.
+    """
+    r = client.get(f"/shops/fake-shop/events/{uuid.uuid4().hex}")
+    assert r.status_code == HTTPStatus.UNAUTHORIZED

@@ -164,7 +164,7 @@ class UserService:
         """
         return hashlib.sha256(text.encode()).hexdigest()
 
-    def get_events(self, user_id: str, token:str | None) -> list[EventDTO]:
+    def get_events(self, user_id: str) -> list[EventDTO]:
         """
         Get all events for a specific user.
 
@@ -184,12 +184,6 @@ class UserService:
         if not user:
             raise NotFound(f"User with ID '{user_id}' does not exist")
         
-        # Validate token and get the user ID from it
-        token_user_id = self.validate_token(token)
-        # Check if the token belongs to the specified user
-        if token_user_id != user_id:
-            raise Unauthorized(f"Token does not belong to user '{user_id}'")
-
         # subquery of shop_ids this user has access to
         shop_ids_sq = (
             db.session.query(UserShop.shop_id)

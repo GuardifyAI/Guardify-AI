@@ -37,7 +37,7 @@ class ShopsService:
         if not shop:
             raise NotFound(f"Shop with ID '{shop_id}' does not exist")
 
-    def get_user_shops(self, user_id: str | None, token: str | None) -> List[ShopDTO]:
+    def get_user_shops(self, user_id: str | None) -> List[ShopDTO]:
         """
         Get all shops associated with a user.
 
@@ -55,12 +55,6 @@ class ShopsService:
         # Validate input parameters
         if not user_id or user_id.strip() == "":
             raise ValueError("User ID is required")
-        
-        # Validate token and get the user ID from it
-        user_service = UserService()
-        token_user_id = user_service.validate_token(token)
-        if token_user_id != user_id:
-            raise Unauthorized(f"Token does not belong to user '{user_id}'")
         
         # Check if user exists and load user_shops with shop relationships
         user = User.query.options(
@@ -213,3 +207,17 @@ class ShopsService:
             # Rollback in case of error
             db.session.rollback()
             raise Exception(f"Failed to create event: {str(e)}")
+
+
+    def get_event(self, shop_id:str, event_id: str) -> EventDTO:
+        if not shop_id or str(shop_id).strip() == "":
+            raise ValueError("Shop ID is required")
+        if not event_id or str(event_id).strip() == "":
+            raise ValueError("Event ID is required")
+
+        event = Event.query.filter_by(event_id=event_id, shop_id=shop_id).first()
+        if not event:
+            raise NotFound(f"Event with ID '{event_id}' does not exist in shop '{shop_id}'")
+        
+        # Convert to DTOs
+        return event.to_dto()
