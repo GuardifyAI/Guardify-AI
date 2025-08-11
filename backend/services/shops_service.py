@@ -2,12 +2,13 @@ import uuid
 from datetime import datetime
 
 from backend.app.entities import Camera
-from backend.db import db
+from backend.app.request_bodies.camera_request_body import CameraRequestBody
+from backend.db import db, save_and_refresh
 from backend.app.entities.user import User
 from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
-from backend.app.dtos import EventDTO, ShopDTO
+from backend.app.dtos import EventDTO, ShopDTO, CameraDTO
 from werkzeug.exceptions import NotFound
 
 from backend.app.request_bodies.event_request_body import EventRequestBody
@@ -19,6 +20,16 @@ from typing import List
 class ShopsService:
 
     def _verify_shop_exists(self, shop_id):
+        """
+        Verify that a shop exists in the database.
+        
+        Args:
+            shop_id (str): The shop ID to verify
+            
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+        """
         if not shop_id or str(shop_id).strip() == "":
             raise ValueError("Shop ID is required")
         shop = Shop.query.filter_by(shop_id=shop_id).first()
@@ -82,13 +93,68 @@ class ShopsService:
         # Convert to DTOs
         return [event.to_dto() for event in events]
 
-    def get_shop_cameras(self, shop_id: str):
+    def get_shop_cameras(self, shop_id: str) -> List[CameraDTO]:
+        """
+        Get all cameras for a specific shop.
+        
+        Args:
+            shop_id (str): The shop ID to get cameras for
+            
+        Returns:
+            List[CameraDTO]: List of CameraDTO objects for the shop
+            
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+        """
         self._verify_shop_exists(shop_id)
 
         cameras = Camera.query.filter_by(shop_id=shop_id).all()
 
         # Convert to DTOs
         return [camera.to_dto() for camera in cameras]
+
+    def create_shop_camera(self, shop_id: str, camera_req_body: CameraRequestBody) -> CameraDTO:
+        """
+        Create a new camera for a specific shop.
+        
+        Args:
+            shop_id (str): The shop ID to create the camera for
+            camera_req_body (CameraRequestBody): The camera request data containing camera details
+            
+        Returns:
+            CameraDTO: The created camera as a DTO
+            
+        Raises:
+            ValueError: If shop_id is null or empty
+            NotFound: If shop does not exist
+            Exception: If there's an error during database operations
+        """
+        self._verify_shop_exists(shop_id)
+
+        try:
+            # Generate camera_id as a combination of shop_id and camera_name.
+            # For example: shop_id = "guardify_ai_central", camera_name = "Sweets 1"
+            # Will get: camera_id = guardify_ai_central_sweets_1
+            camera_id = shop_id + '_' + camera_req_body.camera_name.lower().replace(" ", "_")
+
+            new_camera = Camera(
+                shop_id=shop_id,
+                camera_id=camera_id,
+                camera_name=camera_req_body.camera_name
+            )
+
+            # Save and refresh the entity
+            save_and_refresh(new_camera)
+
+            # Convert to DTO - this might be where the error occurs
+            result_dto = new_camera.to_dto()
+            return result_dto
+
+        except Exception as e:
+            # Rollback in case of error
+            db.session.rollback()
+            raise Exception(f"Failed to create camera: {str(e)}")
 
     def create_shop_event(self, shop_id: str, event_req_body: EventRequestBody) -> EventDTO:
         """
@@ -104,6 +170,8 @@ class ShopsService:
         Raises:
             Exception: If there's an error during database operations
         """
+        self._verify_shop_exists(shop_id)
+
         try:
             # Generate UUID for event_id
             event_id = str(uuid.uuid4())
@@ -118,14 +186,8 @@ class ShopsService:
                 event_timestamp=datetime.fromisoformat(datetime.now().isoformat())
             )
 
-            # Add to database session
-            db.session.add(new_event)
-
-            # Commit the transaction
-            db.session.commit()
-
-            # Refresh to get the assigned event_id
-            db.session.refresh(new_event)
+            # Save and refresh the entity
+            save_and_refresh(new_event)
 
             # Convert to DTO - this might be where the error occurs
             result_dto = new_event.to_dto()
