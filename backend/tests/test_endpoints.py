@@ -1186,7 +1186,6 @@ def test_post_shop_event_success(client, john_doe_login):
     event_data = {
         "camera_id": "guardify_ai_central_entrance",
         "description": "Person entering suspiciously - test event",
-        "event_timestamp": "2025-08-10T12:16:28.525538",
         "video_url": "gs://test-bucket/test_video.mp4"
     }
     
@@ -1237,6 +1236,78 @@ def test_post_shop_event_success(client, john_doe_login):
     assert result["shop_name"] is not None, "Shop name should be populated from relationship"
     assert result["camera_name"] is not None, "Camera name should be populated from relationship"
     
+    # Now test analysis creation for this event
+    analysis_data = {
+        "final_detection": True,  # True means shoplifting was detected
+        "final_confidence": 0.95,
+        "decision_reasoning": "Clear evidence of concealment and suspicious behavior"
+    }
+    
+    # Test analysis creation without authentication
+    response = client.post(f"/analysis/{event_id}", json=analysis_data)
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, "Should require authentication"
+    
+    # Test analysis creation for non-existent event
+    response = client.post(
+        "/analysis/nonexistent-event-id",
+        json=analysis_data,
+        headers={"Authorization": auth_token}
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND, "Should fail for non-existent event"
+    
+    # Test analysis creation with valid data
+    response = client.post(
+        f"/analysis/{event_id}",
+        json=analysis_data,
+        headers={"Authorization": auth_token}
+    )
+    
+    assert response.status_code == HTTPStatus.OK, "Analysis creation should succeed"
+    created_analysis = response.get_json()["result"]
+    
+    # Verify created analysis data
+    assert created_analysis["event_id"] == event_id, "Event ID should match"
+    assert created_analysis["final_detection"] == analysis_data["final_detection"], "Detection should match"
+    assert float(created_analysis["final_confidence"]) == analysis_data["final_confidence"], "Confidence should match"
+    assert created_analysis["decision_reasoning"] == analysis_data["decision_reasoning"], "Reasoning should match"
+    
+    # Test getting analysis without authentication
+    response = client.get(f"/analysis/{event_id}")
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, "Should require authentication"
+    
+    # Test getting analysis for non-existent event
+    response = client.get(
+        "/analysis/nonexistent-event-id",
+        headers={"Authorization": auth_token}
+    )
+    assert response.status_code == HTTPStatus.NOT_FOUND, "Should fail for non-existent event"
+    
+    # Test getting analysis with valid event ID
+    response = client.get(
+        f"/analysis/{event_id}",
+        headers={"Authorization": auth_token}
+    )
+    
+    assert response.status_code == HTTPStatus.OK, "Analysis retrieval should succeed"
+    retrieved_analysis = response.get_json()["result"]
+    
+    # Verify retrieved analysis matches created analysis
+    assert retrieved_analysis["event_id"] == event_id, "Event ID should match"
+    assert retrieved_analysis["final_detection"] == analysis_data["final_detection"], "Detection should match"
+    assert float(retrieved_analysis["final_confidence"]) == analysis_data["final_confidence"], "Confidence should match"
+    assert retrieved_analysis["decision_reasoning"] == analysis_data["decision_reasoning"], "Reasoning should match"
+
+    # Clean up: Delete the created analysis first (due to foreign key constraint)
+    try:
+        from backend.app.entities.analysis import Analysis
+        created_analysis_entity = Analysis.query.filter_by(event_id=event_id).first()
+        if created_analysis_entity:
+            db.session.delete(created_analysis_entity)
+            db.session.commit()
+            print(f"   Cleaned up: Deleted analysis for event {event_id}")
+    except Exception as e:
+        print(f"   Warning: Failed to clean up analysis for event {event_id}: {e}")
+
     # Clean up: Delete the created event to avoid interfering with other tests
     try:
         created_event = Event.query.filter_by(event_id=event_id).first()
@@ -1248,11 +1319,13 @@ def test_post_shop_event_success(client, john_doe_login):
         print(f"   Warning: Failed to clean up event {event_id}: {e}")
         # Don't fail the test if cleanup fails
     
-    print("POST event test passed successfully!")
+    print("POST event and analysis test passed successfully!")
     print(f"   Created event ID: {result['event_id']}")
     print(f"   Shop: {result['shop_name']}")
     print(f"   Camera: {result['camera_name']}")
     print(f"   Description: {result['description']}")
+    print(f"   Analysis detection: {retrieved_analysis['final_detection']}")
+    print(f"   Analysis confidence: {retrieved_analysis['final_confidence']}")
 
 
 def test_post_shop_event_unauthorized(client):
@@ -1266,7 +1339,6 @@ def test_post_shop_event_unauthorized(client):
     event_data = {
         "camera_id": "test_camera",
         "description": "Test event",
-        "event_timestamp": "2025-08-10T12:16:28.525538",
         "video_url": "gs://test-bucket/test_video.mp4"
     }
     
@@ -1300,7 +1372,6 @@ def test_post_shop_event_missing_fields(client, john_doe_login):
     # Test data with missing camera_id
     incomplete_event_data = {
         "description": "Test event",
-        "event_timestamp": "2025-08-10T12:16:28.525538",
         "video_url": "gs://test-bucket/test_video.mp4",
         "camera_id": "guardify_ai_central_entrance"
     }
@@ -1334,50 +1405,6 @@ def test_post_shop_event_missing_fields(client, john_doe_login):
     print("POST event missing fields test passed!")
 
 
-def test_post_shop_event_invalid_timestamp(client, john_doe_login):
-    """
-    Test creating an event with invalid timestamp format.
-    
-    Verifies that:
-    - Request returns 400 Bad Request for invalid timestamp
-    - Error message indicates timestamp format issue
-    """
-    user_id, auth_token = john_doe_login
-    
-    # Test data with invalid timestamp format
-    event_data = {
-        "camera_id": "test_camera",
-        "description": "Test event",
-        "event_timestamp": "invalid-timestamp-format",
-        "video_url": "gs://test-bucket/test_video.mp4"
-    }
-    
-    # Make POST request with invalid timestamp
-    response = client.post(
-        "/shops/guardify_ai_central/events",
-        json=event_data,
-        headers={"Authorization": auth_token}
-    )
-    
-    # Check response status
-    assert response.status_code == HTTPStatus.BAD_REQUEST, f"Expected 400 Bad Request, got {response.status_code}"
-    
-    # Parse response
-    data = response.get_json()
-    assert data is not None, "Response should be JSON"
-    assert "result" in data, "Response should contain 'result' key"
-    assert "errorMessage" in data, "Response should contain 'errorMessage' key"
-    assert data["result"] is None, "Result should be None for error"
-    assert data["errorMessage"] is not None, "Should have error message"
-    
-    # Check that error message mentions timestamp format
-    error_message = data["errorMessage"].lower()
-    assert "timestamp" in error_message or "format" in error_message, \
-        f"Error message should mention timestamp format issue: {data['errorMessage']}"
-    
-    print("POST event invalid timestamp test passed!")
-
-
 def test_post_shop_event_nonexistent_shop(client, john_doe_login):
     """
     Test creating an event for a shop that doesn't exist.
@@ -1392,7 +1419,6 @@ def test_post_shop_event_nonexistent_shop(client, john_doe_login):
     event_data = {
         "camera_id": "test_camera",
         "description": "Test event for nonexistent shop",
-        "event_timestamp": "2025-08-10T12:16:28.525538",
         "video_url": "gs://test-bucket/test_video.mp4"
     }
     

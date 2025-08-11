@@ -29,8 +29,16 @@ class EventsService:
         return analysis.to_dto()
 
     def create_event_analysis(self, event_id: str, analysis_req_body: AnalysisRequestBody) -> AnalysisDTO:
+        if not event_id or str(event_id).strip() == "":
+            raise ValueError("Event ID is required")
+            
+        # Check if event exists
+        event = Event.query.filter_by(event_id=event_id).first()
+        if not event:
+            raise NotFound(f"Event with ID '{event_id}' does not exist")
+            
         try:
-            # Create Event entity
+            # Create Analysis entity
             new_analysis = Analysis(
                 event_id=event_id,
                 final_detection=analysis_req_body.final_detection,
