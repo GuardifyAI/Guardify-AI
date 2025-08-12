@@ -11,7 +11,7 @@ class Analysis(db.Model):
     decision_reasoning = db.Column(db.Text, nullable=True)
     analysis_timestamp = db.Column(db.DateTime, nullable=True)
 
-    event = db.relationship('Event', backref='analysis')
+    event = db.relationship('Event', back_populates='analysis')
     
     def __repr__(self):
         final_detection_str = self.final_detection if self.final_detection is not None else "N/A"

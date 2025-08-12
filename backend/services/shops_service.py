@@ -9,9 +9,10 @@ from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
 from backend.app.dtos import EventDTO, ShopDTO, CameraDTO
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, Unauthorized
 
 from backend.app.request_bodies.event_request_body import EventRequestBody
+from backend.services.user_service import UserService
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
@@ -54,7 +55,7 @@ class ShopsService:
         # Validate input parameters
         if not user_id or user_id.strip() == "":
             raise ValueError("User ID is required")
-
+        
         # Check if user exists and load user_shops with shop relationships
         user = User.query.options(
             joinedload(User.user_shops).joinedload(UserShop.shop)
@@ -206,3 +207,26 @@ class ShopsService:
             # Rollback in case of error
             db.session.rollback()
             raise Exception(f"Failed to create event: {str(e)}")
+
+
+    def get_event(self, shop_id:str, event_id: str) -> EventDTO:
+        """
+        Get an event by its ID and shop ID.
+
+        Args:
+            shop_id (str): The shop ID
+            event_id (str): The event ID
+
+        Returns:
+            EventDTO: The event as a DTO
+        """
+        self._verify_shop_exists(shop_id)
+        if not event_id or str(event_id).strip() == "":
+            raise ValueError("Event ID is required")
+
+        event = Event.query.filter_by(event_id=event_id, shop_id=shop_id).first()
+        if not event:
+            raise NotFound(f"Event with ID '{event_id}' does not exist in shop '{shop_id}'")
+        
+        # Convert to DTOs
+        return event.to_dto()
