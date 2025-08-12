@@ -100,9 +100,56 @@ class VideoRecorder:
             will continue processing any queued uploads even after recording stops.
         """
         self.logger.info(f"Navigating to the camera stream of {camera_name}")
-        for i in range(2):
-            page.get_by_text(camera_name).dblclick()
-            time.sleep(2)
+        
+        # Try to find the camera with exact text match first
+        try:
+            camera_element = page.get_by_text(camera_name)
+            camera_element.wait_for(timeout=5000)  # Wait up to 5 seconds
+            self.logger.info(f"Found camera '{camera_name}' - attempting to navigate")
+            
+            for i in range(2):
+                camera_element.dblclick()
+                time.sleep(2)
+                
+        except Exception as e:
+            # If exact match fails, try partial match
+            self.logger.warning(f"Exact match for '{camera_name}' failed: {e}")
+            self.logger.info("Attempting partial match search...")
+            
+            try:
+                # Try case-insensitive partial match
+                camera_element = page.get_by_text(camera_name, case_sensitive=False)
+                camera_element.wait_for(timeout=5000)
+                self.logger.info(f"Found camera with partial match - attempting to navigate")
+                
+                for i in range(2):
+                    camera_element.dblclick()
+                    time.sleep(2)
+                    
+            except Exception as e2:
+                # List available cameras for debugging
+                self.logger.error(f"Could not find camera '{camera_name}'. Available text elements:")
+                
+                try:
+                    all_text_elements = page.locator("text=/[A-Za-z0-9]/").all()
+                    available_texts = []
+                    
+                    for element in all_text_elements[:20]:  # Limit to first 20
+                        try:
+                            text = element.text_content()
+                            if text and len(text.strip()) > 1 and len(text.strip()) < 30:
+                                available_texts.append(text.strip())
+                        except:
+                            continue
+                    
+                    unique_texts = list(set(available_texts))
+                    for text in sorted(unique_texts):
+                        self.logger.error(f"  Available: '{text}'")
+                        
+                except Exception as list_error:
+                    self.logger.error(f"Could not list available cameras: {list_error}")
+                
+                raise Exception(f"Camera '{camera_name}' not found in Provision ISR interface. Check camera name and try again.")
 
         # Ensure the upload worker is running
         if not self.video_uploader.is_running():
@@ -110,12 +157,35 @@ class VideoRecorder:
 
         try:
             while True:
+                # Check for shutdown signal
+                try:
+                    # Import shutdown_requested from main module if it exists
+                    import sys
+                    main_module = sys.modules.get('__main__')
+                    if main_module and hasattr(main_module, 'shutdown_requested') and main_module.shutdown_requested:
+                        self.logger.info("Shutdown requested via signal - stopping recording loop")
+                        break
+                except:
+                    pass  # Continue normally if we can't check shutdown flag
+                
                 self.logger.info("Started recording")
                 time.sleep(1)
                 page.get_by_title("Client Record On").click()
 
                 self.logger.info(f"Recording for {duration_in_sec} seconds...")
-                time.sleep(duration_in_sec)
+                
+                # Sleep in smaller chunks so we can respond to shutdown signals faster
+                for i in range(duration_in_sec):
+                    time.sleep(1)
+                    # Check for shutdown during recording
+                    try:
+                        if main_module and hasattr(main_module, 'shutdown_requested') and main_module.shutdown_requested:
+                            self.logger.info("Shutdown requested during recording - stopping current recording")
+                            page.get_by_title("Client Record Off").click()
+                            self.logger.info("Recording stopped due to shutdown request")
+                            return
+                    except:
+                        pass
 
                 page.get_by_title("Client Record Off").click()
                 self.logger.info("Recording finished")

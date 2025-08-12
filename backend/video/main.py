@@ -1,5 +1,6 @@
 import argparse
 import os
+import signal
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
 
@@ -8,6 +9,22 @@ from backend.video.video_uploader import VideoUploader
 from google_client.google_client import GoogleClient
 
 load_dotenv()
+
+# Global flag for graceful shutdown
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully"""
+    global shutdown_requested
+    print(f"\n[SIGNAL] Received signal {signum}, initiating graceful shutdown...")
+    shutdown_requested = True
+
+# Register signal handlers
+if os.name != 'nt':  # Unix/Linux
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+else:  # Windows
+    signal.signal(signal.SIGTERM, signal_handler)
 
 
 def parse_arguments():
@@ -120,10 +137,20 @@ def main():
         print("\n" + "=" * 60)
         print("SHUTDOWN INITIATED")
         print("=" * 60)
+    except SystemExit:
+        print("\n" + "=" * 60)
+        print("SHUTDOWN INITIATED VIA SIGNAL")
+        print("=" * 60)
         
     except Exception as e:
+        error_msg = str(e)
         print(f"\nAn error occurred: {e}")
-        return 1
+        
+        # Return specific exit codes for different types of errors
+        if "not found in Provision ISR interface" in error_msg:
+            return 2  # Camera not found error
+        else:
+            return 1  # General error
         
     finally:
         # Cleanup and shutdown

@@ -4,10 +4,12 @@ from flask_caching import Cache
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.app.request_bodies.camera_request_body import CameraRequestBody
 from backend.app.request_bodies.event_request_body import EventRequestBody
+from backend.app.request_bodies.recording_request_body import StartRecordingRequestBody, StopRecordingRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
+from backend.services.recording_service import RecordingService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
@@ -16,6 +18,7 @@ from dataclasses import asdict
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
+SUCCESS_RESPONSE = "OK"
 
 
 class ApiHandler:
@@ -43,6 +46,7 @@ class ApiHandler:
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
         self.event_service = EventsService()
+        self.recording_service = RecordingService()
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -96,7 +100,7 @@ class ApiHandler:
             Returns:
                 tuple: ("OK", 200) - Simple health status response
             """
-            return "OK", HTTPStatus.OK
+            return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/app/error", methods=["GET"])
         def raise_error():
@@ -311,6 +315,80 @@ class ApiHandler:
             )
 
             return asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
+
+        @self.app.route("/shops/<shop_id>/recording/start", methods=["POST"])
+        @self.require_auth
+        def start_shop_recording(shop_id):
+            """
+            Start video recording for a camera in the specified shop.
+            
+            Args:
+                shop_id (str): The shop ID to start recording for
+                
+            Expected JSON payload:
+                {
+                    "camera_name": str,  - Name of the camera to record from (required)
+                    "duration": int      - Duration in seconds (optional, defaults to 30)
+                }
+                
+            Returns:
+                JSON response with:
+                    - result: "OK" on success
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+            
+            recording_req_body = StartRecordingRequestBody(
+                camera_name=data.get("camera_name"),
+                duration=data.get("duration", 30)
+            )
+            
+            if not recording_req_body.camera_name:
+                raise ValueError("camera_name is required")
+            
+            # Verify shop exists and user has access
+            self.shops_service._verify_shop_exists(shop_id)
+            
+            # Start the recording
+            self.recording_service.start_recording(shop_id, recording_req_body.camera_name, recording_req_body.duration)
+            
+            return SUCCESS_RESPONSE, HTTPStatus.OK
+
+        @self.app.route("/shops/<shop_id>/recording/stop", methods=["POST"])
+        @self.require_auth 
+        def stop_shop_recording(shop_id):
+            """
+            Stop video recording for a camera in the specified shop.
+            
+            Args:
+                shop_id (str): The shop ID to stop recording for
+                
+            Expected JSON payload:
+                {
+                    "camera_name": str  - Name of the camera to stop recording (required)
+                }
+                
+            Returns:
+                JSON response with:
+                    - result: "OK" on success
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+            
+            recording_req_body = StopRecordingRequestBody(
+                camera_name=data.get("camera_name")
+            )
+            
+            if not recording_req_body.camera_name:
+                raise ValueError("camera_name is required")
+            
+            # Verify shop exists and user has access
+            self.shops_service._verify_shop_exists(shop_id)
+            
+            # Stop the recording
+            self.recording_service.stop_recording(shop_id, recording_req_body.camera_name)
+            
+            return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
