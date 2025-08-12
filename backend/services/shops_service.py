@@ -9,10 +9,9 @@ from backend.app.entities.event import Event
 from backend.app.entities.shop import Shop
 from backend.app.entities.user_shop import UserShop
 from backend.app.dtos import EventDTO, ShopDTO, CameraDTO
-from werkzeug.exceptions import NotFound, Unauthorized
+from werkzeug.exceptions import NotFound
 
 from backend.app.request_bodies.event_request_body import EventRequestBody
-from backend.services.user_service import UserService
 from data_science.src.utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
@@ -220,7 +219,7 @@ class ShopsService:
         Returns:
             EventDTO: The event as a DTO
         """
-        self._verify_shop_exists(shop_id)
+        self.verify_shop_exists(shop_id)
         if not event_id or str(event_id).strip() == "":
             raise ValueError("Event ID is required")
 
