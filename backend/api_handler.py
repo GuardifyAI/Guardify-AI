@@ -211,6 +211,7 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
+        @self.cache.memoize(timeout=1800)
         def get_user_shops():
             """
             Get all shops for the current authenticated user.
@@ -225,11 +226,11 @@ class ApiHandler:
             """
             user_id = getattr(request, "user_id", None)
             # Call the business logic
-            # Get token from Authorization header
             return self.shops_service.get_user_shops(user_id)
 
         @self.app.route("/events", methods=["GET"])
         @self.require_auth
+        @self.cache.memoize(timeout=1800)
         def get_user_events():
             """
             Get all events for the current authenticated user.

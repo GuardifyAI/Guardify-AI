@@ -210,8 +210,17 @@ class ShopsService:
 
 
     def get_event(self, shop_id:str, event_id: str) -> EventDTO:
-        if not shop_id or str(shop_id).strip() == "":
-            raise ValueError("Shop ID is required")
+        """
+        Get an event by its ID and shop ID.
+
+        Args:
+            shop_id (str): The shop ID
+            event_id (str): The event ID
+
+        Returns:
+            EventDTO: The event as a DTO
+        """
+        self._verify_shop_exists(shop_id)
         if not event_id or str(event_id).strip() == "":
             raise ValueError("Event ID is required")
 

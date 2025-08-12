@@ -43,15 +43,7 @@ class UserService:
             raise ValueError("Password is required")
 
         # Check if user exists with the given email
-        users = User.query.filter_by(email=email.strip()).all()
-
-        if len(users) > 1:
-            raise Unauthorized(f"Multiple users found with email '{email}'")
-
-        if len(users) == 0:
-            raise Unauthorized(f"User with email '{email}' does not exist")
-
-        user = users[0]
+        user = self._verify_user_exists(email=email)
 
         # Hash the input password for comparison
         hashed_input_password = self._encode_string(password)
@@ -152,6 +144,49 @@ class UserService:
         }
         return jwt.encode(payload, self.jwt_secret, algorithm="HS256")
 
+    def _verify_user_exists(self, email: str = None, user_id: str = None) -> User:
+        """
+        Verify that a user exists by email or user_id.
+
+        Args:
+            email (str, optional): User's email address
+            user_id (str, optional): User's ID
+
+        Returns:
+            User: The user object if found
+
+        Raises:
+            ValueError: If neither email nor user_id is provided
+            NotFound: If user does not exist
+            Unauthorized: If multiple users found with same email (email case only)
+        """
+        if not email and not user_id:
+            raise ValueError("Either email or user_id must be provided")
+
+        if email:
+            if not email.strip():
+                raise ValueError("Email cannot be empty")
+            
+            users = User.query.filter_by(email=email.strip()).all()
+            
+            if len(users) > 1:
+                raise Unauthorized(f"Multiple users found with email '{email}'")
+            
+            if len(users) == 0:
+                raise Unauthorized(f"User with email '{email}' does not exist")
+            
+            return users[0]
+        
+        else:  # user_id case
+            if not str(user_id).strip():
+                raise ValueError("User ID cannot be empty")
+            
+            user = User.query.filter_by(user_id=user_id).first()
+            if not user:
+                raise NotFound(f"User with ID '{user_id}' does not exist")
+            
+            return user
+
     def _encode_string(self, text: str) -> str:
         """
         Encode a string using SHA-256.
@@ -180,9 +215,7 @@ class UserService:
         """
         if not user_id or str(user_id).strip() == "":
             raise ValueError("User ID is required")
-        user = User.query.filter_by(user_id=user_id).first()
-        if not user:
-            raise NotFound(f"User with ID '{user_id}' does not exist")
+        user = self._verify_user_exists(user_id=user_id)
         
         # subquery of shop_ids this user has access to
         shop_ids_sq = (
