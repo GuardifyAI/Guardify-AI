@@ -211,7 +211,7 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)  # 30 minutes cache
+        @self.cache.memoize(timeout=1800)
         def get_user_shops():
             """
             Get all shops for the current authenticated user.
@@ -227,6 +227,25 @@ class ApiHandler:
             user_id = getattr(request, "user_id", None)
             # Call the business logic
             return self.shops_service.get_user_shops(user_id)
+
+        @self.app.route("/events", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize(timeout=1800)
+        def get_user_events():
+            """
+            Get all events for the current authenticated user.
+
+            Headers:
+                Authorization: Bearer <token> - The JWT token of the logged-in user
+
+            Returns:
+                JSON response with:
+                    - result: Array of events objects
+                    - errorMessage: None on success, error string on failure
+            """
+            user_id = getattr(request, "user_id", None)
+            # Call the business logic
+            return self.user_service.get_events(user_id)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth
@@ -254,6 +273,19 @@ class ApiHandler:
             )
 
             return asdict(self.shops_service.create_shop_event(shop_id, event_req_body))
+
+        @self.app.route("/shops/<shop_id>/events/<event_id>", methods=["GET"])
+        @self.require_auth
+        @self.cache.memoize()
+        def get_event(shop_id, event_id: str):
+            """
+            Get event for a specific event ID
+            :param shop_id: The shop ID from the URL path
+            :param event_id: The event ID from the URL path
+            :return: The event for that event ID
+            """
+            analysis = self.shops_service.get_event(shop_id, event_id)
+            return asdict(analysis)
 
         @self.app.route("/analysis/<event_id>", methods=["GET"])
         @self.require_auth

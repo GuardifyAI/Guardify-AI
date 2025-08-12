@@ -1,7 +1,5 @@
 from datetime import datetime
-
 from werkzeug.exceptions import NotFound
-
 from backend.app.entities import Event
 from backend.app.entities.analysis import Analysis
 from backend.app.dtos import AnalysisDTO

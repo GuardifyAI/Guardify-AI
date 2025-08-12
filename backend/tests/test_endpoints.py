@@ -11,6 +11,7 @@ from backend.app.entities.event import Event
 import requests
 import time
 import threading
+import uuid
 
 @pytest.fixture
 def client():
@@ -1906,3 +1907,81 @@ def test_post_shop_camera_same_name_different_shops(client, john_doe_login):
                 print(f"   Warning: Failed to clean up camera {camera_id}: {e}")
     
     print("Same camera name in different shops test completed!")
+
+def test_get_user_events_success(client, john_doe_login):
+    """
+    Should return all events across the user's shops.
+    """
+    user_id, auth_token = john_doe_login
+
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    assert resp.status_code == HTTPStatus.OK, f"Expected 200, got {resp.status_code}"
+
+    data = resp.get_json()
+    assert data is not None and "result" in data and "errorMessage" in data
+    assert data["errorMessage"] is None
+
+    events = data["result"]
+    assert isinstance(events, list)
+
+    for ev in events:
+        for key in ["event_id", "event_datetime", "shop_id", "final_confidence", "shop_name", "camera_id", "camera_name", "description"]:
+            assert key in ev, f"Missing '{key}' in event"
+        # Basic types
+        assert isinstance(ev["event_id"], str)
+        assert isinstance(ev["shop_id"], str)
+        assert isinstance(ev["camera_id"], str)
+        assert isinstance(ev["description"], str)
+
+def test_get_user_events_unauthorized(client):
+    """
+    Should require auth.
+    """
+    resp = client.get("/events")
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+    data = resp.get_json()
+    assert data is not None and data["result"] is None and data["errorMessage"]
+
+def test_get_event_happy_path(client, john_doe_login):
+    """
+    Should return 200 for a valid (shop_id, event_id) pair for John Doe.
+    """
+    user_id, auth_token = john_doe_login
+
+    # John Doe has 3 events, so fetch them
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    assert resp.status_code == HTTPStatus.OK
+    events = resp.get_json()["result"]
+    assert len(events) >= 3
+
+    ev = events[0]  # pick first event
+    r = client.get(f"/shops/{ev['shop_id']}/events/{ev['event_id']}",
+                   headers={"Authorization": auth_token})
+    assert r.status_code == HTTPStatus.OK
+    result = r.get_json()["result"]
+    assert result["event_id"] == ev["event_id"]
+    assert result["shop_id"] == ev["shop_id"]
+
+def test_get_event_wrong_shop_404(client, john_doe_login):
+    """
+    Same event_id but wrong shop_id must return 404.
+    """
+    user_id, auth_token = john_doe_login
+
+    resp = client.get("/events", headers={"Authorization": auth_token})
+    events = resp.get_json()["result"]
+    ev = events[0]
+
+    # Use a shop_id from a different event (or fake one)
+    wrong_shop_id = events[1]["shop_id"] if len(events) > 1 else "shop-" + uuid.uuid4().hex
+
+    r = client.get(f"/shops/{wrong_shop_id}/events/{ev['event_id']}",
+                   headers={"Authorization": auth_token})
+    assert r.status_code == HTTPStatus.NOT_FOUND
+
+def test_get_event_unauthorized(client):
+    """
+    Missing auth should return 401.
+    """
+    r = client.get(f"/shops/fake-shop/events/{uuid.uuid4().hex}")
+    assert r.status_code == HTTPStatus.UNAUTHORIZED
