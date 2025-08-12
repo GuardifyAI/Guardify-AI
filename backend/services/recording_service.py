@@ -16,12 +16,13 @@ class RecordingService:
     by managing subprocess calls to the main.py video recording script.
     """
     
-    def __init__(self):
+    def __init__(self, shops_service):
         """Initialize the recording service with process tracking."""
         # Dictionary to track running processes: {shop_id_camera_name: process_info}
         self.active_processes: Dict[str, Dict] = {}
         self.lock = threading.Lock()
         self._dependencies_checked = False
+        self.shops_service = shops_service
     
     def _get_process_key(self, shop_id: str, camera_name: str) -> str:
         """Generate a unique key for tracking processes."""
@@ -122,6 +123,9 @@ class RecordingService:
         
         # Check required environment variables
         self._check_environment_variables()
+        
+        # Verify shop exists using shops service
+        self.shops_service.verify_shop_exists(shop_id)
         
         process_key = self._get_process_key(shop_id, camera_name)
         
@@ -277,6 +281,9 @@ class RecordingService:
             ValueError: If no active recording found for this camera
             Exception: If failed to stop the recording process
         """
+        # Verify shop exists using shops service
+        self.shops_service.verify_shop_exists(shop_id)
+        
         process_key = self._get_process_key(shop_id, camera_name)
         
         with self.lock:

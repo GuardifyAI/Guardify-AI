@@ -46,7 +46,7 @@ class ApiHandler:
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
         self.event_service = EventsService()
-        self.recording_service = RecordingService()
+        self.recording_service = RecordingService(self.shops_service)
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -346,9 +346,6 @@ class ApiHandler:
             if not recording_req_body.camera_name:
                 raise ValueError("camera_name is required")
             
-            # Verify shop exists and user has access
-            self.shops_service._verify_shop_exists(shop_id)
-            
             # Start the recording
             self.recording_service.start_recording(shop_id, recording_req_body.camera_name, recording_req_body.duration)
             
@@ -381,9 +378,6 @@ class ApiHandler:
             
             if not recording_req_body.camera_name:
                 raise ValueError("camera_name is required")
-            
-            # Verify shop exists and user has access
-            self.shops_service._verify_shop_exists(shop_id)
             
             # Stop the recording
             self.recording_service.stop_recording(shop_id, recording_req_body.camera_name)

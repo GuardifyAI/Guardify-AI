@@ -19,7 +19,7 @@ from typing import List
 
 class ShopsService:
 
-    def _verify_shop_exists(self, shop_id):
+    def verify_shop_exists(self, shop_id):
         """
         Verify that a shop exists in the database.
         
@@ -82,7 +82,7 @@ class ShopsService:
             ValueError: If shop_id is null or empty
             NotFound: If shop does not exist
         """
-        self._verify_shop_exists(shop_id)
+        self.verify_shop_exists(shop_id)
 
         # Query all events for this shop with relationships eagerly loaded
         events = Event.query.options(
@@ -107,7 +107,7 @@ class ShopsService:
             ValueError: If shop_id is null or empty
             NotFound: If shop does not exist
         """
-        self._verify_shop_exists(shop_id)
+        self.verify_shop_exists(shop_id)
 
         cameras = Camera.query.filter_by(shop_id=shop_id).all()
 
@@ -130,7 +130,7 @@ class ShopsService:
             NotFound: If shop does not exist
             Exception: If there's an error during database operations
         """
-        self._verify_shop_exists(shop_id)
+        self.verify_shop_exists(shop_id)
 
         try:
             # Check if camera with same name already exists for this shop
@@ -179,7 +179,7 @@ class ShopsService:
         Raises:
             Exception: If there's an error during database operations
         """
-        self._verify_shop_exists(shop_id)
+        self.verify_shop_exists(shop_id)
 
         try:
             # Generate UUID for event_id
