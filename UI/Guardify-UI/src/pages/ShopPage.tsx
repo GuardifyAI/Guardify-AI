@@ -1,4 +1,4 @@
-import type { Event, Shop } from '../types';
+import type { Event, Shop } from '../types/ui';
 import EventsGrid from '../components/EventsGrid';
 import AnalyticsCharts from '../components/Dashboard/AnalyticsCharts';
 import './ShopPage.css';

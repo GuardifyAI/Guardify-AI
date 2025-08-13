@@ -11,7 +11,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { SidebarProps } from '../types';
+import type { SidebarProps } from '../types/ui';
 
 export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, setSelectedShop }: SidebarProps) {
   const { logout, user } = useAuth();

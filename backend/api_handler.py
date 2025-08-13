@@ -230,31 +230,45 @@ class ApiHandler:
 
         @self.app.route("/events", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_user_events():
             """
             Get all events for the current authenticated user.
 
             Headers:
                 Authorization: Bearer <token> - The JWT token of the logged-in user
+                
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
 
             Returns:
                 JSON response with:
-                    - result: Array of events objects
+                    - result: Array of events objects (optionally with analysis data)
                     - errorMessage: None on success, error string on failure
             """
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            
             user_id = getattr(request, "user_id", None)
             # Call the business logic
-            return self.user_service.get_events(user_id)
+            return self.user_service.get_events(user_id, include_analysis)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_shop_events(shop_id):
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
+            
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
             """
-            return self.shops_service.get_shop_events(shop_id)
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            
+            return self.shops_service.get_shop_events(shop_id, include_analysis)
 
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
         @self.require_auth
@@ -276,16 +290,24 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/events/<event_id>", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_event(shop_id, event_id: str):
             """
             Get event for a specific event ID
             :param shop_id: The shop ID from the URL path
             :param event_id: The event ID from the URL path
+            
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
+                
             :return: The event for that event ID
             """
-            analysis = self.shops_service.get_event(shop_id, event_id)
-            return asdict(analysis)
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            
+            event = self.shops_service.get_event(shop_id, event_id, include_analysis)
+            return asdict(event)
 
         @self.app.route("/analysis/<event_id>", methods=["GET"])
         @self.require_auth

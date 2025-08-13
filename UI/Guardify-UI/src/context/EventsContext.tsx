@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Event } from '../types';
+import type { Event } from '../types/ui';
 
 export const EventsContext = createContext<Event[]>([]);
 

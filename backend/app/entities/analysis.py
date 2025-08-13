@@ -18,11 +18,21 @@ class Analysis(db.Model):
         confidence_str = self.final_confidence if self.final_confidence is not None else "N/A"
         return f"<Analysis {self.event_id} | Final Detection: {final_detection_str} | Confidence: {confidence_str}>"
     
-    def to_dto(self) -> AnalysisDTO:
-        return AnalysisDTO(
-            event_id=self.event_id,
-            final_detection=self.final_detection,
-            final_confidence=self.final_confidence,
-            decision_reasoning=self.decision_reasoning,
-            analysis_timestamp=self.analysis_timestamp,
-        )
+    def to_dto(self, detailed: bool = True) -> AnalysisDTO:
+        if detailed:
+            return AnalysisDTO(
+                event_id=self.event_id,
+                final_detection=self.final_detection,
+                final_confidence=self.final_confidence,
+                decision_reasoning=self.decision_reasoning,
+                analysis_timestamp=self.analysis_timestamp,
+            )
+        else:
+            # Return minimal analysis data when detailed=False
+            return AnalysisDTO(
+                event_id=self.event_id,
+                final_detection=self.final_detection,
+                final_confidence=self.final_confidence,
+                decision_reasoning=None,  # Exclude detailed reasoning
+                analysis_timestamp=self.analysis_timestamp,
+            )

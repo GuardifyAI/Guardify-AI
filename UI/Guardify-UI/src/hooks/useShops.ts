@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { shopsService } from '../services/shops';
 import { useAuth } from '../context/AuthContext';
-import type { ApiShop } from '../types';
+import type { Shop } from '../types/ui';
+import { mapApiShops } from '../utils/mappers';
 
 export function useShops() {
-  const [shops, setShops] = useState<ApiShop[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token, isAuthenticated } = useAuth();
@@ -22,7 +23,7 @@ export function useShops() {
       const response = await shopsService.getUserShops(token);
       
       if (response.result && !response.errorMessage) {
-        setShops(response.result);
+        setShops(mapApiShops(response.result));
       } else {
         setError(response.errorMessage || 'Failed to fetch shops');
         setShops([]);

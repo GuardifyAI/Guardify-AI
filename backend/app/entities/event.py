@@ -21,7 +21,7 @@ class Event(db.Model):
         description_str = self.description if self.description is not None else "N/A"
         return f"<Event {self.event_id} | Shop {self.shop_id} | Camera {self.camera_id} | Description {description_str}>"
 
-    def to_dto(self) -> EventDTO:
+    def to_dto(self, include_analysis: bool = False) -> EventDTO:
         return EventDTO(
             event_id=self.event_id,
             shop_id=self.shop_id,
@@ -31,6 +31,6 @@ class Event(db.Model):
             video_url=self.video_url,
             shop_name=self.shop.name if self.shop else None,
             camera_name=self.camera.camera_name if self.camera else None,
-            final_confidence=self.analysis.final_confidence if self.analysis else None,
             event_datetime=self.event_timestamp.isoformat() if self.event_timestamp else None,
+            analysis=self.analysis.to_dto() if include_analysis and self.analysis else None,
         )

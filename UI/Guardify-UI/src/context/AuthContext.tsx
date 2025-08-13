@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { User, AuthContextType } from '../types';
+import type { User, AuthContextType } from '../types/ui';
 import { authService } from '../services/auth.ts'
 import { cleanErrorMessage } from "../utils/errorUtils.ts";
+import { mapApiLoginResponse } from '../utils/mappers';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -49,20 +50,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await authService.login(email, password);
 
       if (data.result && !data.errorMessage) {
-        const { userId, firstName, lastName, token: authToken } = data.result;
+        const userData = mapApiLoginResponse(data.result);
+        // Add the email since login doesn't return it but we know it from the form
+        userData.email = email;
         
-        const userData: User = {
-          userId,
-          firstName,
-          lastName,
-          email,
-        };
-
         setUser(userData);
-        setToken(authToken);
+        setToken(userData.userId); // Using user_id as token based on original logic
         
         // Store in localStorage for persistence
-        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('authToken', userData.userId);
         localStorage.setItem('authUser', JSON.stringify(userData));
         
         return { success: true };

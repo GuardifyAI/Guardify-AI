@@ -1,5 +1,5 @@
 import { apiService, type ApiResponse } from './api';
-import type { ApiShop, ShopEventsResponse, StatsResponse } from '../types';
+import type { ApiShop, StatsResponse } from '../types/api';
 
 // Service class
 class ShopsService {
@@ -8,15 +8,6 @@ class ShopsService {
    */
   async getUserShops(token: string): Promise<ApiResponse<ApiShop[]>> {
     return apiService.makeRequest<ApiShop[]>('/shops', {
-      method: 'GET',
-    }, token);
-  }
-
-  /**
-   * Get all events for a specific shop
-   */
-  async getShopEvents(shopId: string, token: string): Promise<ApiResponse<ShopEventsResponse>> {
-    return apiService.makeRequest<ShopEventsResponse>(`/shops/${shopId}/events`, {
       method: 'GET',
     }, token);
   }
