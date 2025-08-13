@@ -221,7 +221,16 @@ class RecordingService:
                                 if line_content.strip() in ["^", "", "}", "} {"] or line_content.startswith("    at "):
                                     continue
 
-                                self.logger.info(f"[RECORDING:{camera_name}] {line_content}")
+                                # Extract just the message part from the log line
+                                # Format: "YYYY-MM-DD HH:MM:SS,mmm - logger_name - LEVEL - message"
+                                parts = line_content.split(" - ")
+                                if len(parts) >= 4:
+                                    # Take only the message part (everything after the 3rd " - ")
+                                    message = " - ".join(parts[3:])
+                                    self.logger.info(f"[RECORDING:{camera_name}] {message}")
+                                else:
+                                    # If format doesn't match expected pattern, log the whole line
+                                    self.logger.info(f"[RECORDING:{camera_name}] {line_content}")
 
                     except Exception as e:
                         # Only log non-pipe related errors
