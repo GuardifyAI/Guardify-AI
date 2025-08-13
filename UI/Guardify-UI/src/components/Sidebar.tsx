@@ -80,6 +80,7 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
                   key={shop.id}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-300 hover:bg-gray-800 hover:text-white group"
                   onClick={() => {
+                    console.log('Sidebar: Shop clicked:', shop.id, shop.name);
                     setActiveTab('statistics');
                     setSelectedShop(shop.id);
                   }}

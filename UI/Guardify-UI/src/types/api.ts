@@ -37,10 +37,10 @@ export type ApiShop = {
 
   // Login (API)
   export type ApiLoginResponse = {
-    user_id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    token: string;
   };
   
   // Camera (API)

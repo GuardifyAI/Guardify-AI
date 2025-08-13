@@ -26,4 +26,19 @@ export async function getEventDetails(
     `/shops/${shopId}/events/${eventId}?include_analysis=1`, { method: 'GET' }, token);
 }       
         
+class EventsService {
+  async getGlobalEvents(token: string, includeAnalysis: boolean = false): Promise<ApiResponse<ApiEvent[] | ApiEventWithAnalysis[]>> {
+    return getAllEvents(token, includeAnalysis);
+  }
+
+  async getShopEvents(shopId: string, token: string, includeAnalysis: boolean = false): Promise<ApiResponse<ApiEvent[] | ApiEventWithAnalysis[]>> {
+    return getShopEvents(shopId, token, includeAnalysis);
+  }
+
+  async getEventDetails(shopId: string, eventId: string, token: string): Promise<ApiResponse<ApiEventWithAnalysis>> {
+    return getEventDetails(shopId, eventId, token);
+  }
+}
+
+export const eventsService = new EventsService();
 export const eventsApi = { getAllEvents, getShopEvents, getEventDetails };

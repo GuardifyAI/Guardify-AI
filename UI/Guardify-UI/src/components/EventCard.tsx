@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Camera } from 'lucide-react';
 import type { Event } from '../types/ui';
-import { getStatusInfo } from '../utils/statusUtils';
+import { getEventStatusInfo } from '../utils/statusUtils';
 
 export default function EventCard({ event }: { event: Event }) {
 
@@ -20,7 +20,10 @@ export default function EventCard({ event }: { event: Event }) {
     }
   };
 
-  const statusInfo = getStatusInfo(event.analysis.finalDetection, event.analysis.finalConfidence);
+  const statusInfo = getEventStatusInfo(event.analysis);
+  const hasAnalysis = event.analysis && 
+    event.analysis.finalDetection !== undefined && 
+    event.analysis.finalConfidence !== undefined;
 
   return (
     <Link to={`/event/${event.id}`} className="block group">
@@ -34,11 +37,16 @@ export default function EventCard({ event }: { event: Event }) {
               <span className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.label}</span>
             </div>
             <div className={`text-xs font-medium px-2 py-1 rounded-full ${
-              event.analysis.finalDetection 
-                ? 'bg-red-100 text-red-700' 
-                : 'bg-green-100 text-green-700'
+              hasAnalysis
+                ? (event.analysis!.finalDetection 
+                  ? 'bg-red-100 text-red-700' 
+                  : 'bg-green-100 text-green-700')
+                : 'bg-gray-100 text-gray-600'
             }`}>
-              {event.analysis.finalDetection ? 'DETECTED' : 'NOT DETECTED'}
+              {hasAnalysis 
+                ? (event.analysis!.finalDetection ? 'DETECTED' : 'NOT DETECTED')
+                : 'NOT PROVIDED'
+              }
             </div>
           </div>
         </div>
@@ -70,12 +78,21 @@ export default function EventCard({ event }: { event: Event }) {
         <div className="mt-4 pt-3 border-t border-gray-100">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-500">Detection Confidence</span>
-            <span className="font-medium text-gray-700">{event.analysis.finalConfidence.toFixed(1)}%</span>
+            <span className="font-medium text-gray-700">
+              {hasAnalysis 
+                ? `${(event.analysis!.finalConfidence || 0).toFixed(1)}%`
+                : 'Not Provided'
+              }
+            </span>
           </div>
           <div className="mt-1 w-full bg-gray-200 rounded-full h-1">
             <div 
               className={`h-1 rounded-full ${statusInfo.bgColor}`}
-              style={{ width: `${event.analysis.finalConfidence}%` }}
+              style={{ 
+                width: hasAnalysis 
+                  ? `${event.analysis!.finalConfidence || 0}%` 
+                  : '0%'
+              }}
             ></div>
           </div>
         </div>

@@ -55,10 +55,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         userData.email = email;
         
         setUser(userData);
-        setToken(userData.userId); // Using user_id as token based on original logic
+        setToken(data.result.token); // Use the actual token from backend
         
         // Store in localStorage for persistence
-        localStorage.setItem('authToken', userData.userId);
+        localStorage.setItem('authToken', data.result.token);
         localStorage.setItem('authUser', JSON.stringify(userData));
         
         return { success: true };
@@ -108,6 +108,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     isAuthenticated: !!user && !!token,
   };
+
+  // Debug logging
+  console.log('Auth state:', { user, token, isAuthenticated: !!user && !!token });
 
   return (
     <AuthContext.Provider value={value}>

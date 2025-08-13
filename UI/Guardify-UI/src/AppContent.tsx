@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import ShopPage from './pages/ShopPage';
 import Sidebar from './components/Sidebar'; 
-import type { Shop, ApiShop } from './types';
-import { useEvents } from './context/EventsContext';
+import type { Shop } from './types/ui';
+import { useEvents, useEventsContext } from './context/EventsContext';
 import { useShops } from './hooks/useShops';
 import KeyMetrics from './components/Dashboard/KeyMetrics';
 import AnalyticsCharts from './components/Dashboard/AnalyticsCharts';
@@ -11,31 +11,34 @@ import LoadingSpinner from './components/LoadingSpinnerProps';
 import ErrorDisplay from './components/ErrorDisplay';
 
 export default function AppContent() {
-  const [selectedShop, setSelectedShop] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
   const events = useEvents();
+  const { loading: eventsLoading, error: eventsError, selectedShop, setSelectedShop } = useEventsContext();
   
-  // Use the real shops API instead of deriving from events
-  const { shops: apiShops, loading: shopsLoading, error: shopsError } = useShops();
+  // Use the shops API
+  const { shops: fetchedShops, loading: shopsLoading, error: shopsError } = useShops();
   
-  // Convert API shops to the format expected by the UI components
-  const shops: Shop[] = (apiShops as ApiShop[]).map(shop => ({
-    id: shop.shop_id,
-    name: shop.name,
-    incidents: events.filter(event => event.shopId === shop.shop_id).length // Count incidents
+  // Add incident counts to the shops from useShops
+  const shops: Shop[] = fetchedShops.map(shop => ({
+    ...shop,
+    incidents: events.filter(event => event.shopId === shop.id).length // Count incidents
   }));
   
   const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
   
   // Show loading state
-  if (shopsLoading) {
-    return <LoadingSpinner fullScreen message="Loading shops..." />;
+  if (shopsLoading || eventsLoading) {
+    return <LoadingSpinner fullScreen message={shopsLoading ? "Loading shops..." : "Loading events..."} />;
   }
 
   // Show error state
   if (shopsError) {
     return <ErrorDisplay fullScreen title="Error Loading Shops" message={shopsError} onRetry={() => window.location.reload()} />;
+  }
+
+  if (eventsError) {
+    return <ErrorDisplay fullScreen title="Error Loading Events" message={eventsError} onRetry={() => window.location.reload()} />;
   }
 
   // Show message if no shops exist
@@ -66,9 +69,7 @@ export default function AppContent() {
         selectedShop={selectedShop}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        setSelectedShop={(shopId) => {
-          setSelectedShop(shopId);
-        }} 
+        setSelectedShop={setSelectedShop} 
       />
 
       <main className="lg:ml-72 p-4 lg:p-8 animate-fade-in">
@@ -89,8 +90,6 @@ export default function AppContent() {
             </p>
           </div>
         </div>
-
-
 
         {activeTab === 'dashboard' && (
           <>

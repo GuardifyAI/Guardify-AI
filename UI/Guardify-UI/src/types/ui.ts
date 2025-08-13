@@ -22,7 +22,7 @@ export type Shop = {
     cameraId: string;
     cameraName: string;
     videoUrl: string;
-    analysis: EventAnalysis;
+    analysis: EventAnalysis | null;
   };
   
   // Auth + misc (UI)

@@ -45,10 +45,11 @@ export const mapApiEvent = (e: ApiEvent | ApiEventWithAnalysis): Event => ({
   cameraId: e.camera_id,
   cameraName: e.camera_name ?? '',
   videoUrl: e.video_url ?? '',
-  // prefer nested analysis; if missing, fall back to confidence from event if present
+  // prefer nested analysis; if missing or null, return null
   analysis: (() => {
     if ('analysis' in e && e.analysis) return mapApiAnalysis(e.analysis);
-    // fallback path until backend always includes analysis
+    if ('analysis' in e && e.analysis === null) return null;
+    // fallback path for events without analysis field at all
     return {
       finalDetection: false,
       finalConfidence: Number((e as ApiEvent).final_confidence ?? 0),
@@ -81,10 +82,10 @@ export const mapApiUser = (u: ApiUser): User => ({
 
 // Login Response
 export const mapApiLoginResponse = (response: ApiLoginResponse): User => ({
-  userId: response.user_id,
-  firstName: response.first_name,
-  lastName: response.last_name,
-  email: response.email,
+  userId: response.userId,
+  firstName: response.firstName,
+  lastName: response.lastName,
+  email: '', // Email will be added separately since backend doesn't return it
 });
 
 // Stats
