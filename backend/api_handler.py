@@ -370,16 +370,13 @@ class ApiHandler:
             """
             data = request.get_json(silent=True) or {}
             
-            recording_req_body = StartRecordingRequestBody(
+            start_recording_req_body = StartRecordingRequestBody(
                 camera_name=data.get("camera_name"),
                 duration=data.get("duration", 30)
             )
             
-            if not recording_req_body.camera_name:
-                raise ValueError("camera_name is required")
-            
             # Start the recording
-            self.recording_service.start_recording(shop_id, recording_req_body.camera_name, recording_req_body.duration)
+            self.recording_service.start_recording(shop_id, start_recording_req_body)
             
             return SUCCESS_RESPONSE, HTTPStatus.OK
 
@@ -404,15 +401,12 @@ class ApiHandler:
             """
             data = request.get_json(silent=True) or {}
             
-            recording_req_body = StopRecordingRequestBody(
+            stop_recording_req_body = StopRecordingRequestBody(
                 camera_name=data.get("camera_name")
             )
             
-            if not recording_req_body.camera_name:
-                raise ValueError("camera_name is required")
-            
             # Stop the recording
-            self.recording_service.stop_recording(shop_id, recording_req_body.camera_name)
+            self.recording_service.stop_recording(shop_id, stop_recording_req_body)
             
             return SUCCESS_RESPONSE, HTTPStatus.OK
 

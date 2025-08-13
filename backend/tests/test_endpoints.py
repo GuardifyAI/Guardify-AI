@@ -2,7 +2,7 @@ import pytest
 import jwt
 from http import HTTPStatus
 import os
-from data_science.src.utils import load_env_variables
+from utils.env_utils import load_env_variables
 load_env_variables()
 from backend.api_handler import ApiHandler
 from backend.app import create_app

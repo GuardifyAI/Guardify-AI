@@ -12,7 +12,7 @@ from backend.app.dtos import EventDTO, ShopDTO, CameraDTO
 from werkzeug.exceptions import NotFound
 
 from backend.app.request_bodies.event_request_body import EventRequestBody
-from data_science.src.utils import load_env_variables
+from utils.env_utils import load_env_variables
 from sqlalchemy.orm import joinedload
 load_env_variables()
 from typing import List

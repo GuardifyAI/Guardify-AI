@@ -3,7 +3,7 @@ import os
 import time
 from dotenv import load_dotenv
 
-from data_science.src.utils import create_logger
+from utils.logger_utils import create_logger
 
 load_dotenv()
 

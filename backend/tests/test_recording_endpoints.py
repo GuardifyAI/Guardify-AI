@@ -1,17 +1,9 @@
 import pytest
-import jwt
 from http import HTTPStatus
-import os
-import time
-import threading
-from data_science.src.utils import load_env_variables
+from utils.env_utils import load_env_variables
 load_env_variables()
 from backend.api_handler import ApiHandler
 from backend.app import create_app
-from backend.db import db
-from backend.app.entities.event import Event # Needed for cleanup in some tests
-from backend.app.entities.camera import Camera # Needed for cleanup in some tests
-from backend.app.entities.analysis import Analysis # Needed for cleanup in some tests
 
 # Define specific shop_id and camera_name for these tests
 TEST_SHOP_ID = "michal_shop_1"

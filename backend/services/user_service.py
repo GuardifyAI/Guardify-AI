@@ -5,7 +5,7 @@ import jwt
 import datetime
 import uuid
 import os
-from data_science.src.utils import load_env_variables
+from utils.env_utils import load_env_variables
 from backend.app.dtos import EventDTO
 from backend.app.entities.event import Event
 from backend.app.entities.user_shop import UserShop

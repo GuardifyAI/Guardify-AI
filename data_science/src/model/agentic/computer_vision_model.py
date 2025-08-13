@@ -12,7 +12,7 @@ import os
 
 from data_science.src.model.agentic.prompt_and_scheme.computer_vision_prompt import enhanced_response_schema, \
     default_system_instruction, enhanced_observation_prompt
-from data_science.src.utils import load_env_variables
+from utils import load_env_variables
 
 load_env_variables()
 
