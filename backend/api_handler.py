@@ -248,7 +248,7 @@ class ApiHandler:
                     - errorMessage: None on success, error string on failure
             """
             # Get include_analysis query parameter and cast to boolean
-            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            include_analysis = request.args.get('include_analysis', '0') == '1'
             
             user_id = getattr(request, "user_id", None)
             # Call the business logic
@@ -266,7 +266,7 @@ class ApiHandler:
                 include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
             """
             # Get include_analysis query parameter and cast to boolean
-            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            include_analysis = request.args.get('include_analysis', '0') == '1'
             
             return self.shops_service.get_shop_events(shop_id, include_analysis)
 
@@ -304,7 +304,7 @@ class ApiHandler:
             :return: The event for that event ID
             """
             # Get include_analysis query parameter and cast to boolean
-            include_analysis = request.args.get('include_analysis', 'false').lower() == 'true'
+            include_analysis = request.args.get('include_analysis', '0') == '1'
             
             event = self.shops_service.get_event(shop_id, event_id, include_analysis)
             return asdict(event)

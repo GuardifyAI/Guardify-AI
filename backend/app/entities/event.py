@@ -15,7 +15,7 @@ class Event(db.Model):
     # Relationships
     shop = db.relationship('Shop', backref='events', lazy='select')
     camera = db.relationship('Camera', backref='events', lazy='select')
-    analysis = db.relationship('Analysis', back_populates='event', uselist=False)
+    analysis = db.relationship('Analysis', back_populates='event', uselist=False, lazy='select')
 
     def __repr__(self):
         description_str = self.description if self.description is not None else "N/A"
