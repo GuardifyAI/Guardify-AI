@@ -226,7 +226,8 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)
+        @self.cache.memoize(timeout=1800, 
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}")
         def get_user_shops():
             """
             Get all shops for the current authenticated user.
@@ -245,7 +246,8 @@ class ApiHandler:
 
         @self.app.route("/events", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)
+        @self.cache.memoize(timeout=1800,
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}")
         def get_user_events():
             """
             Get all events for the current authenticated user.
@@ -423,7 +425,8 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_shop_stats(shop_id):
             """
             Get aggregated statistics for a specific shop.
@@ -445,7 +448,7 @@ class ApiHandler:
         @self.app.route("/stats", methods=["GET"])
         @self.require_auth
         @self.cache.memoize(
-            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}|{request.query_string.decode()}")  # Make query params and user_id part of cache key
         def get_global_stats():
             """
             Get global statistics aggregated across all shops for the authenticated user.
