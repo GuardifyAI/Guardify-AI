@@ -39,58 +39,6 @@ class RecordingService:
         """Generate a unique key for tracking processes."""
         return f"{shop_id}_{camera_name.lower().replace(' ', '_')}"
 
-    def _check_and_install_dependencies(self) -> None:
-        """
-        Check if required dependencies are installed and install them if missing.
-        This method is called once per service instance to ensure dependencies are available.
-
-        Raises:
-            Exception: If dependency installation fails
-        """
-        if self._dependencies_checked:
-            return
-
-        try:
-            # Check if playwright is installed
-            import playwright
-            self.logger.info("Playwright already installed")
-        except ImportError:
-            self.logger.info("Installing playwright...")
-            try:
-                # Install playwright
-                subprocess.check_call([
-                    sys.executable, '-m', 'pip', 'install', 'playwright==1.54.0'
-                ])
-                self.logger.info("Playwright installed successfully")
-
-                # Install browser binaries
-                self.logger.info("Installing Chromium browser...")
-                subprocess.check_call([
-                    sys.executable, '-m', 'playwright', 'install', 'chromium'
-                ])
-                self.logger.info("Chromium browser installed successfully")
-
-            except subprocess.CalledProcessError as e:
-                raise Exception(f"Failed to install dependencies: {e}")
-
-        # Always check and install critical dependencies
-        critical_deps = [
-            'python-dotenv>=1.0.0',
-            'google-auth>=2.25.2'
-        ]
-
-        try:
-            self.logger.info("Ensuring critical dependencies are installed...")
-            subprocess.check_call([
-                                      sys.executable, '-m', 'pip', 'install'
-                                  ] + critical_deps)
-            self.logger.info("Critical dependencies verified/installed")
-        except subprocess.CalledProcessError as e:
-            raise Exception(f"Failed to install critical dependencies: {e}")
-
-        self._dependencies_checked = True
-        self.logger.info("All video recording dependencies are available")
-
     def _check_environment_variables(self) -> None:
         """
         Check if all required environment variables are set for video recording.
@@ -130,9 +78,6 @@ class RecordingService:
             Exception: If failed to start the recording process
         """
         self._check_request_params(req_body)
-
-        # Check and install dependencies if needed (only runs once)
-        self._check_and_install_dependencies()
 
         # Check required environment variables
         self._check_environment_variables()

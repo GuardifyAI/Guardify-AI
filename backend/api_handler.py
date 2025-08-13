@@ -30,7 +30,11 @@ class ApiHandler:
 
     Attributes:
         app (Flask): The Flask application instance
-        app_logic (AppLogic): Business logic handler
+        user_service (UserService): The user service instance
+        stats_service (StatsService): The stats service instance
+        shops_service (ShopsService): The shops service instance
+        events_service (EventsService): The events service instance
+        recording_service (RecordingService): The recording service instance
         cache (Cache): Flask-Caching instance for request caching
     """
 
@@ -45,7 +49,7 @@ class ApiHandler:
         self.user_service = UserService()
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
-        self.event_service = EventsService()
+        self.events_service = EventsService()
         self.recording_service = RecordingService(self.shops_service)
 
         # Configure Flask-Caching
@@ -57,6 +61,13 @@ class ApiHandler:
         self.setup_routes()  # Ensure routes are set up during initialization
 
     def run(self, host: str, port: int):
+        """
+        Run the app on the given host and port
+
+        Args:
+            host (str): The host to run the app on
+            port (int): The port to run the app on
+        """
         self.app.run(host, port)
 
     def require_auth(self, f):
@@ -300,7 +311,7 @@ class ApiHandler:
             :param event_id: The event ID from the URL path
             :return: The analysis for that event ID
             """
-            analysis = self.event_service.get_event_analysis(event_id)
+            analysis = self.events_service.get_event_analysis(event_id)
             return asdict(analysis)
 
         @self.app.route("/analysis/<event_id>", methods=["POST"])
@@ -319,7 +330,7 @@ class ApiHandler:
                 decision_reasoning=data.get("decision_reasoning")
             )
 
-            return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
+            return asdict(self.events_service.create_event_analysis(event_id, analysis_req_body))
 
         @self.app.route("/shops/<shop_id>/cameras", methods=["GET"])
         @self.require_auth

@@ -149,7 +149,6 @@ def main():
 
             # Start recording process
             logger.info(f"Starting continuous recording from camera: {args.camera}")
-            logger.info("Press Ctrl+C to stop recording...")
             logger.info("-" * 60)
             
             video_recorder.record_camera_stream(
