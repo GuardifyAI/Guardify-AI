@@ -8,6 +8,9 @@ from backend.api_handler import ApiHandler
 from backend.app import create_app
 from backend.db import db
 from backend.app.entities.event import Event
+from backend.services.stats_service import StatsService
+from backend.app.entities.analysis import Analysis
+from backend.app.entities.camera import Camera
 import requests
 import time
 import threading
@@ -1034,7 +1037,6 @@ def test_compute_stats_from_db_cache_behavior(client, john_doe_login):
     user_id, auth_token = john_doe_login
 
     # Create a new StatsService instance for testing the cache behavior
-    from backend.services.stats_service import StatsService
     stats_service = StatsService()
     
     # Clear the cache to start fresh
@@ -1300,7 +1302,6 @@ def test_post_shop_event_success(client, john_doe_login):
 
     # Clean up: Delete the created analysis first (due to foreign key constraint)
     try:
-        from backend.app.entities.analysis import Analysis
         created_analysis_entity = Analysis.query.filter_by(event_id=event_id).first()
         if created_analysis_entity:
             db.session.delete(created_analysis_entity)
@@ -1634,7 +1635,6 @@ def test_post_shop_camera_success(client, john_doe_login):
     
     # Clean up: Delete the created camera
     try:
-        from backend.app.entities.camera import Camera
         created_camera = Camera.query.filter_by(camera_id=camera_id).first()
         if created_camera:
             db.session.delete(created_camera)
@@ -1818,7 +1818,6 @@ def test_post_shop_camera_duplicate_name(client, john_doe_login):
         # Clean up all created cameras
         for camera_id in created_camera_ids:
             try:
-                from backend.app.entities.camera import Camera
                 created_camera = Camera.query.filter_by(camera_id=camera_id).first()
                 if created_camera:
                     db.session.delete(created_camera)
@@ -1897,7 +1896,6 @@ def test_post_shop_camera_same_name_different_shops(client, john_doe_login):
         # Clean up all created cameras
         for camera_id, shop_id in created_camera_ids:
             try:
-                from backend.app.entities.camera import Camera
                 created_camera = Camera.query.filter_by(camera_id=camera_id).first()
                 if created_camera:
                     db.session.delete(created_camera)

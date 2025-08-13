@@ -1,5 +1,6 @@
 from playwright.sync_api import Page
 import os
+import sys
 import time
 from dotenv import load_dotenv
 
@@ -159,8 +160,7 @@ class VideoRecorder:
             while True:
                 # Check for shutdown signal
                 try:
-                    # Import shutdown_requested from main module if it exists
-                    import sys
+                    # Check shutdown_requested from main module if it exists
                     main_module = sys.modules.get('__main__')
                     if main_module and hasattr(main_module, 'shutdown_requested') and main_module.shutdown_requested:
                         self.logger.info("Shutdown requested via signal - stopping recording loop")
