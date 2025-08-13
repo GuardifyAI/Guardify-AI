@@ -2,14 +2,14 @@ import argparse
 import os
 import signal
 from playwright.sync_api import sync_playwright
-from dotenv import load_dotenv
 
 from backend.video.video_recorder import VideoRecorder
 from backend.video.video_uploader import VideoUploader
 from google_client.google_client import GoogleClient
+from utils import load_env_variables
 from utils.logger_utils import create_logger
 
-load_dotenv()
+load_env_variables()
 
 # Exit codes for video recording processes
 EXIT_SUCCESS = 0

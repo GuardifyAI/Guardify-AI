@@ -2,11 +2,11 @@ from playwright.sync_api import Page
 import os
 import sys
 import time
-from dotenv import load_dotenv
 
+from utils import load_env_variables
 from utils.logger_utils import create_logger
 
-load_dotenv()
+load_env_variables()
 
 
 class VideoRecorder:
