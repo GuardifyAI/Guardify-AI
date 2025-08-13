@@ -136,12 +136,12 @@ export default function EventPage() {
                   <div className="confidence-section">
                     <div className="confidence-header">
                       <span className="info-label">Detection Confidence</span>
-                      <span className="confidence-value">{(event.analysis!.finalConfidence || 0).toFixed(1)}%</span>
+                      <span className="confidence-value">{((event.analysis!.finalConfidence || 0) * 100).toFixed(1)}%</span>
                     </div>
                     <div className="confidence-bar">
                       <div 
                         className={`confidence-fill ${statusInfo.bgColor}`}
-                        style={{ width: `${event.analysis!.finalConfidence || 0}%` }}
+                        style={{ width: `${(event.analysis!.finalConfidence || 0) * 100}%` }}
                       ></div>
                     </div>
                   </div>

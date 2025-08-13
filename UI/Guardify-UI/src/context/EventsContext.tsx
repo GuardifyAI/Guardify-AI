@@ -59,7 +59,6 @@ export function EventsProvider({ children }: EventsProviderProps) {
       let response;
       if (shopId) {
         // Fetch shop-specific events
-        console.log('EventsContext: Calling getShopEvents for shop:', shopId);
         console.log('EventsContext: Shop ID type:', typeof shopId, 'value:', JSON.stringify(shopId));
         response = await eventsService.getShopEvents(shopId, token, true); // include_analysis=1
       } else {
@@ -69,12 +68,9 @@ export function EventsProvider({ children }: EventsProviderProps) {
       }
       
       console.log('EventsContext: API response:', response);
-      console.log('EventsContext: Raw events from API:', response.result);
       
       if (response.result && !response.errorMessage) {
         const mappedEvents = mapApiEvents(response.result);
-        console.log('EventsContext: Mapped events:', mappedEvents.length, 'events');
-        console.log('EventsContext: First few mapped events:', mappedEvents.slice(0, 3));
         setEvents(mappedEvents);
       } else {
         console.error('EventsContext: API error:', response.errorMessage);
@@ -82,7 +78,6 @@ export function EventsProvider({ children }: EventsProviderProps) {
         setEvents([]);
       }
     } catch (err) {
-      console.error('Error fetching events:', err);
       setError('Failed to load events');
       setEvents([]);
     } finally {

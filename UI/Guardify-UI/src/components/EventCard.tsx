@@ -80,7 +80,7 @@ export default function EventCard({ event }: { event: Event }) {
             <span className="text-gray-500">Detection Confidence</span>
             <span className="font-medium text-gray-700">
               {hasAnalysis 
-                ? `${(event.analysis!.finalConfidence || 0).toFixed(1)}%`
+                ? `${((event.analysis!.finalConfidence || 0) * 100).toFixed(1)}%`
                 : 'Not Provided'
               }
             </span>
@@ -90,7 +90,7 @@ export default function EventCard({ event }: { event: Event }) {
               className={`h-1 rounded-full ${statusInfo.bgColor}`}
               style={{ 
                 width: hasAnalysis 
-                  ? `${event.analysis!.finalConfidence || 0}%` 
+                  ? `${(event.analysis!.finalConfidence || 0) * 100}%` 
                   : '0%'
               }}
             ></div>

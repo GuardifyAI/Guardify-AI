@@ -9,17 +9,6 @@ export async function getEventAnalysis(
   return apiService.makeRequest<ApiEventAnalysis >(`/analysis/${eventId}`, { method: 'GET' }, token);
 }
 
-export async function upsertEventAnalysis(
-  eventId: string,
-  body: { final_detection: boolean; final_confidence: number; decision_reasoning: string },
-  token: string
-): Promise<ApiResponse<ApiEventAnalysis >> {
-  return apiService.makeRequest<ApiEventAnalysis >(
-    `/analysis/${eventId}`,
-    { method: 'POST', body: JSON.stringify(body) },
-    token
-  );
-}
 
-export const analysisService = { getEventAnalysis, upsertEventAnalysis };
+export const analysisService = { getEventAnalysis };
 export default analysisService;

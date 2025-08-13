@@ -10,7 +10,7 @@ export const events = [
     videoUrl: '/videos/fixed/exit1_20250403093329.mp4',
     analysis: {
       finalDetection: false,
-      finalConfidence: 57.74,
+      finalConfidence: 0.5774,
       decisionReasoning: "Exit behavior abnormal.",
       analysisTimestamp: '2025-04-03T09:34:00'
     }
@@ -26,7 +26,7 @@ export const events = [
     videoUrl: '/videos/fixed/exit1_20250403093659.mp4',
     analysis: {
       finalDetection: false,
-      finalConfidence: 52.4,
+      finalConfidence: 0.524,
       decisionReasoning: "Face match with known offender.",
       analysisTimestamp: '2025-04-03T09:37:42'
     }

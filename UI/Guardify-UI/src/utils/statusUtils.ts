@@ -10,7 +10,7 @@ export interface StatusInfo {
 
 export const getStatusInfo = (detection: boolean, confidence: number): StatusInfo => {
   if (detection) {
-    if (confidence >= 80) {
+    if (confidence >= 0.8) {  // 80% confidence threshold (0.8 in 0-1 range)
       return {
         label: 'INCIDENT',
         color: 'text-red-500',
