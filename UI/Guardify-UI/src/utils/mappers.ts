@@ -24,7 +24,6 @@ import type {
 export const mapApiShop = (s: ApiShop): Shop => ({
   id: s.shop_id,
   name: s.name,
-  incidents: 0, // compute later
 });
 
 // Analysis

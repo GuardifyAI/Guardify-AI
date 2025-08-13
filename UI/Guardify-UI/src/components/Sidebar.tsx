@@ -89,12 +89,7 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
                     <Store className="w-5 h-5" />
                     <span className="font-medium">{shop.name}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {shop.incidents > 0 && (
-                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        {shop.incidents}
-                      </span>
-                    )}
+                  <div className="flex items-center">
                     <MapPin className="w-4 h-4 opacity-50 group-hover:opacity-100" />
                   </div>
                 </button>

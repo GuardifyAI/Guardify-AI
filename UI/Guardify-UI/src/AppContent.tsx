@@ -19,11 +19,8 @@ export default function AppContent() {
   // Use the shops API
   const { shops: fetchedShops, loading: shopsLoading, error: shopsError } = useShops();
   
-  // Add incident counts to the shops from useShops
-  const shops: Shop[] = fetchedShops.map(shop => ({
-    ...shop,
-    incidents: events.filter(event => event.shopId === shop.id).length // Count incidents
-  }));
+  // Use shops directly from useShops
+  const shops: Shop[] = fetchedShops;
   
   const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
   
