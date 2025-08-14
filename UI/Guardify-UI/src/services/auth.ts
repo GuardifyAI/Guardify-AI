@@ -1,4 +1,4 @@
-import type { LoginResponse } from '../types';
+import type { ApiLoginResponse } from '../types/api';
 import { apiService, type ApiResponse } from './api';
 
 class AuthService {
@@ -8,8 +8,8 @@ class AuthService {
    * @param password - The user's password
    * @returns Promise resolving to API response containing login data and token
    */
-  async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
-    return apiService.makeRequest<LoginResponse>('/login', {
+  async login(email: string, password: string): Promise<ApiResponse<ApiLoginResponse>> {
+    return apiService.makeRequest<ApiLoginResponse>('/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });

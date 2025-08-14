@@ -2,16 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import AppContent from './AppContent';
 import EventPage from './pages/EventPage';
-import { EventsContext } from './context/EventsContext';
+import { EventsProvider } from './context/EventsContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import { events } from './events';
-
 
 export default function App() {
   return (
     <AuthProvider>
-      <EventsContext.Provider value={events}>
+      <EventsProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -35,7 +33,7 @@ export default function App() {
             />
           </Routes>
         </BrowserRouter>
-      </EventsContext.Provider>
+      </EventsProvider>
     </AuthProvider>
   );
 }

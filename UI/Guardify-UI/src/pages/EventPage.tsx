@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Camera, Eye, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Camera, Eye, Shield } from 'lucide-react';
 import './EventPage.css';
 import { useEvents } from '../context/EventsContext';
-import { getStatusInfo } from '../utils/statusUtils';
+import { getEventStatusInfo } from '../utils/statusUtils';
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +29,11 @@ export default function EventPage() {
     );
   }
 
-  const statusInfo = getStatusInfo(event.analysis.final_detection, event.analysis.final_confidence);
+  const statusInfo = getEventStatusInfo(event.analysis);
+  const hasAnalysis = event.analysis && 
+    event.analysis.finalDetection !== undefined && 
+    event.analysis.finalConfidence !== undefined;
+    
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -106,44 +110,70 @@ export default function EventPage() {
               Security Analysis
             </h3>
 
-            {/* Status Section*/}
-            <div className="status-section">
-              <div className="status-row">
-                <div className="status-indicator">
-                  <statusInfo.icon className={`w-6 h-6 ${statusInfo.color}`} />
-                  <div className="status-info">
-                    <span className="status-label-small">Security Level</span>
-                    <span className={`status-value ${statusInfo.color}`}>{statusInfo.label}</span>
+            {hasAnalysis ? (
+              <>
+                {/* Status Section*/}
+                <div className="status-section">
+                  <div className="status-row">
+                    <div className="status-indicator">
+                      <statusInfo.icon className={`w-6 h-6 ${statusInfo.color}`} />
+                      <div className="status-info">
+                        <span className="status-label-small">Security Level</span>
+                        <span className={`status-value ${statusInfo.color}`}>{statusInfo.label}</span>
+                      </div>
+                    </div>
+                    <div className={`detection-badge ${
+                      event.analysis!.finalDetection 
+                        ? 'bg-red-100 text-red-700' 
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {event.analysis!.finalDetection ? 'DETECTED' : 'NOT DETECTED'}
+                    </div>
                   </div>
                 </div>
-                <div className={`detection-badge ${
-                  event.analysis.final_detection 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {event.analysis.final_detection ? 'DETECTED' : 'NOT DETECTED'}
-                </div>
-              </div>
-            </div>
 
-            <div className="analysis-content">
-              <div className="confidence-section">
-                <div className="confidence-header">
-                  <span className="info-label">Detection Confidence</span>
-                  <span className="confidence-value">{event.analysis.final_confidence.toFixed(1)}%</span>
+                <div className="analysis-content">
+                  <div className="confidence-section">
+                    <div className="confidence-header">
+                      <span className="info-label">Detection Confidence</span>
+                      <span className="confidence-value">{((event.analysis!.finalConfidence || 0) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="confidence-bar">
+                      <div 
+                        className={`confidence-fill ${statusInfo.bgColor}`}
+                        style={{ width: `${(event.analysis!.finalConfidence || 0) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="reasoning-section">
+                    <span className="info-label">Decision Reasoning</span>
+                    <p className="reasoning-text">{event.analysis!.decisionReasoning || 'No reasoning provided'}</p>
+                  </div>
                 </div>
-                <div className="confidence-bar">
-                  <div 
-                    className={`confidence-fill ${statusInfo.bgColor}`}
-                    style={{ width: `${event.analysis.final_confidence}%` }}
-                  ></div>
+              </>
+            ) : (
+              <div className="no-analysis-section">
+                <div className="status-section">
+                  <div className="status-row">
+                    <div className="status-indicator">
+                      <statusInfo.icon className={`w-6 h-6 ${statusInfo.color}`} />
+                      <div className="status-info">
+                        <span className="status-label-small">Security Level</span>
+                        <span className={`status-value ${statusInfo.color}`}>{statusInfo.label}</span>
+                      </div>
+                    </div>
+                    <div className="detection-badge bg-gray-100 text-gray-600">
+                      NOT PROVIDED
+                    </div>
+                  </div>
+                </div>
+                <div className="no-analysis-content">
+                  <p className="text-gray-500 text-center">
+                    This event has not been analyzed yet. Analysis may be in progress or unavailable for this event.
+                  </p>
                 </div>
               </div>
-              <div className="reasoning-section">
-                <span className="info-label">Decision Reasoning</span>
-                <p className="reasoning-text">{event.analysis.decision_reasoning}</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { shopsService } from '../services/shops';
 import { useAuth } from '../context/AuthContext';
-import type { StatsResponse } from '../types';
+import type { Stats } from '../types/ui';
+import { mapApiStats } from '../utils/mappers';
 
 export function useStats(shopId?: string, includeCategory: boolean = true) {
-  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token, isAuthenticated } = useAuth();
@@ -25,7 +26,7 @@ export function useStats(shopId?: string, includeCategory: boolean = true) {
         : await shopsService.getGlobalStats(token, includeCategory);
       
       if (response.result && !response.errorMessage) {
-        setStats(response.result);
+        setStats(mapApiStats(response.result));
       } else {
         setError(response.errorMessage || 'Failed to fetch stats');
         setStats(null);
