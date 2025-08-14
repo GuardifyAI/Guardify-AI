@@ -18,7 +18,8 @@ import numpy as np
 
 from data_science.src.model.unified.prompt.unified_prompt import default_response_schema, default_system_instruction, \
     unified_prompt
-from data_science.src.utils import load_env_variables, UNIFIED_MODEL
+from data_science.src.utils import UNIFIED_MODEL
+from utils import load_env_variables
 
 load_env_variables()
 

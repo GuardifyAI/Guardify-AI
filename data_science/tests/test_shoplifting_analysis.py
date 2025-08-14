@@ -1,12 +1,16 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from data_science.src.model.pipeline.shoplifting_analyzer import ShopliftingAnalyzer, create_unified_analyzer, create_agentic_analyzer
 from data_science.src.model.agentic.analysis_model import AnalysisModel
 from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
 from data_science.src.model.pipeline.pipeline_manager import PipelineManager
 import shutil
 import os
-from data_science.src.utils import load_env_variables, UNIFIED_MODEL, AGENTIC_MODEL, create_logger
+from data_science.src.utils import UNIFIED_MODEL, AGENTIC_MODEL
+from utils import load_env_variables
+from utils.logger_utils import create_logger
 from google_client.google_client import GoogleClient
 
 load_env_variables()

@@ -15,7 +15,7 @@ import json
 
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import (default_system_instruction,
                                                                               enhanced_prompt, enhanced_response_schema)
-from data_science.src.utils import load_env_variables
+from utils import load_env_variables
 
 load_env_variables()
 

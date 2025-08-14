@@ -5,7 +5,7 @@ from backend.app.entities.analysis import Analysis
 from backend.app.dtos import AnalysisDTO
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.db import db, save_and_refresh
-from data_science.src.utils import load_env_variables
+from utils.env_utils import load_env_variables
 load_env_variables()
 
 

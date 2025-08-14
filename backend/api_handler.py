@@ -4,10 +4,12 @@ from flask_caching import Cache
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.app.request_bodies.camera_request_body import CameraRequestBody
 from backend.app.request_bodies.event_request_body import EventRequestBody
+from backend.app.request_bodies.recording_request_body import StartRecordingRequestBody, StopRecordingRequestBody
 from backend.services.events_service import EventsService
 from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
+from backend.services.recording_service import RecordingService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
@@ -16,6 +18,7 @@ from dataclasses import asdict
 
 RESULT_KEY = "result"
 ERROR_MESSAGE_KEY = "errorMessage"
+SUCCESS_RESPONSE = "OK"
 
 
 class ApiHandler:
@@ -27,7 +30,11 @@ class ApiHandler:
 
     Attributes:
         app (Flask): The Flask application instance
-        app_logic (AppLogic): Business logic handler
+        user_service (UserService): The user service instance
+        stats_service (StatsService): The stats service instance
+        shops_service (ShopsService): The shops service instance
+        events_service (EventsService): The events service instance
+        recording_service (RecordingService): The recording service instance
         cache (Cache): Flask-Caching instance for request caching
     """
 
@@ -42,7 +49,8 @@ class ApiHandler:
         self.user_service = UserService()
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
-        self.event_service = EventsService()
+        self.events_service = EventsService()
+        self.recording_service = RecordingService(self.shops_service)
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -53,6 +61,13 @@ class ApiHandler:
         self.setup_routes()  # Ensure routes are set up during initialization
 
     def run(self, host: str, port: int):
+        """
+        Run the app on the given host and port
+
+        Args:
+            host (str): The host to run the app on
+            port (int): The port to run the app on
+        """
         self.app.run(host, port)
 
     def require_auth(self, f):
@@ -96,7 +111,7 @@ class ApiHandler:
             Returns:
                 tuple: ("OK", 200) - Simple health status response
             """
-            return "OK", HTTPStatus.OK
+            return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/app/error", methods=["GET"])
         def raise_error():
@@ -211,7 +226,8 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800)
+        @self.cache.memoize(timeout=1800,
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}")
         def get_user_shops():
             """
             Get all shops for the current authenticated user.
@@ -230,15 +246,15 @@ class ApiHandler:
 
         @self.app.route("/events", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(
-            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
+        @self.cache.memoize(timeout=1800,
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}")
         def get_user_events():
             """
             Get all events for the current authenticated user.
 
             Headers:
                 Authorization: Bearer <token> - The JWT token of the logged-in user
-                
+
             Query Parameters:
                 include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
 
@@ -249,7 +265,7 @@ class ApiHandler:
             """
             # Get include_analysis query parameter and cast to boolean
             include_analysis = request.args.get('include_analysis', '0') == '1'
-            
+
             user_id = getattr(request, "user_id", None)
             # Call the business logic
             return self.user_service.get_events(user_id, include_analysis)
@@ -261,13 +277,13 @@ class ApiHandler:
         def get_shop_events(shop_id):
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
-            
+
             Query Parameters:
                 include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
             """
             # Get include_analysis query parameter and cast to boolean
             include_analysis = request.args.get('include_analysis', '0') == '1'
-            
+
             return self.shops_service.get_shop_events(shop_id, include_analysis)
 
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
@@ -297,15 +313,15 @@ class ApiHandler:
             Get event for a specific event ID
             :param shop_id: The shop ID from the URL path
             :param event_id: The event ID from the URL path
-            
+
             Query Parameters:
                 include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
-                
+
             :return: The event for that event ID
             """
             # Get include_analysis query parameter and cast to boolean
             include_analysis = request.args.get('include_analysis', '0') == '1'
-            
+
             event = self.shops_service.get_event(shop_id, event_id, include_analysis)
             return asdict(event)
 
@@ -318,7 +334,7 @@ class ApiHandler:
             :param event_id: The event ID from the URL path
             :return: The analysis for that event ID
             """
-            analysis = self.event_service.get_event_analysis(event_id)
+            analysis = self.events_service.get_event_analysis(event_id)
             return asdict(analysis)
 
         @self.app.route("/analysis/<event_id>", methods=["POST"])
@@ -337,7 +353,7 @@ class ApiHandler:
                 decision_reasoning=data.get("decision_reasoning")
             )
 
-            return asdict(self.event_service.create_event_analysis(event_id, analysis_req_body))
+            return asdict(self.events_service.create_event_analysis(event_id, analysis_req_body))
 
         @self.app.route("/shops/<shop_id>/cameras", methods=["GET"])
         @self.require_auth
@@ -366,9 +382,72 @@ class ApiHandler:
 
             return asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
 
+        @self.app.route("/shops/<shop_id>/recording/start", methods=["POST"])
+        @self.require_auth
+        def start_shop_recording(shop_id):
+            """
+            Start video recording for a camera in the specified shop.
+
+            Args:
+                shop_id (str): The shop ID to start recording for
+
+            Expected JSON payload:
+                {
+                    "camera_name": str,  - Name of the camera to record from (required)
+                    "duration": int      - Duration in seconds (optional, defaults to 30)
+                }
+
+            Returns:
+                JSON response with:
+                    - result: "OK" on success
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+
+            start_recording_req_body = StartRecordingRequestBody(
+                camera_name=data.get("camera_name"),
+                duration=data.get("duration", 30)
+            )
+
+            # Start the recording
+            self.recording_service.start_recording(shop_id, start_recording_req_body)
+
+            return SUCCESS_RESPONSE, HTTPStatus.OK
+
+        @self.app.route("/shops/<shop_id>/recording/stop", methods=["POST"])
+        @self.require_auth
+        def stop_shop_recording(shop_id):
+            """
+            Stop video recording for a camera in the specified shop.
+
+            Args:
+                shop_id (str): The shop ID to stop recording for
+
+            Expected JSON payload:
+                {
+                    "camera_name": str  - Name of the camera to stop recording (required)
+                }
+
+            Returns:
+                JSON response with:
+                    - result: "OK" on success
+                    - errorMessage: None on success, error string on failure
+            """
+            data = request.get_json(silent=True) or {}
+
+            stop_recording_req_body = StopRecordingRequestBody(
+                camera_name=data.get("camera_name")
+            )
+
+            # Stop the recording
+            self.recording_service.stop_recording(shop_id, stop_recording_req_body)
+
+            return SUCCESS_RESPONSE, HTTPStatus.OK
+
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_shop_stats(shop_id):
             """
             Get aggregated statistics for a specific shop.
@@ -390,7 +469,7 @@ class ApiHandler:
         @self.app.route("/stats", methods=["GET"])
         @self.require_auth
         @self.cache.memoize(
-            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
+            make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}|{request.query_string.decode()}")  # Make query params and user_id part of cache key
         def get_global_stats():
             """
             Get global statistics aggregated across all shops for the authenticated user.

@@ -2,7 +2,8 @@ from data_science.src.model.agentic.analysis_model import AnalysisModel
 from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
 from data_science.src.model.unified.unified_shoplifting_model import UnifiedShopliftingModel
 import logging
-from data_science.src.utils import create_logger, get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
+from data_science.src.utils import get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
+from utils.logger_utils import create_logger
 from vertexai.generative_models import Part
 from typing import List, Dict, Any
 import numpy as np

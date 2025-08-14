@@ -1,13 +1,58 @@
 import argparse
 import os
+import signal
 from playwright.sync_api import sync_playwright
-from dotenv import load_dotenv
 
 from backend.video.video_recorder import VideoRecorder
 from backend.video.video_uploader import VideoUploader
 from google_client.google_client import GoogleClient
+from utils import load_env_variables
+from utils.logger_utils import create_logger
 
-load_dotenv()
+load_env_variables()
+
+# Exit codes for video recording processes
+EXIT_SUCCESS = 0
+EXIT_GENERAL_ERROR = 1
+EXIT_CAMERA_NOT_FOUND = 2
+
+# Error code descriptions for logging
+EXIT_CODE_DESCRIPTIONS = {
+    EXIT_SUCCESS: "Recording completed successfully",
+    EXIT_GENERAL_ERROR: "General error occurred",
+    EXIT_CAMERA_NOT_FOUND: "Camera not found in Provision ISR interface"
+}
+
+# Initialize logger for the entire module
+logger = create_logger("video_main", "video_main.log")
+
+# Global flag for graceful shutdown
+shutdown_requested = False
+
+def get_exit_code_description(exit_code: int) -> str:
+    """
+    Get a readable description for an exit code.
+
+    Args:
+        exit_code (int): The exit code to describe
+
+    Returns:
+        str: Description of the exit code
+    """
+    return EXIT_CODE_DESCRIPTIONS.get(exit_code, f"Unknown exit code: {exit_code}")
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully"""
+    global shutdown_requested
+    logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+    shutdown_requested = True
+
+# Register signal handlers
+if os.name != 'nt':  # Unix/Linux
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+else:  # Windows
+    signal.signal(signal.SIGTERM, signal_handler)
 
 
 def parse_arguments():
@@ -62,14 +107,13 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
     
-    print("=" * 60)
-    print("VIDEO RECORDING SYSTEM")
-    print("=" * 60)
-    print(f"Camera: {args.camera}")
-    print(f"Duration per recording: {args.duration} seconds")
-    print(f"Upload bucket: {os.getenv('BUCKET_NAME', 'Not configured')}")
-    print("=" * 60)
-    print()
+    logger.info("=" * 60)
+    logger.info("VIDEO RECORDING SYSTEM")
+    logger.info("=" * 60)
+    logger.info(f"Camera: {args.camera}")
+    logger.info(f"Duration per recording: {args.duration} seconds")
+    logger.info(f"Upload bucket: {os.getenv('BUCKET_NAME', 'Not configured')}")
+    logger.info("=" * 60)
 
     # Initialize Google Cloud client
     try:
@@ -78,37 +122,34 @@ def main():
             location=os.getenv("GOOGLE_PROJECT_LOCATION"),
             service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
         )
-        print("Google Cloud client initialized successfully")
+        logger.info("Google Cloud client initialized successfully")
     except Exception as e:
-        print(f"Failed to initialize Google Cloud client: {e}")
-        return 1
+        logger.error(f"Failed to initialize Google Cloud client: {e}")
+        return EXIT_GENERAL_ERROR
 
     # Initialize video components
     video_uploader = VideoUploader(google_client)
     video_recorder = VideoRecorder(video_uploader)
-    print("Video components initialized successfully")
+    logger.info("Video components initialized successfully")
 
     # Start the upload worker
     video_uploader.start()
-    print("Upload worker thread started")
-    print()
+    logger.info("Upload worker thread started")
 
     try:
         # Initialize Playwright and start recording
         with sync_playwright() as p:
-            print("Starting browser and authentication...")
+            logger.info("Starting browser and authentication...")
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
 
             # Authenticate to Provision ISR
             video_recorder.login_to_provisionisr(page)
-            print("Successfully authenticated to Provision ISR")
-            print()
+            logger.info("Successfully authenticated to Provision ISR")
 
             # Start recording process
-            print(f"Starting continuous recording from camera: {args.camera}")
-            print("Press Ctrl+C to stop recording...")
-            print("-" * 60)
+            logger.info(f"Starting continuous recording from camera: {args.camera}")
+            logger.info("-" * 60)
             
             video_recorder.record_camera_stream(
                 page, 
@@ -117,30 +158,40 @@ def main():
             )
 
     except KeyboardInterrupt:
-        print("\n" + "=" * 60)
-        print("SHUTDOWN INITIATED")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("SHUTDOWN INITIATED")
+        logger.info("=" * 60)
+    except SystemExit:
+        logger.info("=" * 60)
+        logger.info("SHUTDOWN INITIATED VIA SIGNAL")
+        logger.info("=" * 60)
         
     except Exception as e:
-        print(f"\nAn error occurred: {e}")
-        return 1
+        error_msg = str(e)
+        logger.error(f"An error occurred: {e}")
+        
+        # Return specific exit codes for different types of errors
+        if "not found in Provision ISR interface" in error_msg:
+            return EXIT_CAMERA_NOT_FOUND
+        else:
+            return EXIT_GENERAL_ERROR
         
     finally:
         # Cleanup and shutdown
-        print("Stopping upload worker and waiting for pending uploads...")
+        logger.info("Stopping upload worker and waiting for pending uploads...")
         video_uploader.stop()
         
         pending_uploads = video_uploader.get_queue_size()
         if pending_uploads > 0:
-            print(f"Completed {pending_uploads} pending uploads")
+            logger.info(f"Completed {pending_uploads} pending uploads")
         
-        print("Upload worker stopped successfully")
-        print("All components shut down gracefully")
-        print("=" * 60)
-        print("SHUTDOWN COMPLETE")
-        print("=" * 60)
+        logger.info("Upload worker stopped successfully")
+        logger.info("All components shut down gracefully")
+        logger.info("=" * 60)
+        logger.info("SHUTDOWN COMPLETE")
+        logger.info("=" * 60)
 
-    return 0
+    return EXIT_SUCCESS
 
 
 if __name__ == "__main__":

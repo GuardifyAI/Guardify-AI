@@ -223,7 +223,5 @@ Thumbs.db
 *.pkl
 *.csv
 
-# Ignore all .idea files except the project structure
-.idea/*
-!.idea/*.iml
-workspace.xml
+# Ignore workspace.xml
+.idea/workspace.xml

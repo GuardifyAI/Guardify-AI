@@ -1,6 +1,8 @@
 import os
 import sys
 
+from utils import load_env_variables
+
 # Add the project root to Python path FIRST - more robust approach
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Navigate from data_science/src to project root (Guardify-AI)
@@ -13,7 +15,8 @@ if project_root not in sys.path:
 from google_client.google_client import GoogleClient
 from data_science.src.model.pipeline.shoplifting_analyzer import create_unified_analyzer, create_agentic_analyzer
 
-from data_science.src.utils import load_env_variables, create_logger, UNIFIED_MODEL, AGENTIC_MODEL
+from data_science.src.utils import UNIFIED_MODEL, AGENTIC_MODEL
+from utils.logger_utils import create_logger
 
 load_env_variables()
 from data_science.src.model.pipeline.pipeline_manager import PipelineManager

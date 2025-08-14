@@ -2,7 +2,7 @@ import threading
 import queue
 
 from google_client import google_client
-from data_science.src.utils import create_logger
+from utils.logger_utils import create_logger
 
 
 class VideoUploader:

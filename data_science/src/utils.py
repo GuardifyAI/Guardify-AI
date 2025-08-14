@@ -1,46 +1,9 @@
 import os
-import logging
 import base64
-from dotenv import load_dotenv
-
 
 # options for a strategy to run
 UNIFIED_MODEL = "unified"
 AGENTIC_MODEL = "agentic"
-
-
-def create_logger(name: str, log_file: str) -> logging.Logger:
-    """
-    Create a logger that writes messages both to a log file and to the console.
-    """
-    logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
-    os.makedirs(logs_dir, exist_ok=True)  # Create logs/ folder if missing
-
-    log_path = os.path.join(logs_dir, log_file)
-
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # File handler
-    file_handler = logging.FileHandler(log_path, encoding='utf-8')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-def load_env_variables():
-    """
-    Load environment variables from a .env file.
-    """
-    load_dotenv()
 
 
 def encode_image_to_base64(image_source) -> str:
