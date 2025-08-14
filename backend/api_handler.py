@@ -444,6 +444,25 @@ class ApiHandler:
 
             return SUCCESS_RESPONSE, HTTPStatus.OK
 
+        @self.app.route("/shops/<shop_id>/recording/status", methods=["GET"])
+        @self.require_auth
+        def get_shop_recording_status(shop_id):
+            """
+            Get active recording status for all cameras in the specified shop.
+
+            Args:
+                shop_id (str): The shop ID to get recording status for
+
+            Returns:
+                JSON response with:
+                    - result: List of active recordings with camera_name, tarted_at, duratison
+                    - errorMessage: None on success, error string on failure
+            """
+            # Get active recordings for this shop
+            active_recordings = self.recording_service.get_active_recordings(shop_id)
+
+            return active_recordings, HTTPStatus.OK
+
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth
         @self.cache.memoize(
