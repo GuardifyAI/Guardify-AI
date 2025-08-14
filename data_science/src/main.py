@@ -1,5 +1,8 @@
 import os
 import sys
+import time
+import signal
+from datetime import datetime, timezone
 
 from utils import load_env_variables
 
@@ -21,6 +24,129 @@ from utils.logger_utils import create_logger
 load_env_variables()
 from data_science.src.model.pipeline.pipeline_manager import PipelineManager
 import argparse
+
+# Global flag for graceful shutdown
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    """Handle shutdown signals gracefully."""
+    global shutdown_requested
+    shutdown_requested = True
+    print("\nShutdown signal received. Stopping continuous monitoring...")
+
+def get_video_creation_time(google_client, bucket_name: str, video_name: str) -> datetime:
+    """Get the creation time of a video in the bucket."""
+    try:
+        bucket = google_client.storage_client.bucket(bucket_name)
+        blob = bucket.blob(video_name)
+        blob.reload()  # Refresh metadata
+        return blob.time_created.replace(tzinfo=timezone.utc)
+    except Exception:
+        # If we can't get the creation time, return a very old timestamp
+        # so the video won't be filtered out
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+def run_continuous_monitoring(args, logger, google_client, bucket_name: str, start_timestamp: datetime):
+    """
+    Run continuous monitoring mode that watches for new videos from a specific camera.
+    """
+    global shutdown_requested
+
+    # Set up signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    logger.info(f"Starting continuous monitoring for camera '{args.camera_name}'")
+    logger.info(f"Monitoring videos created after: {start_timestamp}")
+
+    # Create analyzer based on strategy
+    if args.strategy == UNIFIED_MODEL:
+        shoplifting_analyzer = create_unified_analyzer(
+            detection_threshold=args.threshold,
+            logger=logger
+        )
+    else:  # AGENTIC_MODEL
+        shoplifting_analyzer = create_agentic_analyzer(
+            detection_threshold=args.threshold,
+            logger=logger
+        )
+
+    # Create pipeline manager
+    pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+
+    # Keep track of processed videos to avoid reprocessing
+    processed_videos = set()
+
+    logger.info(f"Starting monitoring loop (polling every {args.polling_interval} seconds)")
+
+    while not shutdown_requested:
+        try:
+            # Get all video URIs from bucket
+            video_uris = pipeline_manager._get_video_uris_from_bucket(bucket_name)
+
+            # Filter videos by camera name and timestamp
+            new_videos = []
+            for video_uri in video_uris:
+                # Extract video name from URI
+                video_name = video_uri.split('/')[-1]
+
+                # Skip if already processed
+                if video_name in processed_videos:
+                    continue
+
+                # Check if video name starts with camera name
+                if not video_name.lower().startswith(args.camera_name.lower()):
+                    continue
+
+                # Check if video was created after start timestamp
+                video_creation_time = get_video_creation_time(google_client, bucket_name, video_name)
+                if video_creation_time < start_timestamp:
+                    continue
+
+                new_videos.append(video_uri)
+                processed_videos.add(video_name)
+
+            # Process new videos
+            if new_videos:
+                logger.info(f"Found {len(new_videos)} new videos to process")
+                for video_uri in new_videos:
+                    if shutdown_requested:
+                        break
+
+                    logger.info(f"Processing new video: {video_uri}")
+                    try:
+                        # Analyze the video
+                        result = shoplifting_analyzer.analyze_video_from_bucket(
+                            video_uri,
+                            iterations=args.iterations,
+                            pickle_analysis=args.diagnostic
+                        )
+
+                        # Log results
+                        final_detection = result.get('final_detection', False)
+                        final_confidence = result.get('final_confidence', 0.0)
+                        logger.info(f"Analysis result for {video_uri}: detected={final_detection}, confidence={final_confidence:.3f}")
+
+                        # If theft detected, log with high priority
+                        if final_detection:
+                            logger.warning(f"THEFT DETECTED in {video_uri} with confidence {final_confidence:.3f}")
+
+                    except Exception as e:
+                        logger.error(f"Failed to analyze {video_uri}: {e}")
+            else:
+                logger.debug("No new videos found")
+
+            # Wait before next poll
+            for _ in range(args.polling_interval):
+                if shutdown_requested:
+                    break
+                time.sleep(1)
+
+        except Exception as e:
+            logger.error(f"Error in monitoring loop: {e}")
+            time.sleep(5)  # Brief pause before retrying
+
+    logger.info("Continuous monitoring stopped")
 
 
 def main():
@@ -66,6 +192,16 @@ def main():
     parser.add_argument('--labels-csv-path', type=str, default=None,
                         help='Path to CSV file containing ground truth labels for accuracy comparison')
 
+    # New arguments for continuous monitoring mode
+    parser.add_argument('--continuous-mode', action='store_true',
+                        help='Enable continuous monitoring mode for real-time analysis')
+    parser.add_argument('--camera-name', type=str, default=None,
+                        help='Camera name to filter videos by (only process videos from this camera)')
+    parser.add_argument('--start-timestamp', type=str, default=None,
+                        help='ISO timestamp to start monitoring from (only process videos created after this time)')
+    parser.add_argument('--polling-interval', type=int, default=30,
+                        help='Polling interval in seconds for continuous mode (default: 30)')
+
     args = parser.parse_args()
 
     # Create logger for debugging
@@ -76,6 +212,11 @@ def main():
     logger.info(f"Iterations: {args.iterations}")
     logger.info(f"Threshold: {args.threshold}")
     logger.info(f"Diagnostic mode: {args.diagnostic}")
+    logger.info(f"Continuous mode: {args.continuous_mode}")
+    if args.continuous_mode:
+        logger.info(f"Camera name filter: {args.camera_name}")
+        logger.info(f"Start timestamp: {args.start_timestamp}")
+        logger.info(f"Polling interval: {args.polling_interval} seconds")
     logger.info(
         f"Ground truth labels: {args.labels_csv_path if args.labels_csv_path else 'None (no accuracy comparison)'}")
 
@@ -90,40 +231,61 @@ def main():
     bucket_name = os.getenv("BUCKET_NAME")
     logger.info(f"[TARGET] Starting analysis of videos in bucket: {bucket_name}")
 
-    # Execute based on strategy using consolidated manager
-    if args.strategy == UNIFIED_MODEL:
-        logger.info(f"[{UNIFIED_MODEL.upper()}] Using enhanced unified single-model approach")
-        
-        # Create unified analyzer
-        shoplifting_analyzer = create_unified_analyzer(
-            detection_threshold=args.threshold,
-            logger=logger
-        )
-        
-        # Create pipeline manager
-        pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
-        
-        results = pipeline_manager.run_unified_analysis(
-            bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
-        )
+    # Check if continuous mode is enabled
+    if args.continuous_mode:
+        if not args.camera_name:
+            logger.error("Camera name is required for continuous mode")
+            sys.exit(1)
+        if not args.start_timestamp:
+            logger.error("Start timestamp is required for continuous mode")
+            sys.exit(1)
 
-    elif args.strategy == AGENTIC_MODEL:
-        logger.info(f"[{AGENTIC_MODEL.upper()}] Using enhanced agentic model approach")
-        
-        # Create agentic analyzer
-        shoplifting_analyzer = create_agentic_analyzer(
-            detection_threshold=args.threshold,
-            logger=logger
-        )
-        
-        # Create pipeline manager
-        pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
-        
-        results = pipeline_manager.run_agentic_analysis(
-            bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
-        )
+        # Parse start timestamp
+        try:
+            start_timestamp = datetime.fromisoformat(args.start_timestamp.replace('Z', '+00:00'))
+        except ValueError as e:
+            logger.error(f"Invalid start timestamp format: {e}")
+            sys.exit(1)
 
-    logger.info("[SUCCESS] Advanced pipeline analysis completed successfully!")
+        # Run continuous monitoring
+        run_continuous_monitoring(
+            args, logger, google_client, bucket_name, start_timestamp
+        )
+    else:
+        # Execute based on strategy using consolidated manager (original behavior)
+        if args.strategy == UNIFIED_MODEL:
+            logger.info(f"[{UNIFIED_MODEL.upper()}] Using enhanced unified single-model approach")
+
+            # Create unified analyzer
+            shoplifting_analyzer = create_unified_analyzer(
+                detection_threshold=args.threshold,
+                logger=logger
+            )
+
+            # Create pipeline manager
+            pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+
+            results = pipeline_manager.run_unified_analysis(
+                bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
+            )
+
+        elif args.strategy == AGENTIC_MODEL:
+            logger.info(f"[{AGENTIC_MODEL.upper()}] Using enhanced agentic model approach")
+
+            # Create agentic analyzer
+            shoplifting_analyzer = create_agentic_analyzer(
+                detection_threshold=args.threshold,
+                logger=logger
+            )
+
+            # Create pipeline manager
+            pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+
+            results = pipeline_manager.run_agentic_analysis(
+                bucket_name, args.max_videos, args.iterations, args.diagnostic, args.export, args.labels_csv_path
+            )
+
+        logger.info("[SUCCESS] Advanced pipeline analysis completed successfully!")
 
 
 if __name__ == "__main__":
