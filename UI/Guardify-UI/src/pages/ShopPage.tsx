@@ -1,6 +1,7 @@
 import type { Event, Shop } from '../types/ui';
 import EventsGrid from '../components/EventsGrid';
 import AnalyticsCharts from '../components/Dashboard/AnalyticsCharts';
+import CamerasList from '../components/CamerasList';
 import './ShopPage.css';
 
 type Props = {
@@ -34,17 +35,7 @@ export default function ShopPage({ shop, events, tab }: Props) {
 
       {tab === 'cameras' && (
         <section>
-          <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem' }}>
-          Live Camera Feed – Coming Soon
-          </h2>
-          <img
-            src="/images/live-camera.png"
-            alt="Live camera icon"
-            style={{
-              width: '120px',
-              marginBottom: '1rem'
-            }}
-          />
+          <CamerasList shopId={shop.id} shopName={shop.name} />
         </section>
       )}
     </div>
