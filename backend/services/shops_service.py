@@ -155,16 +155,50 @@ class ShopsService:
             )
 
             # Save and refresh the entity
-            save_and_refresh(new_camera)
+            refreshed_camera = save_and_refresh(new_camera)
 
-            # Convert to DTO - this might be where the error occurs
-            result_dto = new_camera.to_dto()
+            # Convert to DTO using the refreshed entity
+            result_dto = refreshed_camera.to_dto()
             return result_dto
 
         except Exception as e:
             # Rollback in case of error
             db.session.rollback()
             raise Exception(f"Failed to create camera: {str(e)}")
+
+    def delete_shop_camera(self, shop_id: str, camera_id: str) -> None:
+        """
+        Delete a camera from a specific shop.
+        
+        Args:
+            shop_id (str): The shop ID
+            camera_id (str): The camera ID to delete
+            
+        Raises:
+            ValueError: If shop_id or camera_id is null or empty
+            NotFound: If shop or camera does not exist
+            Exception: If there's an error during database operations
+        """
+        self.verify_shop_exists(shop_id)
+        
+        if not camera_id or camera_id.strip() == "":
+            raise ValueError("Camera ID is required")
+            
+        try:
+            # Find the camera
+            camera = Camera.query.filter_by(camera_id=camera_id, shop_id=shop_id).first()
+            
+            if not camera:
+                raise ValueError(f"Camera with ID '{camera_id}' not found in shop '{shop_id}'")
+            
+            # Delete the camera
+            db.session.delete(camera)
+            db.session.commit()
+            
+        except Exception as e:
+            # Rollback in case of error
+            db.session.rollback()
+            raise Exception(f"Failed to delete camera: {str(e)}")
 
     def create_shop_event(self, shop_id: str, event_req_body: EventRequestBody) -> EventDTO:
         """
@@ -197,10 +231,10 @@ class ShopsService:
             )
 
             # Save and refresh the entity
-            save_and_refresh(new_event)
+            refreshed_event = save_and_refresh(new_event)
 
-            # Convert to DTO - this might be where the error occurs
-            result_dto = new_event.to_dto()
+            # Convert to DTO using the refreshed entity
+            result_dto = refreshed_event.to_dto()
             return result_dto
 
         except Exception as e:

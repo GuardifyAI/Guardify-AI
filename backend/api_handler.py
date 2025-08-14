@@ -380,7 +380,29 @@ class ApiHandler:
                 camera_name=data.get("camera_name")
             )
 
-            return asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
+            result = asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
+            
+            # Invalidate cache for cameras endpoint since we added a new camera
+            self.cache.clear()
+            
+            return result
+
+        @self.app.route("/shops/<shop_id>/cameras/<camera_id>", methods=["DELETE"])
+        @self.require_auth
+        def delete_shop_camera(shop_id: str, camera_id: str):
+            """
+            Delete a camera from a specific shop
+            :param shop_id: The shop ID from the URL path
+            :param camera_id: The camera ID from the URL path
+            :return: Success response or error
+            """
+            # Delete the camera
+            self.shops_service.delete_shop_camera(shop_id, camera_id)
+
+            # Invalidate cache for cameras endpoint since we deleted a camera
+            self.cache.clear()
+
+            return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/recording/start", methods=["POST"])
         @self.require_auth
