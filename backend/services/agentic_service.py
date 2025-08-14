@@ -69,8 +69,8 @@ class AgenticService:
                 data_science_dir = Path(__file__).resolve().parent.parent.parent / 'data_science' / 'src'
                 main_py_path = data_science_dir / 'main.py'
 
-                # Format timestamp for command line
-                timestamp_str = start_timestamp.isoformat()
+                # Format timestamp for command line in simple format (2025-08-14 15:18:28)
+                timestamp_str = start_timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
                 # Set working directory to project root
                 project_root = Path(__file__).resolve().parent.parent.parent
@@ -97,6 +97,7 @@ class AgenticService:
                     env['PYTHONPATH'] = str(project_root)
 
                 # Start the process with correct working directory and environment
+                # Use process group to isolate subprocess and prevent signal propagation
                 process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
@@ -105,7 +106,9 @@ class AgenticService:
                     bufsize=1,
                     universal_newlines=True,
                     cwd=str(project_root),  # Set working directory to project root
-                    env=env  # Pass modified environment
+                    env=env,  # Pass modified environment
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0,
+                    preexec_fn=None if os.name == 'nt' else os.setsid  # Create new session on Unix
                 )
 
                 # Set up output forwarding in a separate thread
@@ -165,31 +168,64 @@ class AgenticService:
 
         with self.lock:
             if process_key not in self.active_processes:
-                raise ValueError(f"No active agentic analysis found for camera '{camera_name}' in shop '{shop_id}'")
+                self.logger.warning(f"No active agentic analysis found for camera '{camera_name}' in shop '{shop_id}' - may have already stopped")
+                return  # Don't raise error, just return silently
 
             process_info = self.active_processes[process_key]
             process = process_info['process']
+
+            self.logger.info(f"Found active agentic process for camera '{camera_name}' (PID: {process.pid})")
 
             try:
                 self.logger.info(f"Stopping agentic analysis for camera '{camera_name}' in shop '{shop_id}' (PID: {process.pid})")
 
                 # Try graceful shutdown first
                 if self._is_process_running(process):
-                    if os.name == 'nt':  # Windows
-                        process.send_signal(signal.CTRL_C_EVENT)
-                    else:  # Unix/Linux
-                        process.send_signal(signal.SIGTERM)
-
-                    # Wait for graceful shutdown
+                    self.logger.info(f"Process {process.pid} is running, attempting to terminate...")
                     try:
-                        process.wait(timeout=10)
-                        self.logger.info(f"Agentic process stopped gracefully for camera '{camera_name}'")
-                    except subprocess.TimeoutExpired:
-                        # Force kill if graceful shutdown failed
-                        self.logger.warning(f"Graceful shutdown timeout, force killing agentic process for camera '{camera_name}'")
-                        process.kill()
-                        process.wait()
-                        self.logger.info(f"Agentic process force killed for camera '{camera_name}'")
+                        if os.name == 'nt':  # Windows
+                            # Use terminate() instead of CTRL_C_EVENT to avoid signal propagation
+                            self.logger.info(f"Sending terminate signal to Windows process {process.pid}")
+                            process.terminate()
+                        else:  # Unix/Linux
+                            # Send SIGTERM to the process group to avoid affecting parent
+                            self.logger.info(f"Sending SIGTERM to Unix process group {process.pid}")
+                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+
+                        # Wait for graceful shutdown - reasonable timeout for responsive stopping
+                        graceful_timeout = 15  # 15 seconds for graceful shutdown
+                        self.logger.info(f"Waiting up to {graceful_timeout} seconds for agentic analysis to stop gracefully...")
+
+                        try:
+                            process.wait(timeout=graceful_timeout)
+                            self.logger.info(f"Agentic process stopped gracefully for camera '{camera_name}'")
+                        except subprocess.TimeoutExpired:
+                            # Force kill if graceful shutdown failed
+                            self.logger.warning(f"Graceful shutdown timeout after {graceful_timeout}s, force killing agentic process for camera '{camera_name}'")
+                            if os.name == 'nt':
+                                process.kill()
+                            else:
+                                # Kill the entire process group on Unix
+                                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                            process.wait()
+                            self.logger.info(f"Agentic process force killed for camera '{camera_name}'")
+                    except ProcessLookupError:
+                        # Process already terminated
+                        self.logger.info(f"Agentic process for camera '{camera_name}' already terminated")
+                    except Exception as e:
+                        self.logger.error(f"Error stopping agentic process for camera '{camera_name}': {e}")
+                        # Try basic kill as fallback
+                        try:
+                            process.kill()
+                            process.wait()
+                        except:
+                            pass
+
+                # Verify process is actually stopped
+                if self._is_process_running(process):
+                    self.logger.warning(f"Process {process.pid} is still running after stop attempt!")
+                else:
+                    self.logger.info(f"Process {process.pid} confirmed stopped")
 
                 # Clean up process tracking
                 del self.active_processes[process_key]

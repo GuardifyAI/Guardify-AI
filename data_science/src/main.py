@@ -4,8 +4,6 @@ import time
 import signal
 from datetime import datetime, timezone
 
-from utils import load_env_variables
-
 # Add the project root to Python path FIRST - more robust approach
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Navigate from data_science/src to project root (Guardify-AI)
@@ -15,11 +13,22 @@ project_root = os.path.dirname(os.path.dirname(current_dir))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Import load_env_variables using absolute path to avoid conflict with local utils.py
+import importlib.util
+spec = importlib.util.spec_from_file_location("env_utils", os.path.join(project_root, "utils", "env_utils.py"))
+env_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(env_utils)
+load_env_variables = env_utils.load_env_variables
+
 from google_client.google_client import GoogleClient
 from data_science.src.model.pipeline.shoplifting_analyzer import create_unified_analyzer, create_agentic_analyzer
 
 from data_science.src.utils import UNIFIED_MODEL, AGENTIC_MODEL
-from utils.logger_utils import create_logger
+# Import create_logger using absolute path to avoid conflict with local utils.py
+logger_spec = importlib.util.spec_from_file_location("logger_utils", os.path.join(project_root, "utils", "logger_utils.py"))
+logger_utils = importlib.util.module_from_spec(logger_spec)
+logger_spec.loader.exec_module(logger_utils)
+create_logger = logger_utils.create_logger
 
 load_env_variables()
 from data_science.src.model.pipeline.pipeline_manager import PipelineManager
@@ -32,7 +41,7 @@ def signal_handler(signum, frame):
     """Handle shutdown signals gracefully."""
     global shutdown_requested
     shutdown_requested = True
-    print("\nShutdown signal received. Stopping continuous monitoring...")
+    print("\nShutdown signal received. Stopping continuous monitoring gracefully...")
 
 def get_video_creation_time(google_client, bucket_name: str, video_name: str) -> datetime:
     """Get the creation time of a video in the bucket."""
@@ -40,8 +49,17 @@ def get_video_creation_time(google_client, bucket_name: str, video_name: str) ->
         bucket = google_client.storage_client.bucket(bucket_name)
         blob = bucket.blob(video_name)
         blob.reload()  # Refresh metadata
-        return blob.time_created.replace(tzinfo=timezone.utc)
-    except Exception:
+
+        # Ensure the datetime is timezone-aware in UTC
+        creation_time = blob.time_created
+        if creation_time.tzinfo is None:
+            creation_time = creation_time.replace(tzinfo=timezone.utc)
+        else:
+            creation_time = creation_time.astimezone(timezone.utc)
+
+        return creation_time
+    except Exception as e:
+        print(f"DEBUG: Error getting creation time for {video_name}: {e}")
         # If we can't get the creation time, return a very old timestamp
         # so the video won't be filtered out
         return datetime.min.replace(tzinfo=timezone.utc)
@@ -111,6 +129,7 @@ def run_continuous_monitoring(args, logger, google_client, bucket_name: str, sta
                 logger.info(f"Found {len(new_videos)} new videos to process")
                 for video_uri in new_videos:
                     if shutdown_requested:
+                        logger.info("Shutdown requested - stopping before processing new video")
                         break
 
                     logger.info(f"Processing new video: {video_uri}")
@@ -133,12 +152,23 @@ def run_continuous_monitoring(args, logger, google_client, bucket_name: str, sta
 
                     except Exception as e:
                         logger.error(f"Failed to analyze {video_uri}: {e}")
+
+                    # Check for shutdown after each video
+                    if shutdown_requested:
+                        logger.info("Shutdown requested - stopping video processing")
+                        break
             else:
                 logger.debug("No new videos found")
+
+            # Check for shutdown before waiting
+            if shutdown_requested:
+                logger.info("Shutdown requested - exiting monitoring loop")
+                break
 
             # Wait before next poll
             for _ in range(args.polling_interval):
                 if shutdown_requested:
+                    logger.info("Shutdown requested during polling wait - exiting")
                     break
                 time.sleep(1)
 
@@ -146,7 +176,7 @@ def run_continuous_monitoring(args, logger, google_client, bucket_name: str, sta
             logger.error(f"Error in monitoring loop: {e}")
             time.sleep(5)  # Brief pause before retrying
 
-    logger.info("Continuous monitoring stopped")
+    logger.info("Continuous monitoring stopped gracefully")
 
 
 def main():
@@ -240,11 +270,34 @@ def main():
             logger.error("Start timestamp is required for continuous mode")
             sys.exit(1)
 
-        # Parse start timestamp
+        # Parse start timestamp - handle both simple format (2025-08-14 15:18:28) and ISO format
         try:
-            start_timestamp = datetime.fromisoformat(args.start_timestamp.replace('Z', '+00:00'))
+            # Clean up the timestamp string
+            timestamp_str = args.start_timestamp.replace('Z', '+00:00')
+
+            # Try to parse as ISO format first
+            try:
+                start_timestamp = datetime.fromisoformat(timestamp_str)
+            except ValueError:
+                # If that fails, try parsing as simple format and assume local timezone
+                start_timestamp = datetime.strptime(args.start_timestamp, '%Y-%m-%d %H:%M:%S')
+
+            # If timezone-naive, assume it's local time and convert to UTC
+            if start_timestamp.tzinfo is None:
+                # Assume local timezone (you can adjust this offset as needed)
+                # Based on the bucket timestamps, it looks like you're UTC+3
+                import datetime as dt
+                local_offset = dt.timedelta(hours=3)  # Adjust this to your timezone
+                start_timestamp = start_timestamp.replace(tzinfo=timezone.utc) - local_offset
+                logger.info(f"Parsed naive timestamp as local time, converted to UTC: {start_timestamp}")
+            else:
+                # Convert to UTC if it has a different timezone
+                start_timestamp = start_timestamp.astimezone(timezone.utc)
+                logger.info(f"Parsed timezone-aware timestamp, converted to UTC: {start_timestamp}")
+
         except ValueError as e:
             logger.error(f"Invalid start timestamp format: {e}")
+            logger.error(f"Expected format: '2025-08-14 15:18:28' or ISO format")
             sys.exit(1)
 
         # Run continuous monitoring
