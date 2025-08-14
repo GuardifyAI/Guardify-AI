@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
+from backend.app.dtos.analysis_dto import AnalysisDTO
 
 @dataclass
 class EventDTO:
@@ -12,4 +14,4 @@ class EventDTO:
     shop_name: str | None
     camera_name: str | None
     event_datetime: str | None
-    final_confidence: int | None
+    analysis: Optional[AnalysisDTO] = field(default=None)

@@ -199,12 +199,13 @@ class UserService:
         """
         return hashlib.sha256(text.encode()).hexdigest()
 
-    def get_events(self, user_id: str) -> list[EventDTO]:
+    def get_events(self, user_id: str, include_analysis: bool = False) -> list[EventDTO]:
         """
         Get all events for a specific user.
 
         Args:
             user_id (str): The user ID
+            include_analysis (bool): Whether to include analysis data for each event
 
         Returns:
             list[EventDTO]: List of EventDTO objects for the user's events
@@ -229,9 +230,8 @@ class UserService:
             Event.query.options(
                 joinedload(Event.shop),
                 joinedload(Event.camera),
-                joinedload(Event.analysis),
             )
             .filter(Event.shop_id.in_(select(shop_ids_sq.c.shop_id))).all())
 
         # Convert to DTOs
-        return [event.to_dto() for event in events]
+        return [event.to_dto(include_analysis=include_analysis) for event in events]

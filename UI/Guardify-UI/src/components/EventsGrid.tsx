@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import EventCard from './EventCard';
-import type { Event } from '../types';
+import type { Event } from '../types/ui';
 
 interface EventsGridProps {
   events: Event[];

@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle } from 'lucide-react';
+import type { EventAnalysis } from '../types/ui';
 
 export interface StatusInfo {
   label: string;
@@ -9,7 +10,7 @@ export interface StatusInfo {
 
 export const getStatusInfo = (detection: boolean, confidence: number): StatusInfo => {
   if (detection) {
-    if (confidence >= 80) {
+    if (confidence >= 0.8) {  // 80% confidence threshold (0.8 in 0-1 range)
       return {
         label: 'INCIDENT',
         color: 'text-red-500',
@@ -32,4 +33,21 @@ export const getStatusInfo = (detection: boolean, confidence: number): StatusInf
       icon: CheckCircle
     };
   }
+};
+
+export const getEventStatusInfo = (analysis: EventAnalysis | null | undefined): StatusInfo => {
+  // Check if analysis exists and has valid data
+  if (analysis && 
+      analysis.finalDetection !== undefined && 
+      analysis.finalConfidence !== undefined) {
+    return getStatusInfo(analysis.finalDetection, analysis.finalConfidence);
+  }
+  
+  // Return "Not Provided" status for null/undefined analysis
+  return {
+    label: 'Not Provided',
+    color: 'text-gray-500',
+    bgColor: 'bg-gray-100',
+    icon: AlertTriangle
+  };
 };

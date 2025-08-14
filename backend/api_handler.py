@@ -226,7 +226,7 @@ class ApiHandler:
 
         @self.app.route("/shops", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize(timeout=1800, 
+        @self.cache.memoize(timeout=1800,
             make_name=lambda fname: f"{fname}|user:{getattr(request, 'user_id', 'anon')}")
         def get_user_shops():
             """
@@ -255,23 +255,36 @@ class ApiHandler:
             Headers:
                 Authorization: Bearer <token> - The JWT token of the logged-in user
 
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
+
             Returns:
                 JSON response with:
-                    - result: Array of events objects
+                    - result: Array of events objects (optionally with analysis data)
                     - errorMessage: None on success, error string on failure
             """
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', '0') == '1'
+
             user_id = getattr(request, "user_id", None)
             # Call the business logic
-            return self.user_service.get_events(user_id)
+            return self.user_service.get_events(user_id, include_analysis)
 
         @self.app.route("/shops/<shop_id>/events", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_shop_events(shop_id):
             """
             Returns all events of a specific shop (event_id, event_datetime, shop_name, camera_name, description)
+
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
             """
-            return self.shops_service.get_shop_events(shop_id)
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', '0') == '1'
+
+            return self.shops_service.get_shop_events(shop_id, include_analysis)
 
         @self.app.route("/shops/<shop_id>/events", methods=["POST"])
         @self.require_auth
@@ -293,16 +306,24 @@ class ApiHandler:
 
         @self.app.route("/shops/<shop_id>/events/<event_id>", methods=["GET"])
         @self.require_auth
-        @self.cache.memoize()
+        @self.cache.memoize(
+            make_name=lambda fname: f"{fname}|{request.query_string.decode()}")  # Make query params part of cache key
         def get_event(shop_id, event_id: str):
             """
             Get event for a specific event ID
             :param shop_id: The shop ID from the URL path
             :param event_id: The event ID from the URL path
+
+            Query Parameters:
+                include_analysis (int, optional): Whether to include analysis data (1 for true, 0 for false, default: 0)
+
             :return: The event for that event ID
             """
-            analysis = self.shops_service.get_event(shop_id, event_id)
-            return asdict(analysis)
+            # Get include_analysis query parameter and cast to boolean
+            include_analysis = request.args.get('include_analysis', '0') == '1'
+
+            event = self.shops_service.get_event(shop_id, event_id, include_analysis)
+            return asdict(event)
 
         @self.app.route("/analysis/<event_id>", methods=["GET"])
         @self.require_auth
@@ -366,61 +387,61 @@ class ApiHandler:
         def start_shop_recording(shop_id):
             """
             Start video recording for a camera in the specified shop.
-            
+
             Args:
                 shop_id (str): The shop ID to start recording for
-                
+
             Expected JSON payload:
                 {
                     "camera_name": str,  - Name of the camera to record from (required)
                     "duration": int      - Duration in seconds (optional, defaults to 30)
                 }
-                
+
             Returns:
                 JSON response with:
                     - result: "OK" on success
                     - errorMessage: None on success, error string on failure
             """
             data = request.get_json(silent=True) or {}
-            
+
             start_recording_req_body = StartRecordingRequestBody(
                 camera_name=data.get("camera_name"),
                 duration=data.get("duration", 30)
             )
-            
+
             # Start the recording
             self.recording_service.start_recording(shop_id, start_recording_req_body)
-            
+
             return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/recording/stop", methods=["POST"])
-        @self.require_auth 
+        @self.require_auth
         def stop_shop_recording(shop_id):
             """
             Stop video recording for a camera in the specified shop.
-            
+
             Args:
                 shop_id (str): The shop ID to stop recording for
-                
+
             Expected JSON payload:
                 {
                     "camera_name": str  - Name of the camera to stop recording (required)
                 }
-                
+
             Returns:
                 JSON response with:
                     - result: "OK" on success
                     - errorMessage: None on success, error string on failure
             """
             data = request.get_json(silent=True) or {}
-            
+
             stop_recording_req_body = StopRecordingRequestBody(
                 camera_name=data.get("camera_name")
             )
-            
+
             # Stop the recording
             self.recording_service.stop_recording(shop_id, stop_recording_req_body)
-            
+
             return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])

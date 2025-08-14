@@ -71,11 +71,12 @@ class ShopsService:
 
         return shops
 
-    def get_shop_events(self, shop_id: str) -> List[EventDTO]:
+    def get_shop_events(self, shop_id: str, include_analysis: bool = False) -> List[EventDTO]:
         """
         Get all events for a specific shop, including event_id, event_datetime, shop_name, camera_name, and description.
         Args:
             shop_id (str): The shop ID to get events for
+            include_analysis (bool): Whether to include analysis data for each event
         Returns:
             List[EventDTO]: List of EventDTO objects with all required fields
         Raises:
@@ -91,7 +92,7 @@ class ShopsService:
         ).filter_by(shop_id=shop_id).all()
 
         # Convert to DTOs
-        return [event.to_dto() for event in events]
+        return [event.to_dto(include_analysis=include_analysis) for event in events]
 
     def get_shop_cameras(self, shop_id: str) -> List[CameraDTO]:
         """
@@ -208,13 +209,14 @@ class ShopsService:
             raise Exception(f"Failed to create event: {str(e)}")
 
 
-    def get_event(self, shop_id:str, event_id: str) -> EventDTO:
+    def get_event(self, shop_id:str, event_id: str, include_analysis: bool = False) -> EventDTO:
         """
         Get an event by its ID and shop ID.
 
         Args:
             shop_id (str): The shop ID
             event_id (str): The event ID
+            include_analysis (bool): Whether to include analysis data for the event
 
         Returns:
             EventDTO: The event as a DTO
@@ -223,9 +225,12 @@ class ShopsService:
         if not event_id or str(event_id).strip() == "":
             raise ValueError("Event ID is required")
 
-        event = Event.query.filter_by(event_id=event_id, shop_id=shop_id).first()
+        event = Event.query.options(
+            joinedload(Event.shop),
+            joinedload(Event.camera)
+        ).filter_by(event_id=event_id, shop_id=shop_id).first()
         if not event:
             raise NotFound(f"Event with ID '{event_id}' does not exist in shop '{shop_id}'")
         
         # Convert to DTOs
-        return event.to_dto()
+        return event.to_dto(include_analysis=include_analysis)
