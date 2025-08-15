@@ -15,7 +15,18 @@ import json
 
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import (default_system_instruction,
                                                                               enhanced_prompt, enhanced_response_schema)
-from utils import load_env_variables
+# Import load_env_variables using absolute path to avoid conflict with local utils.py
+import importlib.util
+import os
+
+# Get project root (4 levels up from this file: agentic -> model -> src -> data_science -> project_root)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+
+spec = importlib.util.spec_from_file_location("env_utils", os.path.join(project_root, "utils", "env_utils.py"))
+env_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(env_utils)
+load_env_variables = env_utils.load_env_variables
 
 load_env_variables()
 

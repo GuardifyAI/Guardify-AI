@@ -1,11 +1,12 @@
-import subprocess
 import os
 import signal
-import time
+import subprocess
 import sys
-from typing import Dict
 import threading
+import time
+from datetime import datetime
 from pathlib import Path
+from typing import Dict
 
 from backend.app.request_bodies.recording_request_body import StartRecordingRequestBody, StopRecordingRequestBody
 from backend.video.main import EXIT_CAMERA_NOT_FOUND, EXIT_GENERAL_ERROR, get_exit_code_description
@@ -20,13 +21,14 @@ class RecordingService:
     by managing subprocess calls to the main.py video recording script.
     """
 
-    def __init__(self, shops_service):
+    def __init__(self, shops_service, agentic_service=None):
         """Initialize the recording service with process tracking."""
         # Dictionary to track running processes: {shop_id_camera_name: process_info}
         self.active_processes: Dict[str, Dict] = {}
         self.lock = threading.Lock()
         self._dependencies_checked = False
         self.shops_service = shops_service
+        self.agentic_service = agentic_service
         self.logger = create_logger("RecordingService", "recording_service.log")
 
     def _check_request_params(self,
@@ -245,6 +247,18 @@ class RecordingService:
                     f"Recording process started successfully for camera '{camera_name}' in shop '{shop_id}' (PID: {process.pid})")
                 self.logger.info("Camera validation passed - recording should be active now")
 
+                # Start agentic analysis if agentic service is available
+                if self.agentic_service:
+                    try:
+                        start_timestamp = datetime.now()
+                        self.logger.info(f"Starting agentic analysis for camera '{camera_name}' in shop '{shop_id}'")
+                        self.agentic_service.start_agentic_analysis(shop_id, camera_name, start_timestamp)
+                        self.logger.info(f"Agentic analysis started successfully for camera '{camera_name}'")
+                    except Exception as agentic_error:
+                        # Log the error but don't fail the recording start
+                        self.logger.error(f"Failed to start agentic analysis for camera '{camera_name}': {agentic_error}")
+                        self.logger.warning("Recording will continue without agentic analysis")
+
             except Exception as e:
                 if process_key in self.active_processes:
                     del self.active_processes[process_key]
@@ -322,6 +336,17 @@ class RecordingService:
 
                     # Give a moment for any remaining cleanup
                     time.sleep(1)
+
+                # Stop agentic analysis if agentic service is available
+                if self.agentic_service:
+                    try:
+                        self.logger.info(f"Stopping agentic analysis for camera '{camera_name}' in shop '{shop_id}'")
+                        self.agentic_service.stop_agentic_analysis(shop_id, camera_name)
+                        self.logger.info(f"Agentic analysis stopped successfully for camera '{camera_name}'")
+                    except Exception as agentic_error:
+                        # Log the error but don't fail the recording stop
+                        self.logger.error(f"Failed to stop agentic analysis for camera '{camera_name}': {agentic_error}")
+                        self.logger.warning("Recording stop will continue despite agentic analysis error")
 
                 # Clean up
                 del self.active_processes[process_key]

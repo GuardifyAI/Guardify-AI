@@ -10,6 +10,7 @@ from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
 from backend.services.recording_service import RecordingService
+from backend.services.agentic_service import AgenticService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
@@ -35,6 +36,7 @@ class ApiHandler:
         shops_service (ShopsService): The shops service instance
         events_service (EventsService): The events service instance
         recording_service (RecordingService): The recording service instance
+        agentic_service (AgenticService): The agentic service instance
         cache (Cache): Flask-Caching instance for request caching
     """
 
@@ -50,7 +52,8 @@ class ApiHandler:
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
         self.events_service = EventsService()
-        self.recording_service = RecordingService(self.shops_service)
+        self.agentic_service = AgenticService(self.shops_service)
+        self.recording_service = RecordingService(self.shops_service, self.agentic_service)
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
