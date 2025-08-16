@@ -11,6 +11,7 @@ from datetime import datetime
 from utils.logger_utils import create_logger
 from data_science.src.model.pipeline.shoplifting_analyzer import create_agentic_analyzer
 from google_client.google_client import GoogleClient
+from backend.app.dtos.analysis_result_dto import AnalysisResultDTO
 
 
 class AgenticService:
@@ -45,7 +46,7 @@ class AgenticService:
         """Check if a process is still running."""
         return process.poll() is None
 
-    def analyze_single_video(self, video_url: str) -> Dict[str, Any]:
+    def analyze_single_video(self, video_url: str) -> AnalysisResultDTO:
         """
         Analyze a single video using the agentic strategy (synchronous).
 
@@ -53,11 +54,12 @@ class AgenticService:
             video_url (str): Google Cloud Storage URI of the video to analyze
 
         Returns:
-            Dict[str, Any]: Analysis result containing:
+            AnalysisResultDTO: Analysis result containing:
                 - video_url: str
                 - final_confidence: float  
                 - final_detection: str
                 - decision_reasoning: str
+                - iteration_results: List[Any]
 
         Raises:
             Exception: If analysis fails or video is invalid
@@ -79,15 +81,16 @@ class AgenticService:
             )
             
             # Extract required fields from analysis result
-            result = {
-                "video_url": video_url,
-                "final_confidence": analysis_result.get("final_confidence", 0.0),
-                "final_detection": str(analysis_result.get("final_detection", False)),
-                "decision_reasoning": analysis_result.get("decision_reasoning", "No reasoning provided")
-            }
+            result = AnalysisResultDTO(
+                video_url=video_url,
+                final_confidence=analysis_result.get("final_confidence", 0.0),
+                final_detection=str(analysis_result.get("final_detection", False)),
+                decision_reasoning=analysis_result.get("decision_reasoning", "No reasoning provided"),
+                iteration_results=analysis_result.get("iteration_results", [])  # Include iteration data
+            )
             
             self.logger.info(f"Single video analysis completed for: {video_url}")
-            self.logger.info(f"Result: detected={result['final_detection']}, confidence={result['final_confidence']:.3f}")
+            self.logger.info(f"Result: detected={result.final_detection}, confidence={result.final_confidence:.3f}")
             
             return result
             

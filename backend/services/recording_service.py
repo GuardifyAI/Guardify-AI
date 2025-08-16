@@ -415,59 +415,6 @@ class RecordingService:
         except:
             return False
 
-    def analyze_recent_videos(self, shop_id: str, camera_name: str) -> Dict[str, Any]:
-        """
-        Analyze recent videos for a specific camera in the bucket.
-        
-        Args:
-            shop_id (str): The shop ID
-            camera_name (str): The camera name
-            
-        Returns:
-            Dict[str, Any]: Analysis results or error message
-        """
-        try:
-            if not self.agentic_service:
-                return {"error": "Agentic service not available"}
-
-            # Get camera_id for this camera name in this shop
-            cameras = self.shops_service.get_shop_cameras(shop_id)
-            camera_id = None
-            for camera in cameras:
-                if camera.camera_name == camera_name:
-                    camera_id = camera.camera_id
-                    break
-
-            if not camera_id:
-                camera_id = camera_name  # Fallback to camera name
-
-            bucket_name = os.getenv("BUCKET_NAME")
-            
-            # Find the most recent video file for this camera by querying the actual bucket
-            video_url = self._find_latest_video_for_camera(bucket_name, camera_name)
-            
-            if not video_url:
-                return {"error": f"No video files found for camera '{camera_name}' in bucket '{bucket_name}'"}
-
-            self.logger.info(f"Analyzing video: {video_url}")
-            
-            # Analyze the video
-            analysis_result = self.agentic_service.analyze_single_video(video_url)
-            
-            # Add shop and camera context to analysis result
-            analysis_result['shop_id'] = shop_id
-            analysis_result['camera_id'] = camera_id
-            analysis_result['camera_name'] = camera_name
-            
-            self.logger.info(f"Video analysis completed: detected={analysis_result['final_detection']}, confidence={analysis_result['final_confidence']}")
-            
-            return analysis_result
-            
-        except Exception as e:
-            self.logger.error(f"Failed to analyze recent videos for camera '{camera_name}': {e}")
-            return {"error": str(e)}
-
-
     def _find_latest_video_for_camera(self, bucket_name: str, camera_name: str) -> str | None:
         """
         Find the most recent video file for a specific camera in the Google Cloud Storage bucket.
