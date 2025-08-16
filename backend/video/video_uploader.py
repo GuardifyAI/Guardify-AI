@@ -1,10 +1,17 @@
 import threading
 import queue
 import os
-import requests
+import sys
+from backend.celery_tasks.analysis_tasks import analyze_video
+
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from google_client import google_client
 from utils.logger_utils import create_logger
+from backend.video.upload_task import UploadTask
 
 
 class VideoUploader:
@@ -12,19 +19,16 @@ class VideoUploader:
     A video upload system that handles concurrent uploading of recorded videos to Google Cloud Storage.
     """
 
-    def __init__(self, gc: google_client, upload_callback=None):
+    def __init__(self, gc: google_client):
         """
         Initialize the VideoUploader with Google Cloud client and threading components.
         
         Args:
             gc (GoogleClient): An instance of GoogleClient for handling
                                         uploads to Google Cloud Storage buckets.
-            upload_callback (callable, optional): Callback function to call after successful upload.
-                                                  Signature: callback(camera_name, video_url, shop_id)
         """
         self.logger = create_logger("video_uploader", "video_uploader.log")
         self.google_client = gc
-        self.upload_callback = upload_callback
 
         # A thread-safe queue for passing upload tasks between threads
         self.upload_queue = queue.Queue()
@@ -39,6 +43,9 @@ class VideoUploader:
         # Format: {camera_name: video_url}
         self.uploaded_videos = {}
         self.uploaded_videos_lock = threading.Lock()
+        
+        # Celery task dispatch (with graceful fallback)
+        self.celery_available = self._check_celery_availability()
 
     def start(self) -> None:
         """
@@ -96,8 +103,54 @@ class VideoUploader:
                 self.logger.warning("Upload thread did not stop gracefully")
         
         self.logger.info("Upload worker thread stopped successfully")
+    
+    def _check_celery_availability(self) -> bool:
+        """
+        Check if Celery is available for task dispatch.
+        
+        Returns:
+            bool: True if Celery is available, False otherwise
+        """
+        try:
+            from backend.celery_tasks.analysis_tasks import analyze_video
+            self.logger.info("Celery tasks are available for video analysis")
+            return True
+        except ImportError as e:
+            self.logger.warning(f"Celery tasks not available: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error checking Celery availability: {e}")
+            return False
+    
+    def _dispatch_analysis_task(self, camera_name: str, video_url: str, shop_id: str) -> None:
+        """
+        Dispatch (start) video analysis task using Celery.
+        
+        Args:
+            camera_name (str): Name of the camera
+            video_url (str): Google Cloud Storage URI of the video
+            shop_id (str): Shop ID for context
+        """
+        if not self.celery_available:
+            self.logger.warning(f"Celery not available - skipping analysis for {video_url}")
+            return
+            
+        if not shop_id:
+            self.logger.warning(f"No shop_id provided - skipping analysis for {video_url}")
+            return
+            
+        try:
+            # Dispatch Celery task asynchronously
+            task = analyze_video.delay(camera_name, video_url, shop_id)
+            
+            self.logger.info(
+                f"Dispatched analysis task for camera '{camera_name}' (task_id: {task.id}): {video_url}"
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Failed to dispatch analysis task for {video_url}: {e}")
 
-    def add_to_queue(self, bucket_name: str, camera_name: str, shop_id: str = None) -> None:
+    def add_to_queue(self, task: UploadTask) -> None:
         """
         Add an upload task to the processing queue.
         
@@ -106,11 +159,7 @@ class VideoUploader:
         other queued uploads.
         
         Args:
-            bucket_name (str): Name of the Google Cloud Storage bucket to upload to.
-                             The bucket must already exist and be accessible.
-            camera_name (str): Name/prefix of the camera used to identify the recording file.
-                             Used to find the corresponding local video file.
-            shop_id (str, optional): Shop ID for context when triggering analysis callbacks.
+            task (UploadTask): The upload task containing bucket name, camera name, and shop ID
         
         Behavior:
             - Adds task to thread-safe queue immediately
@@ -122,8 +171,11 @@ class VideoUploader:
             The upload worker thread must be started (via start()) before
             calling this method, otherwise tasks will queue but not be processed.
         """
-        self.logger.info(f"Queuing upload task for camera {camera_name} to bucket {bucket_name}")
-        self.upload_queue.put((bucket_name, camera_name, shop_id))
+        # Validate the task
+        task.validate()
+        
+        self.logger.info(f"Queuing upload task: {task}")
+        self.upload_queue.put(task)
 
     def _upload_worker(self) -> None:
         """
@@ -138,7 +190,7 @@ class VideoUploader:
         allowing for clean shutdown even when no uploads are pending.
         
         Queue Task Format:
-            Each task in the queue should be a tuple: (bucket_name, camera_name, shop_id)
+            Each task in the queue is an UploadTask object
         
         Behavior:
             - Processes upload tasks sequentially from the queue
@@ -154,57 +206,44 @@ class VideoUploader:
                 # Wait for upload task with timeout to allow checking stop event
                 task_data = self.upload_queue.get(timeout=1)
                 
-                # Handle both old format (bucket_name, camera_name) and new format (bucket_name, camera_name, shop_id)
-                if len(task_data) == 2:
-                    bucket_name, camera_name = task_data
-                    shop_id = None
-                elif len(task_data) == 3:
-                    bucket_name, camera_name, shop_id = task_data
-                else:
-                    self.logger.error(f"Invalid task data format: {task_data}")
-                    self.upload_queue.task_done()
-                    continue
+                # All tasks should be UploadTask objects
+                upload_task = task_data
                 
-                self.logger.info(f"Starting upload for camera {camera_name} to bucket {bucket_name}")
-                video_url = self.google_client.export_camera_recording_to_bucket(bucket_name, camera_name)
+                self.logger.info(f"Starting upload: {upload_task}")
                 
-                # Store the uploaded video URL
-                with self.uploaded_videos_lock:
-                    self.uploaded_videos[camera_name] = video_url
-                
-                self.logger.info(f"Upload succeeded for camera {camera_name}: {video_url}")
-                
-                # Trigger callback if available (function or HTTP URL)
-                if self.upload_callback and callable(self.upload_callback):
-                    try:
-                        self.logger.info(f"Triggering upload callback for camera {camera_name}")
-                        self.upload_callback(camera_name, video_url, shop_id)
-                    except Exception as callback_error:
-                        self.logger.error(f"Upload callback failed for camera {camera_name}: {callback_error}")
-                        # Continue processing - callback failure shouldn't break upload flow
-                
-                # Also check for HTTP callback URL from environment
-                callback_url = os.getenv('UPLOAD_CALLBACK_URL')
-                if callback_url:
-                    try:
-                        self.logger.info(f"Sending HTTP callback for camera {camera_name} to {callback_url}")
-                        payload = {
-                            'camera_name': camera_name,
-                            'video_url': video_url,
-                            'shop_id': shop_id
-                        }
-                        response = requests.post(callback_url, json=payload, timeout=5)  # Reduced timeout
-                        if response.status_code == 200:
-                            self.logger.info(f"HTTP callback successful for camera {camera_name}")
-                        else:
-                            self.logger.warning(f"HTTP callback returned status {response.status_code} for camera {camera_name}")
-                    except requests.exceptions.Timeout:
-                        self.logger.warning(f"HTTP callback timed out for camera {camera_name} (this is normal if analysis is running)")
-                    except requests.exceptions.ConnectionError:
-                        self.logger.warning(f"HTTP callback connection failed for camera {camera_name} (server may be stopping)")
-                    except Exception as callback_error:
-                        self.logger.error(f"HTTP callback failed for camera {camera_name}: {callback_error}")
-                        # Continue processing - callback failure shouldn't break upload flow
+                try:
+                    # Perform the actual upload
+                    self.logger.info(f"Calling Google Client export method for {upload_task.camera_name}...")
+                    video_url = self.google_client.export_camera_recording_to_bucket(
+                        upload_task.bucket_name, 
+                        upload_task.camera_name
+                    )
+                    self.logger.info(f"Google Client export method returned: {video_url}")
+                    
+                    if not video_url:
+                        self.logger.error(f"Upload failed - no video URL returned for camera {upload_task.camera_name}")
+                        self.upload_queue.task_done()
+                        continue
+                    
+                    # Store the uploaded video URL
+                    with self.uploaded_videos_lock:
+                        self.uploaded_videos[upload_task.camera_name] = video_url
+                    
+                    self.logger.info(f"Upload succeeded for camera {upload_task.camera_name}: {video_url}")
+                    
+                    # Dispatch Celery analysis task (primary method)
+                    self.logger.info(f"Dispatching Celery analysis task for {upload_task.camera_name}...")
+                    self._dispatch_analysis_task(
+                        upload_task.camera_name, 
+                        video_url, 
+                        upload_task.shop_id
+                    )
+                    self.logger.info(f"Celery analysis task dispatched successfully for {upload_task.camera_name}")
+                    
+                except Exception as upload_error:
+                    self.logger.error(f"Upload failed for camera {upload_task.camera_name}: {upload_error}")
+                    # Don't continue to next iteration - let the outer exception handler deal with it
+                    raise
                 
                 self.upload_queue.task_done()
                 

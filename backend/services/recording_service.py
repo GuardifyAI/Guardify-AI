@@ -8,9 +8,6 @@ from pathlib import Path
 from typing import Dict, Any
 from google.cloud import storage
 from google.oauth2.service_account import Credentials
-import socket
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import json
 
 from backend.app.request_bodies.recording_request_body import StartRecordingRequestBody, StopRecordingRequestBody
 from backend.video.main import EXIT_CAMERA_NOT_FOUND, EXIT_GENERAL_ERROR, get_exit_code_description
@@ -48,13 +45,6 @@ class RecordingService:
         except Exception as e:
             self.logger.warning(f"Failed to initialize Google Cloud Storage client: {e}")
             self.storage_client = None
-            
-        # Initialize callback server for video upload notifications
-        self.callback_server = None
-        self.callback_server_thread = None
-        self.callback_port = None
-        self.analysis_threads = set()  # Track active analysis threads
-        self.analysis_threads_lock = threading.Lock()
 
     def _check_request_params(self,
                               request_body: StartRecordingRequestBody | StopRecordingRequestBody) -> ValueError | None:
@@ -147,9 +137,6 @@ class RecordingService:
                     del self.active_processes[process_key]
 
             try:
-                # Start callback server for upload notifications
-                callback_port = self._start_callback_server()
-                
                 # Build command to run main.py
                 video_dir = Path(__file__).resolve().parent.parent / 'video'
                 main_py_path = video_dir / 'main.py'
@@ -165,7 +152,6 @@ class RecordingService:
 
                 # Set up environment with correct Python path
                 env = os.environ.copy()
-                env['UPLOAD_CALLBACK_URL'] = f'http://localhost:{callback_port}/upload-callback'
                 current_pythonpath = env.get('PYTHONPATH', '')
                 if current_pythonpath:
                     env['PYTHONPATH'] = f"{project_root}{os.pathsep}{current_pythonpath}"
@@ -406,17 +392,12 @@ class RecordingService:
                 # Clean up
                 del self.active_processes[process_key]
                 
-                # Stop callback server
-                self._stop_callback_server()
-                
                 self.logger.info(f"Recording stopped successfully for camera '{camera_name}'")
 
             except Exception as e:
                 # Clean up even if stopping failed
                 if process_key in self.active_processes:
                     del self.active_processes[process_key]
-                # Stop callback server on error too
-                self._stop_callback_server()
                 raise Exception(f"Failed to stop recording: {str(e)}")
 
     def _is_process_running(self, process: subprocess.Popen) -> bool:
@@ -486,176 +467,6 @@ class RecordingService:
             self.logger.error(f"Failed to analyze recent videos for camera '{camera_name}': {e}")
             return {"error": str(e)}
 
-    def _on_video_uploaded(self, camera_name: str, video_url: str, shop_id: str) -> None:
-        """
-        Callback method triggered when a video is successfully uploaded.
-        
-        This method automatically triggers agentic analysis for uploaded videos
-        if the agentic service is available.
-        
-        Args:
-            camera_name (str): Name of the camera that recorded the video
-            video_url (str): Google Cloud Storage URI of the uploaded video
-            shop_id (str): Shop ID for context (may be None for backward compatibility)
-        """
-        try:
-            if not self.agentic_service:
-                self.logger.info(f"[UPLOAD-CALLBACK] Agentic service not available for video {video_url}")
-                return
-            
-            if not shop_id:
-                self.logger.warning(f"[UPLOAD-CALLBACK] No shop_id provided for video {video_url}, skipping analysis")
-                return
-                
-            self.logger.info(f"[UPLOAD-CALLBACK] Analyzing uploaded video for camera '{camera_name}' in shop '{shop_id}': {video_url}")
-            
-            # Trigger agentic analysis for the uploaded video
-            analysis_result = self.agentic_service.analyze_single_video(video_url)
-            
-            # Add shop and camera context to analysis result
-            analysis_result['shop_id'] = shop_id
-            analysis_result['camera_name'] = camera_name
-            
-            self.logger.info(f"[UPLOAD-CALLBACK] Analysis completed for {video_url}: detected={analysis_result['final_detection']}, confidence={analysis_result['final_confidence']:.3f}")
-            
-            # TODO: Could store analysis results in database here in the future
-            
-        except Exception as e:
-            self.logger.error(f"[UPLOAD-CALLBACK] Failed to analyze uploaded video {video_url}: {e}")
-            # Don't raise exception - callback failures shouldn't break upload flow
-
-    def _on_video_uploaded_async(self, camera_name: str, video_url: str, shop_id: str) -> None:
-        """
-        Async wrapper for video upload callback to avoid blocking HTTP response.
-        
-        Args:
-            camera_name (str): Name of the camera that recorded the video
-            video_url (str): Google Cloud Storage URI of the uploaded video
-            shop_id (str): Shop ID for context
-        """
-        current_thread = threading.current_thread()
-        try:
-            self._on_video_uploaded(camera_name, video_url, shop_id)
-        except Exception as e:
-            self.logger.error(f"[UPLOAD-CALLBACK-ASYNC] Failed to analyze uploaded video {video_url}: {e}")
-        finally:
-            # Clean up thread tracking
-            with self.analysis_threads_lock:
-                self.analysis_threads.discard(current_thread)
-            
-    def _start_callback_server(self) -> int:
-        """
-        Start HTTP callback server for receiving upload notifications from video subprocess.
-        
-        Returns:
-            int: Port number the server is listening on
-        """
-        class CallbackHandler(BaseHTTPRequestHandler):
-            def __init__(self, recording_service):
-                self.recording_service = recording_service
-                super().__init__()
-                
-            def __init__(self, *args, recording_service=None, **kwargs):
-                self.recording_service = recording_service
-                super().__init__(*args, **kwargs)
-                
-            def do_POST(self):
-                if self.path == '/upload-callback':
-                    try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length)
-                        data = json.loads(post_data.decode('utf-8'))
-                        
-                        camera_name = data.get('camera_name')
-                        video_url = data.get('video_url')
-                        shop_id = data.get('shop_id')
-                        
-                        # Respond immediately to avoid timeout
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"status": "success"}).encode())
-                        
-                        # Trigger analysis in background thread to avoid blocking
-                        if camera_name and video_url:
-                            analysis_thread = threading.Thread(
-                                target=self.recording_service._on_video_uploaded_async,
-                                args=(camera_name, video_url, shop_id),
-                                daemon=True
-                            )
-                            with self.recording_service.analysis_threads_lock:
-                                self.recording_service.analysis_threads.add(analysis_thread)
-                            analysis_thread.start()
-                        
-                    except Exception as e:
-                        self.recording_service.logger.error(f"Callback server error: {e}")
-                        try:
-                            self.send_response(500)
-                            self.end_headers()
-                        except ConnectionAbortedError:
-                            # Client already disconnected, ignore
-                            pass
-                        except Exception as response_error:
-                            self.recording_service.logger.debug(f"Failed to send error response: {response_error}")
-                else:
-                    try:
-                        self.send_response(404)
-                        self.end_headers()
-                    except ConnectionAbortedError:
-                        # Client already disconnected, ignore
-                        pass
-                    
-            def log_message(self, format, *args):
-                # Suppress default HTTP logging to reduce noise
-                pass
-        
-        # Find an available port
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('localhost', 0))
-            port = s.getsockname()[1]
-        
-        # Create handler with recording service reference
-        handler = lambda *args, **kwargs: CallbackHandler(*args, recording_service=self, **kwargs)
-        
-        self.callback_server = HTTPServer(('localhost', port), handler)
-        self.callback_port = port
-        
-        def run_server():
-            self.logger.info(f"Starting callback server on port {port}")
-            self.callback_server.serve_forever()
-            
-        self.callback_server_thread = threading.Thread(target=run_server, daemon=True)
-        self.callback_server_thread.start()
-        
-        return port
-        
-    def _stop_callback_server(self):
-        """Stop the HTTP callback server and wait for analysis threads to complete."""
-        if self.callback_server:
-            self.logger.info("Stopping callback server")
-            
-            # Wait for active analysis threads to complete (with timeout)
-            with self.analysis_threads_lock:
-                active_threads = list(self.analysis_threads)
-            
-            if active_threads:
-                self.logger.info(f"Waiting for {len(active_threads)} analysis threads to complete...")
-                for thread in active_threads:
-                    if thread.is_alive():
-                        thread.join(timeout=5)  # Give each thread 5 seconds to complete
-                        
-            # Stop the server
-            self.callback_server.shutdown()
-            self.callback_server.server_close()
-            if self.callback_server_thread:
-                self.callback_server_thread.join(timeout=5)
-            self.callback_server = None
-            self.callback_server_thread = None
-            self.callback_port = None
-            
-            # Clear any remaining thread references
-            with self.analysis_threads_lock:
-                self.analysis_threads.clear()
 
     def _find_latest_video_for_camera(self, bucket_name: str, camera_name: str) -> str | None:
         """

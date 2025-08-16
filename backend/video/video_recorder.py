@@ -5,6 +5,7 @@ import time
 
 from utils import load_env_variables
 from utils.logger_utils import create_logger
+from backend.video.upload_task import UploadTask
 
 load_env_variables()
 
@@ -129,7 +130,7 @@ class VideoRecorder:
                     camera_element.dblclick()
                     time.sleep(2)
                     
-            except Exception as e2:
+            except Exception:
                 # List available cameras for debugging
                 self.logger.error(f"Could not find camera '{camera_name}'. Available text elements:")
                 
@@ -194,7 +195,12 @@ class VideoRecorder:
 
                 # Queue the upload task for background processing
                 bucket_name = os.getenv("BUCKET_NAME")
-                self.video_uploader.add_to_queue(bucket_name, camera_name, self.shop_id)
+                upload_task = UploadTask(
+                    bucket_name=bucket_name,
+                    camera_name=camera_name,
+                    shop_id=self.shop_id
+                )
+                self.video_uploader.add_to_queue(upload_task)
                 
         except KeyboardInterrupt:
             self.logger.info("Recording interrupted by user")

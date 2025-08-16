@@ -63,6 +63,38 @@ cd backend/video
 python main.py                # Start video recording system
 ```
 
+### Celery Task Processing
+
+The system uses Celery for asynchronous video analysis tasks. To run the complete system:
+
+```bash
+# 1. Start Redis (message broker)
+redis-server
+
+# 2. Start Celery worker for analysis tasks (Windows compatible)
+celery -A backend.celery_app worker --loglevel=info --pool=solo --queues=analysis
+
+# 3. Start Flower monitoring UI (optional)
+celery -A backend.celery_app flower --port=5555
+
+# 4. View task monitoring at http://localhost:5555
+```
+
+#### Celery Commands
+```bash
+# Check worker status
+celery -A backend.celery_app status
+
+# Inspect active tasks
+celery -A backend.celery_app inspect active
+
+# Purge all tasks from queue
+celery -A backend.celery_app purge
+
+# Test task dispatch
+celery -A backend.celery_app call backend.celery_tasks.analysis_tasks.health_check
+```
+
 ## Key Technical Details
 
 ### Database Models
