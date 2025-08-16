@@ -84,7 +84,7 @@ class GoogleClient:
                 matching_files.append(os.path.join(directory, filename))
         return matching_files
 
-    def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str):
+    def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str) -> str:
         """
         Upload a camera recording file from local storage to a Google Cloud Storage bucket.
         If the video is not in MP4 format, it will be converted to MP4 before upload.
@@ -95,6 +95,9 @@ class GoogleClient:
             camera_name (str): Name/prefix of the camera used to identify the recording file.
                              This is used as a prefix to search for matching files in the
                              local videos directory.
+        
+        Returns:
+            str: The Google Cloud Storage URI of the uploaded video file (gs://bucket/filename)
         
         Environment Variables Required:
             - PROVISION_VIDEOS_SOURCE: Local directory path where camera recordings are stored
@@ -167,12 +170,17 @@ class GoogleClient:
         blob.upload_from_filename(upload_file_path)
         print(f"Uploaded to bucket: {blob_name}")
 
+        # Create the GCS URI to return
+        video_url = f"gs://{bucket_name}/{blob_name}"
+
         # Delete the original file locally
         os.remove(local_file_path)
         
         # Delete the converted file locally if it was created
         if converted_file_created and upload_file_path != local_file_path:
             os.remove(upload_file_path)
+            
+        return video_url
 
     def convert_all_videos_in_bucket_to_mp4(self, bucket_name: str, extensions: List[str] = None):
         """

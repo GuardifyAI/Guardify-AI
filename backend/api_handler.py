@@ -389,7 +389,7 @@ class ApiHandler:
         @self.require_auth
         def start_shop_recording(shop_id):
             """
-            Start video recording for a camera in the specified shop.
+            Start video recording for a camera in the specified shop and analyze the video.
 
             Args:
                 shop_id (str): The shop ID to start recording for
@@ -401,9 +401,14 @@ class ApiHandler:
                 }
 
             Returns:
-                JSON response with:
-                    - result: "OK" on success
-                    - errorMessage: None on success, error string on failure
+                JSON response with immediate confirmation:
+                    - recording_started: bool - True if recording started successfully
+                    - shop_id: str - The shop ID
+                    - camera_id: str - The camera ID  
+                    - camera_name: str - Name of the camera
+                    - message: str - Status message
+                Note: Videos will be analyzed automatically when uploaded. Analysis results 
+                      can be retrieved via separate endpoints or real-time notifications.
             """
             data = request.get_json(silent=True) or {}
 
@@ -412,10 +417,10 @@ class ApiHandler:
                 duration=data.get("duration", 30)
             )
 
-            # Start the recording
-            self.recording_service.start_recording(shop_id, start_recording_req_body)
+            # Start the recording and get immediate response
+            result = self.recording_service.start_recording(shop_id, start_recording_req_body)
 
-            return SUCCESS_RESPONSE, HTTPStatus.OK
+            return result, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/recording/stop", methods=["POST"])
         @self.require_auth

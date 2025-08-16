@@ -14,16 +14,18 @@ class VideoRecorder:
     A video recording system that captures camera streams from Provision ISR platform.
     """
 
-    def __init__(self, video_uploader):
+    def __init__(self, video_uploader, shop_id=None):
         """
         Initialize the VideoRecorder with video uploader integration.
         
         Args:
             video_uploader (VideoUploader): An instance of VideoUploader for handling
                                           concurrent upload processing.
+            shop_id (str, optional): Shop ID for context when triggering analysis callbacks.
         """
         self.logger = create_logger("video_recorder", "video_recorder.log")
         self.video_uploader = video_uploader
+        self.shop_id = shop_id
 
     def login_to_provisionisr(self, page: Page) -> None:
         """
@@ -192,7 +194,7 @@ class VideoRecorder:
 
                 # Queue the upload task for background processing
                 bucket_name = os.getenv("BUCKET_NAME")
-                self.video_uploader.add_to_queue(bucket_name, camera_name)
+                self.video_uploader.add_to_queue(bucket_name, camera_name, self.shop_id)
                 
         except KeyboardInterrupt:
             self.logger.info("Recording interrupted by user")

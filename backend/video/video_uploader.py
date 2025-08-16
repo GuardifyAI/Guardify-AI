@@ -1,5 +1,7 @@
 import threading
 import queue
+import os
+import requests
 
 from google_client import google_client
 from utils.logger_utils import create_logger
@@ -10,16 +12,19 @@ class VideoUploader:
     A video upload system that handles concurrent uploading of recorded videos to Google Cloud Storage.
     """
 
-    def __init__(self, gc: google_client):
+    def __init__(self, gc: google_client, upload_callback=None):
         """
         Initialize the VideoUploader with Google Cloud client and threading components.
         
         Args:
             gc (GoogleClient): An instance of GoogleClient for handling
                                         uploads to Google Cloud Storage buckets.
+            upload_callback (callable, optional): Callback function to call after successful upload.
+                                                  Signature: callback(camera_name, video_url, shop_id)
         """
         self.logger = create_logger("video_uploader", "video_uploader.log")
         self.google_client = gc
+        self.upload_callback = upload_callback
 
         # A thread-safe queue for passing upload tasks between threads
         self.upload_queue = queue.Queue()
@@ -29,6 +34,11 @@ class VideoUploader:
 
         # Reference to the upload worker thread
         self.upload_thread = None
+        
+        # Dictionary to store uploaded video URLs by camera name
+        # Format: {camera_name: video_url}
+        self.uploaded_videos = {}
+        self.uploaded_videos_lock = threading.Lock()
 
     def start(self) -> None:
         """
@@ -87,7 +97,7 @@ class VideoUploader:
         
         self.logger.info("Upload worker thread stopped successfully")
 
-    def add_to_queue(self, bucket_name: str, camera_name: str) -> None:
+    def add_to_queue(self, bucket_name: str, camera_name: str, shop_id: str = None) -> None:
         """
         Add an upload task to the processing queue.
         
@@ -100,6 +110,7 @@ class VideoUploader:
                              The bucket must already exist and be accessible.
             camera_name (str): Name/prefix of the camera used to identify the recording file.
                              Used to find the corresponding local video file.
+            shop_id (str, optional): Shop ID for context when triggering analysis callbacks.
         
         Behavior:
             - Adds task to thread-safe queue immediately
@@ -112,7 +123,7 @@ class VideoUploader:
             calling this method, otherwise tasks will queue but not be processed.
         """
         self.logger.info(f"Queuing upload task for camera {camera_name} to bucket {bucket_name}")
-        self.upload_queue.put((bucket_name, camera_name))
+        self.upload_queue.put((bucket_name, camera_name, shop_id))
 
     def _upload_worker(self) -> None:
         """
@@ -127,7 +138,7 @@ class VideoUploader:
         allowing for clean shutdown even when no uploads are pending.
         
         Queue Task Format:
-            Each task in the queue should be a tuple: (bucket_name, camera_name)
+            Each task in the queue should be a tuple: (bucket_name, camera_name, shop_id)
         
         Behavior:
             - Processes upload tasks sequentially from the queue
@@ -141,11 +152,59 @@ class VideoUploader:
         while not self.stop_upload_thread.is_set():
             try:
                 # Wait for upload task with timeout to allow checking stop event
-                bucket_name, camera_name = self.upload_queue.get(timeout=1)
+                task_data = self.upload_queue.get(timeout=1)
+                
+                # Handle both old format (bucket_name, camera_name) and new format (bucket_name, camera_name, shop_id)
+                if len(task_data) == 2:
+                    bucket_name, camera_name = task_data
+                    shop_id = None
+                elif len(task_data) == 3:
+                    bucket_name, camera_name, shop_id = task_data
+                else:
+                    self.logger.error(f"Invalid task data format: {task_data}")
+                    self.upload_queue.task_done()
+                    continue
                 
                 self.logger.info(f"Starting upload for camera {camera_name} to bucket {bucket_name}")
-                self.google_client.export_camera_recording_to_bucket(bucket_name, camera_name)
-                self.logger.info(f"Upload succeeded for camera {camera_name}")
+                video_url = self.google_client.export_camera_recording_to_bucket(bucket_name, camera_name)
+                
+                # Store the uploaded video URL
+                with self.uploaded_videos_lock:
+                    self.uploaded_videos[camera_name] = video_url
+                
+                self.logger.info(f"Upload succeeded for camera {camera_name}: {video_url}")
+                
+                # Trigger callback if available (function or HTTP URL)
+                if self.upload_callback and callable(self.upload_callback):
+                    try:
+                        self.logger.info(f"Triggering upload callback for camera {camera_name}")
+                        self.upload_callback(camera_name, video_url, shop_id)
+                    except Exception as callback_error:
+                        self.logger.error(f"Upload callback failed for camera {camera_name}: {callback_error}")
+                        # Continue processing - callback failure shouldn't break upload flow
+                
+                # Also check for HTTP callback URL from environment
+                callback_url = os.getenv('UPLOAD_CALLBACK_URL')
+                if callback_url:
+                    try:
+                        self.logger.info(f"Sending HTTP callback for camera {camera_name} to {callback_url}")
+                        payload = {
+                            'camera_name': camera_name,
+                            'video_url': video_url,
+                            'shop_id': shop_id
+                        }
+                        response = requests.post(callback_url, json=payload, timeout=5)  # Reduced timeout
+                        if response.status_code == 200:
+                            self.logger.info(f"HTTP callback successful for camera {camera_name}")
+                        else:
+                            self.logger.warning(f"HTTP callback returned status {response.status_code} for camera {camera_name}")
+                    except requests.exceptions.Timeout:
+                        self.logger.warning(f"HTTP callback timed out for camera {camera_name} (this is normal if analysis is running)")
+                    except requests.exceptions.ConnectionError:
+                        self.logger.warning(f"HTTP callback connection failed for camera {camera_name} (server may be stopping)")
+                    except Exception as callback_error:
+                        self.logger.error(f"HTTP callback failed for camera {camera_name}: {callback_error}")
+                        # Continue processing - callback failure shouldn't break upload flow
                 
                 self.upload_queue.task_done()
                 
@@ -175,3 +234,16 @@ class VideoUploader:
             bool: True if the upload thread is alive and running, False otherwise.
         """
         return self.upload_thread is not None and self.upload_thread.is_alive()
+
+    def get_uploaded_video_url(self, camera_name: str) -> str:
+        """
+        Get the uploaded video URL for a specific camera.
+        
+        Args:
+            camera_name (str): Name of the camera to get the video URL for.
+        
+        Returns:
+            str: The Google Cloud Storage URI of the uploaded video, or None if not found.
+        """
+        with self.uploaded_videos_lock:
+            return self.uploaded_videos.get(camera_name)
