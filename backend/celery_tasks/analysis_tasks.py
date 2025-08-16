@@ -4,13 +4,10 @@ Video analysis Celery tasks for Guardify-AI.
 This module contains Celery tasks for processing video analysis asynchronously.
 """
 
-import os
 import sys
 import uuid
 from typing import Dict, Any
 from celery import current_task
-
-from backend.app.dtos.analysis_result_dto import AnalysisResultDTO
 
 # BULLETPROOF PATH SETUP
 # Use hardcoded absolute path to ensure it works
@@ -21,18 +18,6 @@ BACKEND_PATH = r"C:\Users\asafl\PycharmProjects\Guardify-AI\backend"
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, BACKEND_PATH)
 
-# Test imports at module level to catch issues early
-try:
-    import backend
-    print(f"[CELERY-DEBUG] Successfully imported backend module at module level")
-except ImportError as e:
-    print(f"[CELERY-DEBUG] Failed to import backend module at module level: {e}")
-
-try:
-    from backend.services import agentic_service
-    print(f"[CELERY-DEBUG] Successfully imported agentic_service at module level")
-except ImportError as e:
-    print(f"[CELERY-DEBUG] Failed to import agentic_service at module level: {e}")
 
 from backend.celery_app import celery_app
 from utils.logger_utils import create_logger
@@ -72,17 +57,9 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Dict[
     try:
         logger.info(f"[CELERY-TASK:{task_id}] Starting video analysis for camera '{camera_name}' in shop '{shop_id}': {video_url}")
 
-        # Debug: Log Python path
-        logger.info(f"[CELERY-TASK:{task_id}] Python path first 5: {sys.path[:5]}")
-        logger.info(f"[CELERY-TASK:{task_id}] Working directory: {os.getcwd()}")
-        logger.info(f"[CELERY-TASK:{task_id}] PROJECT_ROOT in sys.path: {PROJECT_ROOT in sys.path}")
-        logger.info(f"[CELERY-TASK:{task_id}] BACKEND_PATH in sys.path: {BACKEND_PATH in sys.path}")
-        
-        # Import services - now with Flask app context, database access will work
-        logger.info(f"[CELERY-TASK:{task_id}] Importing services with Flask context...")
+        # Import services
         from backend.services.agentic_service import AgenticService
         from backend.services.shops_service import ShopsService
-        logger.info(f"[CELERY-TASK:{task_id}] Successfully imported services")
         
         # Initialize services (now running within Flask app context)
         shops_service = ShopsService()
@@ -109,11 +86,7 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Dict[
             }
         
         # Perform video analysis
-        logger.info(f"[CELERY-TASK:{task_id}] About to call analyze_single_video")
-        
         analysis_result = agentic_service.analyze_single_video(video_url)
-
-        logger.info(f"[CELERY-TASK:{task_id}] analyze_single_video returned: {type(analysis_result)}")
         
         # Add context information to result (convert to dict for return)
         result_dict = {
@@ -133,17 +106,8 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Dict[
             f"confidence={analysis_result.final_confidence:.3f}"
         )
         
-        # Debug: Log analysis result structure
-        try:
-            logger.info(f"[CELERY-TASK:{task_id}] Analysis result type: {type(analysis_result)}")
-            logger.info(f"[CELERY-TASK:{task_id}] ABOUT TO START DATABASE STORAGE")
-        except Exception as debug_error:
-            logger.error(f"[CELERY-TASK:{task_id}] Error in debug logging: {debug_error}")
-            raise
-        
         # Store analysis results in database using existing services
         try:
-            logger.info(f"[CELERY-TASK:{task_id}] ENTERING DATABASE STORAGE SECTION")
             logger.info(f"[CELERY-TASK:{task_id}] Storing analysis results in database...")
             
             # Import services and request bodies

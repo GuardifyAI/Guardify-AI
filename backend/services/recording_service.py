@@ -378,16 +378,6 @@ class RecordingService:
                     # Give a moment for any remaining cleanup
                     time.sleep(1)
 
-                # Stop agentic analysis if agentic service is available
-                if self.agentic_service:
-                    try:
-                        self.logger.info(f"Stopping agentic analysis for camera '{camera_name}' in shop '{shop_id}'")
-                        self.agentic_service.stop_agentic_analysis(shop_id, camera_name)
-                        self.logger.info(f"Agentic analysis stopped successfully for camera '{camera_name}'")
-                    except Exception as agentic_error:
-                        # Log the error but don't fail the recording stop
-                        self.logger.error(f"Failed to stop agentic analysis for camera '{camera_name}': {agentic_error}")
-                        self.logger.warning("Recording stop will continue despite agentic analysis error")
 
                 # Clean up
                 del self.active_processes[process_key]
@@ -415,53 +405,6 @@ class RecordingService:
         except:
             return False
 
-    def _find_latest_video_for_camera(self, bucket_name: str, camera_name: str) -> str | None:
-        """
-        Find the most recent video file for a specific camera in the Google Cloud Storage bucket.
-        
-        Args:
-            bucket_name (str): Name of the GCS bucket
-            camera_name (str): Name of the camera to find videos for
-            
-        Returns:
-            str: GCS URI of the most recent video file, or None if not found
-        """
-        if not self.storage_client:
-            self.logger.error("Google Cloud Storage client not initialized")
-            return None
-            
-        try:
-            bucket = self.storage_client.bucket(bucket_name)
-            
-            # List all blobs that start with the camera name
-            # Camera videos are typically named like "camera_name_timestamp.ext"
-            blobs = list(bucket.list_blobs(prefix=camera_name))
-
-            # Filter for video files
-            video_extensions = ['.mp4']
-            video_blobs = []
-            
-            for blob in blobs:
-                if any(blob.name.lower().endswith(ext) for ext in video_extensions):
-                    video_blobs.append(blob)
-            
-            if not video_blobs:
-                self.logger.warning(f"No video files found for camera '{camera_name}' in bucket '{bucket_name}'")
-                return None
-            
-            # Sort by creation time (most recent first)
-            video_blobs.sort(key=lambda x: x.time_created, reverse=True)
-            
-            # Return the GCS URI of the most recent video
-            latest_video = video_blobs[0]
-            video_url = f"gs://{bucket_name}/{latest_video.name}"
-            
-            self.logger.info(f"Found latest video for camera '{camera_name}': {video_url}")
-            return video_url
-            
-        except Exception as e:
-            self.logger.error(f"Error finding latest video for camera '{camera_name}': {e}")
-            return None
 
     def cleanup_dead_processes(self) -> None:
         """
