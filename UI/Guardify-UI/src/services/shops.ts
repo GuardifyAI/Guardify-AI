@@ -37,6 +37,8 @@ class ShopsService {
       method: 'GET',
     }, token);
   }
+
+
 }
 
 export const shopsService = new ShopsService();

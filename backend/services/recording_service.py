@@ -101,13 +101,12 @@ class RecordingService:
                     del self.active_processes[process_key]
 
             try:
-                # Build command to run main.py
-                video_dir = Path(__file__).resolve().parent.parent / 'video'
-                main_py_path = video_dir / 'main.py'
-
+                # Build command to run main.py using module syntax from project root
+                project_root = Path(__file__).resolve().parent.parent.parent
+                
                 cmd = [
                     sys.executable,  # Use the same Python executable as the current process
-                    str(main_py_path),  # Convert Path to string for subprocess
+                    '-m', 'backend.video.main',  # Run as module to fix import issues
                     '--camera', camera_name,
                     '--duration', str(duration)
                 ]
@@ -115,7 +114,7 @@ class RecordingService:
                 # Start the process with output forwarding
                 process = subprocess.Popen(
                     cmd,
-                    cwd=str(video_dir),  # Convert Path to string for subprocess
+                    cwd=str(project_root),  # Run from project root so imports work
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,  # Combine stderr with stdout
                     stdin=subprocess.PIPE,
@@ -347,6 +346,34 @@ class RecordingService:
             return process.poll() is None
         except:
             return False
+
+    def get_active_recordings(self, shop_id: str) -> list[dict]:
+        """
+        Get all active recordings for a specific shop.
+        
+        Args:
+            shop_id (str): The shop ID to get active recordings for
+            
+        Returns:
+            list[dict]: List of active recording information
+        """
+        # Verify shop exists using shops service
+        self.shops_service.verify_shop_exists(shop_id)
+        
+        # Clean up any dead processes first
+        self.cleanup_dead_processes()
+        
+        active_recordings = []
+        with self.lock:
+            for key, process_info in self.active_processes.items():
+                if process_info['shop_id'] == shop_id and self._is_process_running(process_info['process']):
+                    active_recordings.append({
+                        'camera_name': process_info['camera_name'],
+                        'started_at': process_info['started_at'],
+                        'duration': process_info['duration']
+                    })
+        
+        return active_recordings
 
     def cleanup_dead_processes(self) -> None:
         """
