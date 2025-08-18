@@ -383,7 +383,29 @@ class ApiHandler:
                 camera_name=data.get("camera_name")
             )
 
-            return asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
+            result = asdict(self.shops_service.create_shop_camera(shop_id, camera_req_body))
+            
+            # Invalidate cache for cameras endpoint since we added a new camera
+            self.cache.clear()
+            
+            return result
+
+        @self.app.route("/shops/<shop_id>/cameras/<camera_id>", methods=["DELETE"])
+        @self.require_auth
+        def delete_shop_camera(shop_id: str, camera_id: str):
+            """
+            Delete a camera from a specific shop
+            :param shop_id: The shop ID from the URL path
+            :param camera_id: The camera ID from the URL path
+            :return: Success response or error
+            """
+            # Delete the camera
+            self.shops_service.delete_shop_camera(shop_id, camera_id)
+
+            # Invalidate cache for cameras endpoint since we deleted a camera
+            self.cache.clear()
+
+            return SUCCESS_RESPONSE, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/recording/start", methods=["POST"])
         @self.require_auth
@@ -451,6 +473,25 @@ class ApiHandler:
             self.recording_service.stop_recording(shop_id, stop_recording_req_body)
 
             return SUCCESS_RESPONSE, HTTPStatus.OK
+
+        @self.app.route("/shops/<shop_id>/recording/status", methods=["GET"])
+        @self.require_auth
+        def get_shop_recording_status(shop_id):
+            """
+            Get active recording status for all cameras in the specified shop.
+
+            Args:
+                shop_id (str): The shop ID to get recording status for
+
+            Returns:
+                JSON response with:
+                    - result: List of active recordings with camera_name, tarted_at, duratison
+                    - errorMessage: None on success, error string on failure
+            """
+            # Get active recordings for this shop
+            active_recordings = self.recording_service.get_active_recordings(shop_id)
+
+            return active_recordings, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/stats", methods=["GET"])
         @self.require_auth

@@ -46,10 +46,10 @@ class EventsService:
             )
 
             # Save and refresh the entity
-            save_and_refresh(new_analysis)
+            refreshed_analysis = save_and_refresh(new_analysis)
 
-            # Convert to DTO - this might be where the error occurs
-            result_dto = new_analysis.to_dto()
+            # Convert to DTO using the refreshed entity
+            result_dto = refreshed_analysis.to_dto()
             return result_dto
 
         except Exception as e:

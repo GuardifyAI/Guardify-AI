@@ -31,7 +31,7 @@ class RecordingService:
         self.shops_service = shops_service
         self.agentic_service = agentic_service
         self.logger = create_logger("RecordingService", "recording_service.log")
-        
+
         # Initialize Google Cloud Storage client for querying uploaded videos
         try:
             service_account_file = os.getenv("SERVICE_ACCOUNT_FILE")
@@ -137,10 +137,13 @@ class RecordingService:
                     del self.active_processes[process_key]
 
             try:
-                # Build command to run main.py
+                # Build command to run main.py using module syntax from project root
                 video_dir = Path(__file__).resolve().parent.parent / 'video'
                 main_py_path = video_dir / 'main.py'
                 project_root = Path(__file__).resolve().parent.parent.parent  # Go up to project root
+
+                # Build command to run main.py using module syntax from project root
+                project_root = Path(__file__).resolve().parent.parent.parent
 
                 cmd = [
                     sys.executable,  # Use the same Python executable as the current process
@@ -381,7 +384,7 @@ class RecordingService:
 
                 # Clean up
                 del self.active_processes[process_key]
-                
+
                 self.logger.info(f"Recording stopped successfully for camera '{camera_name}'")
 
             except Exception as e:
@@ -404,3 +407,45 @@ class RecordingService:
             return process.poll() is None
         except:
             return False
+
+    def get_active_recordings(self, shop_id: str) -> list[dict]:
+        """
+        Get all active recordings for a specific shop.
+
+        Args:
+            shop_id (str): The shop ID to get active recordings for
+
+        Returns:
+            list[dict]: List of active recording information
+        """
+        # Verify shop exists using shops service
+        self.shops_service.verify_shop_exists(shop_id)
+
+        # Clean up any dead processes first
+        self.cleanup_dead_processes()
+
+        active_recordings = []
+        with self.lock:
+            for key, process_info in self.active_processes.items():
+                if process_info['shop_id'] == shop_id and self._is_process_running(process_info['process']):
+                    active_recordings.append({
+                        'camera_name': process_info['camera_name'],
+                        'started_at': process_info['started_at'],
+                        'duration': process_info['duration']
+                    })
+
+        return active_recordings
+
+    def cleanup_dead_processes(self) -> None:
+        """
+        Clean up any dead processes from the tracking dictionary.
+        This method can be called periodically to maintain clean state.
+        """
+        with self.lock:
+            dead_keys = []
+            for key, process_info in self.active_processes.items():
+                if not self._is_process_running(process_info['process']):
+                    dead_keys.append(key)
+
+            for key in dead_keys:
+                del self.active_processes[key]
