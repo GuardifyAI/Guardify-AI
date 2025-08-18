@@ -273,16 +273,3 @@ class VideoUploader:
             bool: True if the upload thread is alive and running, False otherwise.
         """
         return self.upload_thread is not None and self.upload_thread.is_alive()
-
-    def get_uploaded_video_url(self, camera_name: str) -> str:
-        """
-        Get the uploaded video URL for a specific camera.
-        
-        Args:
-            camera_name (str): Name of the camera to get the video URL for.
-        
-        Returns:
-            str: The Google Cloud Storage URI of the uploaded video, or None if not found.
-        """
-        with self.uploaded_videos_lock:
-            return self.uploaded_videos.get(camera_name)

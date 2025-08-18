@@ -404,18 +404,3 @@ class RecordingService:
             return process.poll() is None
         except:
             return False
-
-
-    def cleanup_dead_processes(self) -> None:
-        """
-        Clean up any dead processes from the tracking dictionary.
-        This method can be called periodically to maintain clean state.
-        """
-        with self.lock:
-            dead_keys = []
-            for key, process_info in self.active_processes.items():
-                if not self._is_process_running(process_info['process']):
-                    dead_keys.append(key)
-
-            for key in dead_keys:
-                del self.active_processes[key]
