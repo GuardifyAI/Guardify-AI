@@ -6,6 +6,8 @@ from google_client.google_client import GoogleClient
 env_utils.load_env_variables()
 import pickle
 import cv2
+from datetime import datetime
+import pandas as pd
 
 class FineTuner:
     google_client = GoogleClient(
@@ -27,12 +29,13 @@ class FineTuner:
         return obj['video_identifier'], obj['iteration_results'][0]['analysis_response']
 
     @staticmethod
-    def extract_analysis_response_from_all_pickles_in_folder(folder_path: str) -> Dict:
+    def extract_analysis_response_from_all_pickles_in_folder(folder_path: str, export_csv: bool = False) -> Dict:
         """
         Extracts analysis responses from all pickle files in the specified folder.
 
         Args:
             folder_path (str): Path to the folder containing pickle files.
+            export_csv (bool): Whether to export results to CSV. Defaults to False.
 
         Returns:
             Dict: Dict containing video identifier and analysis response.
@@ -43,7 +46,58 @@ class FineTuner:
                 full_path = os.path.join(folder_path, filename)
                 video_identifier, analysis_response = FineTuner.extract_analysis_response_from_pickle(full_path)
                 results[video_identifier] = analysis_response
+
+        # Export to CSV if requested
+        if export_csv:
+            FineTuner._export_results_to_csv(results, folder_path)
+
         return results
+
+    @staticmethod
+    def _export_results_to_csv(results: Dict[str, str], folder_path: str) -> None:
+        """
+        Helper function to export results dictionary to CSV.
+
+        Args:
+            results: Dictionary with video_identifier as keys and JSON strings as values
+            folder_path: Path where to save the CSV file
+        """
+        # Parse JSON strings and create DataFrame
+        csv_data = []
+        all_json_keys = set()
+
+        # First pass: collect all possible JSON keys
+        for video_identifier, json_string in results.items():
+            try:
+                json_data = json.loads(json_string)
+                all_json_keys.update(json_data.keys())
+            except json.JSONDecodeError:
+                print(f"Warning: Could not parse JSON for {video_identifier}")
+                continue
+
+        # Second pass: create rows with all columns
+        for video_identifier, json_string in results.items():
+            try:
+                json_data = json.loads(json_string)
+                row = {'video_identifier': video_identifier}
+
+                # Add all JSON keys as columns
+                for key in all_json_keys:
+                    row[key] = json_data.get(key, None)
+
+                csv_data.append(row)
+            except json.JSONDecodeError:
+                print(f"Warning: Could not parse JSON for {video_identifier}")
+                continue
+
+        # Create DataFrame and export to CSV
+        df = pd.DataFrame(csv_data)
+        current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
+        csv_filename = f"analysis_responses_{current_date}.csv"
+        csv_path = os.path.join(folder_path, csv_filename)
+        df.to_csv(csv_path, index=False)
+        print(f"CSV exported to: {csv_path}")
+        print(f"CSV contains {len(df)} rows and {len(df.columns)} columns")
 
     @staticmethod
     def add_analysis_responses_to_jsonl(jsonl_path: str, pickles_folder: str, frames_bucket: str):
@@ -224,6 +278,10 @@ class FineTuner:
             raise ValueError(f"Invalid video path in: {video_path_or_uri}")
         return extension
 
-FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_08_19.jsonl",
-                                          pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
-                                          frames_bucket="ben-gurion-shop-frames")
+if __name__ == "__main__":
+    current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
+    FineTuner.add_analysis_responses_to_jsonl(
+        jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_{current_date}.jsonl",
+        pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
+        frames_bucket="ben-gurion-shop-frames"
+    )
