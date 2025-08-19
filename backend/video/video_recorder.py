@@ -15,15 +15,22 @@ class VideoRecorder:
     A video recording system that captures camera streams from Provision ISR platform.
     """
 
-    def __init__(self, video_uploader, shop_id=None):
+    def __init__(self, video_uploader, shop_id: str):
         """
         Initialize the VideoRecorder with video uploader integration.
         
         Args:
             video_uploader (VideoUploader): An instance of VideoUploader for handling
                                           concurrent upload processing.
-            shop_id (str, optional): Shop ID for context when triggering analysis callbacks.
+            shop_id (str): Shop ID for context when triggering analysis callbacks.
+                          This is required as it's essential for video analysis.
+                          
+        Raises:
+            ValueError: If shop_id is None or empty string
         """
+        if not shop_id or not shop_id.strip():
+            raise ValueError("shop_id is required and cannot be None or empty string")
+            
         self.logger = create_logger("video_recorder", "video_recorder.log")
         self.video_uploader = video_uploader
         self.shop_id = shop_id
@@ -141,7 +148,7 @@ class VideoRecorder:
                     for element in all_text_elements[:20]:  # Limit to first 20
                         try:
                             text = element.text_content()
-                            if text and len(text.strip()) > 1 and len(text.strip()) < 30:
+                            if text and 1 < len(text.strip()) < 30:
                                 available_texts.append(text.strip())
                         except:
                             continue

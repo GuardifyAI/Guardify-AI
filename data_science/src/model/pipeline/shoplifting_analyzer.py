@@ -3,20 +3,11 @@ from data_science.src.model.agentic.computer_vision_model import ComputerVisionM
 from data_science.src.model.unified.unified_shoplifting_model import UnifiedShopliftingModel
 import logging
 from data_science.src.utils import get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
-# Import create_logger using absolute path to avoid conflict with local utils.py
-import importlib.util
 import os
-
-# Get project root (4 levels up from this file: pipeline -> model -> src -> data_science -> project_root)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-
-logger_spec = importlib.util.spec_from_file_location("logger_utils", os.path.join(project_root, "utils", "logger_utils.py"))
-logger_utils = importlib.util.module_from_spec(logger_spec)
-logger_spec.loader.exec_module(logger_utils)
-create_logger = logger_utils.create_logger
 from vertexai.generative_models import Part
 from typing import List, Dict, Any
+from utils import create_logger
+
 import numpy as np
 import pickle
 import datetime

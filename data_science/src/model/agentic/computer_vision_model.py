@@ -12,18 +12,7 @@ import os
 
 from data_science.src.model.agentic.prompt_and_scheme.computer_vision_prompt import enhanced_response_schema, \
     default_system_instruction, enhanced_observation_prompt
-# Import load_env_variables using absolute path to avoid conflict with local utils.py
-import importlib.util
-import os
-
-# Get project root (4 levels up from this file)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-
-spec = importlib.util.spec_from_file_location("env_utils", os.path.join(project_root, "utils", "env_utils.py"))
-env_utils = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(env_utils)
-load_env_variables = env_utils.load_env_variables
+from utils import load_env_variables
 
 load_env_variables()
 

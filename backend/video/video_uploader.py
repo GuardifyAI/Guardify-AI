@@ -1,14 +1,6 @@
 import threading
 import queue
-import os
-import sys
 from backend.celery_tasks.analysis_tasks import analyze_video
-
-# Add project root to path for imports
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from google_client import google_client
 from utils.logger_utils import create_logger
 from backend.video.upload_task import UploadTask
@@ -112,7 +104,6 @@ class VideoUploader:
             bool: True if Celery is available, False otherwise
         """
         try:
-            from backend.celery_tasks.analysis_tasks import analyze_video
             self.logger.info("Celery tasks are available for video analysis")
             return True
         except ImportError as e:
