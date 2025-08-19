@@ -5,6 +5,7 @@ import json
 from google_client.google_client import GoogleClient
 env_utils.load_env_variables()
 import pickle
+import cv2
 
 class FineTuner:
     google_client = GoogleClient(
@@ -132,7 +133,36 @@ class FineTuner:
             output_subfolder = os.path.join(output_folder_path, video_name)
 
             print(f"Extracting frames from: {video_file}")
-            extract_frames(every_n_frames, video_path, output_subfolder)
+            FineTuner.extract_frames(every_n_frames, video_path, output_subfolder)
+
+    @staticmethod
+    def extract_frames(every_n_frames: int, video_path: str, output_folder: str) -> None:
+        """
+        Legacy method for local file extraction. Kept for backwards compatibility.
+        """
+        os.makedirs(output_folder, exist_ok=True)
+
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Cannot open video file: {video_path}")
+            return
+
+        frame_idx = 0
+        saved_frame_idx = 0
+        success, frame = cap.read()
+
+        while success:
+            if frame_idx % every_n_frames == 0:
+                frame_filename = f"{saved_frame_idx}.png"
+                frame_path = os.path.join(output_folder, frame_filename)
+                cv2.imwrite(frame_path, frame)
+                saved_frame_idx += 1
+
+            frame_idx += 1
+            success, frame = cap.read()
+
+        cap.release()
+        print(f"Frames extracted for video: {video_path}")
 
     @staticmethod
     def load_pickle_object(pickle_path: str):
