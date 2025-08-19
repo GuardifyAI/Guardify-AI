@@ -224,6 +224,6 @@ class FineTuner:
             raise ValueError(f"Invalid video path in: {video_path_or_uri}")
         return extension
 
-FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/google/tuning_jsons/ben_gurion_new_data.jsonl",
+FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_08_19.jsonl",
                                           pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
                                           frames_bucket="ben-gurion-shop-frames")
