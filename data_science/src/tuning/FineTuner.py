@@ -4,6 +4,7 @@ import os
 import json
 from google_client.google_client import GoogleClient
 env_utils.load_env_variables()
+import pickle
 
 class FineTuner:
     google_client = GoogleClient(
@@ -13,21 +14,14 @@ class FineTuner:
     )
 
     @staticmethod
-    def extract_frames_for_all_videos_in_folder(
-            every_n_frames: int,
-            input_folder_path: str,
-            output_folder_path: str) -> None:
-        return utils.extract_frames_for_all_videos_in_folder(every_n_frames, input_folder_path, output_folder_path)
-
-    @staticmethod
     def extract_unified_response_from_pickle(pickle_path: str) -> Tuple[str, str]:
-        obj = utils.load_pickle_object(pickle_path)
+        obj = FineTuner.load_pickle_object(pickle_path)
         # return the response of the first iteration
         return obj['video_identifier'], obj['iteration_results'][0]['full_response']
 
     @staticmethod
     def extract_analysis_response_from_pickle(pickle_path: str) -> Tuple[str, str]:
-        obj = utils.load_pickle_object(pickle_path)
+        obj = FineTuner.load_pickle_object(pickle_path)
         # return the response of the first iteration
         return obj['video_identifier'], obj['iteration_results'][0]['analysis_response']
 
@@ -107,6 +101,53 @@ class FineTuner:
         }
         data_row = json.dumps(row) + "\n"
         return data_row
+
+    @staticmethod
+    def extract_frames_for_all_videos_in_folder(
+            every_n_frames: int,
+            input_folder_path: str,
+            output_folder_path: str,
+    ) -> None:
+        """
+        Extracts frames from all mp4 and avi videos in the input folder.
+
+        Args:
+            every_n_frames (int): Number of frames to skip between extractions.
+            input_folder_path (str): Path to the folder containing videos.
+            output_folder_path (str): Path to the folder where frames will be saved.
+        """
+        # Get all .mp4 and .avi files in the input folder
+        video_files = [
+            f for f in os.listdir(input_folder_path)
+            if f.lower().endswith(('.mp4', '.avi'))
+        ]
+
+        if not video_files:
+            print("No video files found in the input folder.")
+            return
+
+        for video_file in video_files:
+            video_name, _ = os.path.splitext(video_file)
+            video_path = os.path.join(input_folder_path, video_file)
+            output_subfolder = os.path.join(output_folder_path, video_name)
+
+            print(f"Extracting frames from: {video_file}")
+            extract_frames(every_n_frames, video_path, output_subfolder)
+
+    @staticmethod
+    def load_pickle_object(pickle_path: str):
+        """
+        Load and return a Python object from a pickle file.
+
+        Args:
+            pickle_path: Path to the pickle file.
+
+        Returns:
+            The object stored in the pickle file.
+        """
+        with open(pickle_path, 'rb') as f:
+            obj = pickle.load(f)
+        return obj
 
 FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/google/tuning_jsons/ben_gurion_new_data.jsonl",
                                           pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
