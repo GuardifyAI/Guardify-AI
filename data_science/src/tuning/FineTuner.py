@@ -194,11 +194,35 @@ class FineTuner:
             get_video_name_without_extension("gs://ben_gurion_shop/exit1_20250416231103.mp4")
             # returns "exit1_20250416231103"
         """
-        extension = get_video_extension(video_path_or_uri)
+        extension = FineTuner.get_video_extension(video_path_or_uri)
         base = os.path.basename(video_path_or_uri)
         if not base.lower().endswith('.' + extension):
             raise ValueError(f"Extension mismatch in: {video_path_or_uri}")
         return base[:-(len(extension) + 1)]
+
+    @staticmethod
+    def get_video_extension(video_path_or_uri: str) -> str:
+        """
+        Extract the video extension from a file path or URI.
+
+        Args:
+            video_path_or_uri (str): The full path or URI of the video file
+
+        Returns:
+            str: The video extension without the dot (e.g., 'mp4', 'avi')
+
+        Examples:
+            get_video_extension('/path/to/video.mp4')
+            'mp4'
+            get_video_extension('gs://bucket/video.avi')
+            'avi'
+            get_video_extension('inalid_file')
+            raises value error
+        """
+        extension = os.path.splitext(video_path_or_uri)[1].lower().lstrip('.')
+        if not extension:
+            raise ValueError(f"Invalid video path in: {video_path_or_uri}")
+        return extension
 
 FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/google/tuning_jsons/ben_gurion_new_data.jsonl",
                                           pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",

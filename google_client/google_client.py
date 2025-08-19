@@ -210,3 +210,22 @@ class GoogleClient:
                     blob.delete()
 
                     print(f"Converted and replaced: {blob.name} with {new_blob_name}")
+
+    def num_of_files_in_bucket_path(self, bucket_name: str, path: str = None) -> int:
+        """
+        Count the number of files in a specific path inside a Google Cloud Storage bucket.
+        If path is None, counts all files in the bucket.
+
+        Args:
+            bucket_name: Name of the GCS bucket.
+            path: Path inside the bucket to count files (prefix). If None, counts all files.
+
+        Returns:
+            int: Number of files in the specified path or the whole bucket.
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        if path:
+            blobs = list(bucket.list_blobs(prefix=path))
+        else:
+            blobs = list(bucket.list_blobs())
+        return len(blobs)
