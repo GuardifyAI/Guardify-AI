@@ -100,7 +100,7 @@ class FineTuner:
         print(f"CSV contains {len(df)} rows and {len(df.columns)} columns")
 
     @staticmethod
-    def add_analysis_responses_to_jsonl(jsonl_path: str, pickles_folder: str, frames_bucket: str):
+    def add_analysis_responses_from_pickles_to_jsonl(jsonl_path: str, pickles_folder: str, frames_bucket: str):
         """
         For each analysis response in the pickles folder, appends a formatted row to the jsonl file.
 
@@ -111,7 +111,7 @@ class FineTuner:
         """
         # Get {video_identifier: analysis_response} dict
         results = FineTuner.extract_analysis_response_from_all_pickles_in_folder(pickles_folder)
-        some_text_variable = "stam"
+        input_prompt = "stam"
 
         with open(jsonl_path, "a") as f:
             for video_identifier, analysis_response in results.items():
@@ -122,12 +122,12 @@ class FineTuner:
                     # Construct file URI for the frame
                     file_uri = f"gs://{frames_bucket}/{path}/{i}.png"
                     data_row = FineTuner._construct_data_row(file_uri=file_uri,
-                                                             input_text=some_text_variable,
+                                                             input_prompt=input_prompt,
                                                              output_text=analysis_response.replace('\n', ''))
                     f.write(data_row)
 
     @staticmethod
-    def _construct_data_row(file_uri: str, input_text: str, output_text: str) -> str:
+    def _construct_data_row(file_uri: str, input_prompt: str, output_text: str) -> str:
         row = {
             "contents": [
                 {
@@ -140,7 +140,7 @@ class FineTuner:
                             }
                         },
                         {
-                            "text": input_text
+                            "text": input_prompt
                         }
                     ]
                 },
@@ -280,7 +280,7 @@ class FineTuner:
 
 if __name__ == "__main__":
     current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
-    FineTuner.add_analysis_responses_to_jsonl(
+    FineTuner.add_analysis_responses_from_pickles_to_jsonl(
         jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_{current_date}.jsonl",
         pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
         frames_bucket="ben-gurion-shop-frames"
