@@ -61,7 +61,7 @@ class FineTuner:
 
         with open(jsonl_path, "a") as f:
             for video_identifier, analysis_response in results.items():
-                video_name = utils.get_video_name_without_extension(video_identifier)
+                video_name = FineTuner.get_video_name_without_extension(video_identifier)
                 path = f"ben_gurion_frames/{video_name}"
                 num_frames = FineTuner.google_client.num_of_files_in_bucket_path(frames_bucket, path)
                 for i in range(num_frames):
@@ -178,6 +178,27 @@ class FineTuner:
         with open(pickle_path, 'rb') as f:
             obj = pickle.load(f)
         return obj
+
+    @staticmethod
+    def get_video_name_without_extension(video_path_or_uri: str) -> str:
+        """
+        Extract the video name (without extension) from a file path or URI.
+
+        Args:
+            video_path_or_uri (str): The full path or URI of the video file
+
+        Returns:
+            str: The video file name without the extension
+
+        Example:
+            get_video_name_without_extension("gs://ben_gurion_shop/exit1_20250416231103.mp4")
+            # returns "exit1_20250416231103"
+        """
+        extension = get_video_extension(video_path_or_uri)
+        base = os.path.basename(video_path_or_uri)
+        if not base.lower().endswith('.' + extension):
+            raise ValueError(f"Extension mismatch in: {video_path_or_uri}")
+        return base[:-(len(extension) + 1)]
 
 FineTuner.add_analysis_responses_to_jsonl(jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/google/tuning_jsons/ben_gurion_new_data.jsonl",
                                           pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
