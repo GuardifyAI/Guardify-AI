@@ -100,6 +100,62 @@ class FineTuner:
         print(f"CSV contains {len(df)} rows and {len(df.columns)} columns")
 
     @staticmethod
+    def extract_analysis_responses_from_csv(csv_path: str) -> Dict[str, str]:
+        """
+        Reads a CSV file created by _export_results_to_csv and converts it back to the original results format.
+
+        Args:
+            csv_path (str): Path to the CSV file to read
+
+        Returns:
+            Dict[str, str]: Dictionary with video_identifier as keys and JSON strings as values,
+                           in the same format as returned by extract_analysis_responses_from_all_pickles_in_folder
+        """
+        try:
+            # Read the CSV file
+            df = pd.read_csv(csv_path)
+
+            if df.empty:
+                print(f"Warning: CSV file {csv_path} is empty")
+                return {}
+
+            # Check if required column exists
+            if 'video_identifier' not in df.columns:
+                raise ValueError("CSV must contain 'video_identifier' column")
+
+            results = {}
+
+            # Process each row
+            for _, row in df.iterrows():
+                video_identifier = row['video_identifier']
+
+                # Create a dictionary from the row data, excluding video_identifier
+                json_data = {}
+                for column in df.columns:
+                    if column != 'video_identifier':
+                        value = row[column]
+
+                        # Handle NaN values (convert to None)
+                        if pd.isna(value):
+                            value = None
+
+                        json_data[column] = value
+
+                # Convert the dictionary back to a JSON string
+                json_string = json.dumps(json_data, ensure_ascii=False)
+                results[video_identifier] = json_string
+
+            print(f"Successfully loaded {len(results)} entries from CSV: {csv_path}")
+            return results
+
+        except FileNotFoundError:
+            print(f"Error: CSV file not found: {csv_path}")
+            return {}
+        except Exception as e:
+            print(f"Error reading CSV file {csv_path}: {str(e)}")
+            return {}
+
+    @staticmethod
     def add_analysis_responses_from_pickles_to_jsonl(jsonl_path: str, pickles_folder: str, frames_bucket: str):
         """
         For each analysis response in the pickles folder, appends a formatted row to the jsonl file.
