@@ -15,57 +15,211 @@ from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.db import db
 from utils.logger_utils import create_logger
+from utils.behavioral_indicators import THEFT_INDICATORS, NORMAL_INDICATORS
+import nltk
 
 # Create task-specific logger
 logger = create_logger("CeleryAnalysisTasks", "celery_analysis.log")
 
 
-class StructuredObservations(TypedDict, total=False):
+def _generate_event_description_summary(iteration_results: List[dict], decision_reasoning: str) -> str:
     """
-    TypedDict for structured computer vision observations.
+    Generate a summary description for Event from iteration results using sumy.
     
-    Contains the organized results from computer vision analysis.
+    Args:
+        iteration_results (List[Dict]): List of iteration analysis results
+        decision_reasoning (str): Final decision reasoning
+        
+    Returns:
+        str: Summarized description of the analysis for Event description
     """
-    person_count: str
-    primary_actions: str
-    object_interactions: str
-    spatial_movement: str
-    behavioral_patterns: str
-    clothing_description: str
-    environmental_context: str
+    try:
+        # Ensure required NLTK data is available
+        try:
+            nltk.data.find('tokenizers/punkt')
+            nltk.data.find('tokenizers/punkt_tab')
+        except LookupError:
+            logger.info("Downloading required NLTK data for summarization...")
+            nltk.download('punkt', quiet=True)
+            nltk.download('punkt_tab', quiet=True)
+            nltk.download('stopwords', quiet=True)
+            logger.info("NLTK data download completed.")
+        
+        try:
+            # Collect all text content from iterations
+            text_content = [f"Final Decision: {decision_reasoning}"]
+            
+            # Add decision reasoning as primary content
+
+            # Extract detailed analysis from each iteration
+            for i, iteration in enumerate(iteration_results, 1):
+                iteration_text = f"Iteration {i} Analysis: "
+                
+                # Add computer vision observations
+                if 'cv_observations' in iteration:
+                    iteration_text += f"Observations: {iteration['cv_observations']}. "
+                
+                # Add analysis response
+                if 'analysis_response' in iteration:
+                    iteration_text += f"Analysis: {iteration['analysis_response']}. "
+                
+                # Add detailed analysis reasoning if available
+                if 'detailed_analysis' in iteration and isinstance(iteration['detailed_analysis'], dict):
+                    detailed = iteration['detailed_analysis']
+                    if 'decision_reasoning' in detailed:
+                        iteration_text += f"Reasoning: {detailed['decision_reasoning']}. "
+                    if 'key_behaviors' in detailed and detailed['key_behaviors']:
+                        behaviors = ', '.join(detailed['key_behaviors']) if isinstance(detailed['key_behaviors'], list) else str(detailed['key_behaviors'])
+                        iteration_text += f"Key Behaviors: {behaviors}. "
+                    if 'evidence_tier' in detailed:
+                        iteration_text += f"Evidence Level: {detailed['evidence_tier']}. "
+                
+                text_content.append(iteration_text)
+            
+            # Combine all text
+            full_text = ' '.join(text_content)
+            
+            # Basic validation
+            if not full_text or len(full_text.strip()) < 20:
+                return decision_reasoning or "Analysis completed."
+            
+            # Generate ultra-short 6-word summary
+            return _create_short_summary(full_text, decision_reasoning, iteration_results)
+            
+        except Exception as summary_error:
+            logger.warning(f"Summary generation failed: {summary_error}")
+            # Fallback to simple short description
+            return _create_fallback_short_summary(decision_reasoning, iteration_results)
+        
+    except Exception as e:
+        logger.warning(f"Failed to generate event description summary, using fallback: {e}")
+        # Fallback: return decision reasoning + basic info
+        fallback = f"Analysis Result: {decision_reasoning}"
+        if iteration_results:
+            fallback += f" Based on {len(iteration_results)} iteration(s) of detailed analysis."
+        return fallback
 
 
-class DetailedAnalysis(TypedDict, total=False):
+def _create_short_summary(full_text: str, decision_reasoning: str, iteration_results: List[dict]) -> str:
     """
-    TypedDict for detailed AI analysis results.
+    Create a 6-word summary from analysis results.
     
-    Contains the structured output from the AI analysis model,
-    including evidence assessment and behavioral observations.
+    Args:
+        full_text (str): Combined text from all iterations
+        decision_reasoning (str): Final decision reasoning
+        iteration_results (List[dict]): Raw iteration data
+        
+    Returns:
+        str: Ultra-short 6-word summary
     """
-    evidence_tier: str
-    key_behaviors: List[str]
-    concealment_actions: List[str]
-    movement_patterns: List[str]
-    decision_reasoning: str
-    observed_behavior: str  # For unified model
-    reasoning: str  # For unified model
-
-
-class AnalysisIteration(TypedDict):
-    """
-    TypedDict for a single analysis iteration result.
+    # Extract key information
+    detected = any('detected' in str(decision_reasoning).lower() for _ in [1])
+    confidence_level = _extract_confidence_level(decision_reasoning, iteration_results)
+    behavior_type = _extract_key_behavior(full_text, iteration_results)
     
-    Represents the detailed analysis from one iteration of the AI model,
-    including computer vision observations and LLM analysis.
+    # Generate 6-word summary patterns
+    if detected:
+        if confidence_level == 'high':
+            return f"Shoplifting detected: {behavior_type} behavior confirmed"
+        elif confidence_level == 'medium':
+            return f"Suspicious {behavior_type}: potential shoplifting detected"
+        else:
+            return f"Possible shoplifting: {behavior_type} observed"
+    else:
+        return f"Normal behavior: no theft detected"
+
+
+def _extract_confidence_level(decision_reasoning: str, iteration_results: List[dict]) -> str:
     """
-    iteration: int
-    cv_observations: str
-    structured_observations: StructuredObservations
-    analysis_response: str
-    detected: bool
-    confidence: float
-    detailed_analysis: DetailedAnalysis
-    timestamp: str
+    Extract confidence level from analysis.
+    
+    Returns:
+        str: 'high', 'medium', or 'low'
+    """
+    text = (decision_reasoning or '').lower()
+    
+    # Check for high confidence indicators
+    high_indicators = ['high confidence', 'strong evidence', 'clear indication', 'definitive']
+    if any(indicator in text for indicator in high_indicators):
+        return 'high'
+    
+    # Check evidence tier from iterations
+    for iteration in iteration_results:
+        if 'detailed_analysis' in iteration:
+            evidence_tier = iteration['detailed_analysis'].get('evidence_tier', '').lower()
+            if evidence_tier == 'high':
+                return 'high'
+            elif evidence_tier == 'medium':
+                return 'medium'
+    
+    # Check for medium confidence indicators
+    medium_indicators = ['likely', 'probable', 'suggests', 'indicates']
+    if any(indicator in text for indicator in medium_indicators):
+        return 'medium'
+    
+    return 'low'
+
+
+def _extract_key_behavior(full_text: str, iteration_results: List[dict]) -> str:
+    """
+    Extract the most relevant behavior type for the summary using ShopliftingAnalyzer indicators.
+    
+    Returns:
+        str: Single word describing the key behavior
+    """
+    text = full_text.lower()
+    
+    # Check iteration results for key behaviors first (most specific)
+    for iteration in iteration_results:
+        if 'detailed_analysis' in iteration:
+            key_behaviors = iteration['detailed_analysis'].get('key_behaviors', [])
+            if key_behaviors:
+                if isinstance(key_behaviors, list) and key_behaviors:
+                    first_behavior = str(key_behaviors[0]).lower()
+                    if 'conceal' in first_behavior or 'hide' in first_behavior:
+                        return 'concealment'
+                    elif 'nervous' in first_behavior or 'anxious' in first_behavior:
+                        return 'nervous'
+    
+    # Count matches for theft vs normal indicators
+    theft_matches = sum(1 for indicator in THEFT_INDICATORS if indicator.lower() in text)
+    normal_matches = sum(1 for indicator in NORMAL_INDICATORS if indicator.lower() in text)
+    
+    # Determine behavior type based on strongest matches
+    if theft_matches > normal_matches:
+        # Find the most specific theft behavior
+        for indicator in THEFT_INDICATORS:
+            if indicator.lower() in text:
+                if indicator.lower() in ['concealed', 'hidden', 'tucked', 'conceal', 'pocket']:
+                    return 'concealment'
+                elif indicator.lower() in ['nervous', 'furtive', 'suspicious']:
+                    return 'nervous'
+                elif indicator.lower() in ['quick', 'hand movement']:
+                    return 'movement'
+        return 'suspicious'
+    else:
+        return 'activity'
+
+
+def _create_fallback_short_summary(decision_reasoning: str, iteration_results: List[dict]) -> str:
+    """
+    Create a simple fallback summary when main generation fails.
+    
+    Returns:
+        str: Simple 4-6 word fallback summary
+    """
+    text = (decision_reasoning or '').lower()
+    
+    if 'detected' in text or 'theft' in text:
+        return "Shoplifting activity detected"
+    elif 'suspicious' in text:
+        return "Suspicious behavior observed"
+    elif 'normal' in text or 'no' in text:
+        return "Normal customer behavior"
+    else:
+        return "Analysis completed successfully"
+
+
 
 
 class AnalysisTaskResultDict(TypedDict, total=False):
@@ -82,7 +236,7 @@ class AnalysisTaskResultDict(TypedDict, total=False):
     shop_id: str
     camera_name: str
     task_id: str
-    iteration_results: Optional[List[AnalysisIteration]]
+    iteration_results: Optional[List[dict]]
     event_id: Optional[str]
     error: Optional[str]
 
@@ -102,7 +256,7 @@ class AnalysisTaskResult:
     shop_id: str
     camera_name: str
     task_id: str
-    iteration_results: Optional[List[AnalysisIteration]] = None
+    iteration_results: Optional[List[dict]] = None
     event_id: Optional[str] = None
     
     def to_dict(self) -> AnalysisTaskResultDict:
@@ -125,7 +279,8 @@ class AnalysisTaskResult:
         return result
 
 
-def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_id: str, camera_name: str, shops_service: ShopsService, task_result: AnalysisTaskResult) -> None:
+def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_id: str, camera_name: str,
+                            shops_service: ShopsService, task_result: AnalysisTaskResult) -> None:
     """
     Store analysis results in database using existing services.
     
@@ -151,24 +306,17 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     # Create Event using ShopsService
     logger.info(f"[CELERY-TASK:{task_id}] Creating event record...")
     
-    # Extract detailed reasoning from each iteration if available
-    detailed_description = analysis_result.decision_reasoning or 'No reasoning provided'
+    # Generate summarized description for Event from iteration results
+    detailed_description = _generate_event_description_summary(
+        analysis_result.iteration_results or [],
+        analysis_result.decision_reasoning or 'No reasoning provided'
+    )
     
-    # Check if we have iteration_results with detailed analysis
-    if analysis_result.iteration_results:
-        iteration_reasonings = []
-        for i, iteration in enumerate(analysis_result.iteration_results, 1):
-            if 'detailed_analysis' in iteration and 'decision_reasoning' in iteration['detailed_analysis']:
-                reasoning = iteration['detailed_analysis']['decision_reasoning']
-                iteration_reasonings.append(f"Iteration {i}: {reasoning}")
-        
-        if iteration_reasonings:
-            detailed_description = "\n\n".join(iteration_reasonings)
-            logger.info(f"[CELERY-TASK:{task_id}] Using detailed iteration reasoning from {len(iteration_reasonings)} iterations")
+    logger.info(f"[CELERY-TASK:{task_id}] Generated summarized description for event: {detailed_description[:100]}...")
     
     event_request = EventRequestBody(
         camera_id=camera.camera_id,  # Use the actual camera_id from the camera record
-        description=detailed_description,  # Use detailed iteration reasoning
+        description=detailed_description,  # Use summarized description for Event
         video_url=video_url
     )
     
@@ -198,7 +346,8 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     logger.info(f"[CELERY-TASK:{task_id}] Successfully stored analysis results in database")
 
 
-def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_name: str, exc: Exception) -> AnalysisTaskResult:
+def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_name: str,
+                       exc: Exception) -> AnalysisTaskResult:
     """
     Handle task errors and determine if retry is needed.
     

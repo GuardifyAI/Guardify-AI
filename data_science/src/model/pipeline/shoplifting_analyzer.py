@@ -7,6 +7,7 @@ import os
 from vertexai.generative_models import Part
 from typing import List, Dict, Any
 from utils import create_logger
+from utils.behavioral_indicators import THEFT_INDICATORS, NORMAL_INDICATORS
 
 import numpy as np
 import pickle
@@ -79,19 +80,6 @@ class ShopliftingAnalyzer:
         "mp4": "video/mp4",
         "avi": "video/x-msvideo",
     }
-
-    # Consolidated behavioral indicators
-    THEFT_INDICATORS = [
-        'pocket', 'bag', 'waist', 'concealed', 'hidden', 'tucked',
-        'clothing adjustment', 'hand movement', 'body area', 'conceal',
-        'nervous', 'furtive', 'quick', 'suspicious', 'concealment'
-    ]
-
-    NORMAL_INDICATORS = [
-        'browsing', 'examining', 'looking', 'normal', 'casual',
-        'no clear', 'no visible', 'ambiguous', 'consistent with normal',
-        'returned', 'shelf', 'checkout', 'natural', 'regular'
-    ]
 
     ANALYSIS_DICT = {
         "video_identifier": str(),
@@ -435,8 +423,8 @@ class ShopliftingAnalyzer:
         all_text = " ".join(observations).lower()
 
         # Use consolidated behavioral indicators from class constants
-        suspicious_count = sum(1 for keyword in self.THEFT_INDICATORS if keyword in all_text)
-        normal_count = sum(1 for keyword in self.NORMAL_INDICATORS if keyword in all_text)
+        suspicious_count = sum(1 for keyword in THEFT_INDICATORS if keyword in all_text)
+        normal_count = sum(1 for keyword in NORMAL_INDICATORS if keyword in all_text)
 
         return {
             "total_observations": len(observations),

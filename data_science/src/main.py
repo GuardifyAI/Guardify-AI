@@ -11,7 +11,6 @@ from data_science.src.model.pipeline.pipeline_manager import PipelineManager
 import argparse
 
 
-
 def main():
     """
     🚀 ADVANCED DUAL-STRATEGY SHOPLIFTING DETECTION SYSTEM
