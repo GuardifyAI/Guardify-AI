@@ -8,6 +8,7 @@ import pickle
 import cv2
 from datetime import datetime
 import pandas as pd
+from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import enhanced_prompt
 
 class FineTuner:
     google_client = GoogleClient(
@@ -158,6 +159,8 @@ class FineTuner:
     @staticmethod
     def add_analysis_responses_to_jsonl(output_jsonl_path: str,
                                         frames_bucket: str,
+                                        input_prompt: str,
+                                        path_prefix_inside_bucket: str = None,
                                         pickles_folder: str = None,
                                         csv_path: str = None) -> None:
         """
@@ -167,6 +170,8 @@ class FineTuner:
         Args:
             output_jsonl_path (str): Path to the output JSONL file.
             frames_bucket (str): Name of the frames bucket.
+            input_prompt (str): Input prompt to the model to be included in the JSONL file.
+            path_prefix_inside_bucket (str, optional): Path prefix inside the bucket for the frames.
             pickles_folder (str, optional): Path to the folder containing analysis pickles.
             csv_path (str, optional): Path to the CSV file containing analysis responses.
 
@@ -191,16 +196,14 @@ class FineTuner:
             print("Warning: No results found to process")
             return
 
-        input_prompt = "stam"
-
         with open(output_jsonl_path, "a") as f:
             for video_identifier, analysis_response in results.items():
                 video_name = FineTuner.get_video_name_without_extension(video_identifier)
-                path = f"ben_gurion_frames/{video_name}"
-                num_frames = FineTuner.google_client.num_of_files_in_bucket_path(frames_bucket, path)
+                path_inside_bucket = f"{path_prefix_inside_bucket}/{video_name}" if path_prefix_inside_bucket is not None else video_name
+                num_frames = FineTuner.google_client.num_of_files_in_bucket_path(frames_bucket, path_inside_bucket)
                 for i in range(num_frames):
                     # Construct file URI for the frame
-                    file_uri = f"gs://{frames_bucket}/{path}/{i}.png"
+                    file_uri = f"gs://{frames_bucket}/{path_inside_bucket}/{i}.png"
                     data_row = FineTuner._construct_data_row(file_uri=file_uri,
                                                              input_prompt=input_prompt,
                                                              output_text=analysis_response.replace('\n', ''))
@@ -362,8 +365,10 @@ class FineTuner:
 
 if __name__ == "__main__":
     current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
-    FineTuner.add_analysis_responses_from_pickles_to_jsonl(
-        jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_{current_date}.jsonl",
+    FineTuner.add_analysis_responses_to_jsonl(
+        output_jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_{current_date}.jsonl",
         pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
-        frames_bucket="ben-gurion-shop-frames"
+        frames_bucket="ben-gurion-shop-frames",
+        input_prompt=enhanced_prompt,
+        path_prefix_inside_bucket="ben_gurion_frames"
     )
