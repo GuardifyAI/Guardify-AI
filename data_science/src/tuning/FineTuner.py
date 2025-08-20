@@ -156,20 +156,44 @@ class FineTuner:
             return {}
 
     @staticmethod
-    def add_analysis_responses_from_pickles_to_jsonl(jsonl_path: str, pickles_folder: str, frames_bucket: str):
+    def add_analysis_responses_to_jsonl(output_jsonl_path: str,
+                                        frames_bucket: str,
+                                        pickles_folder: str = None,
+                                        csv_path: str = None) -> None:
         """
-        For each analysis response in the pickles folder, appends a formatted row to the jsonl file.
+        Generic function to add analysis responses to a JSONL file from either pickle files or CSV.
+        Exactly one of pickles_folder or csv_path must be provided.
 
         Args:
-            jsonl_path: Path to the .jsonl file.
-            pickles_folder: Path to the folder containing analysis pickles.
-            frames_bucket: Name of the frames bucket.
+            output_jsonl_path (str): Path to the output JSONL file.
+            frames_bucket (str): Name of the frames bucket.
+            pickles_folder (str, optional): Path to the folder containing analysis pickles.
+            csv_path (str, optional): Path to the CSV file containing analysis responses.
+
+        Raises:
+            ValueError: If neither or both of pickles_folder and csv_path are provided.
         """
-        # Get {video_identifier: analysis_response} dict
-        results = FineTuner.extract_analysis_responses_from_all_pickles_in_folder(pickles_folder)
+        # Validate that exactly one input source is provided
+        if (pickles_folder is None and csv_path is None) or (pickles_folder is not None and csv_path is not None):
+            raise ValueError("Exactly one of 'pickles_folder' or 'csv_path' must be provided")
+
+        # Get results based on the input source
+        if pickles_folder is not None:
+            # Extract from pickle files
+            results = FineTuner.extract_analysis_responses_from_all_pickles_in_folder(pickles_folder)
+            print(f"Loaded {len(results)} responses from pickle files in: {pickles_folder}")
+        else:
+            # Extract from CSV file
+            results = FineTuner.extract_analysis_responses_from_csv(csv_path)
+            print(f"Loaded {len(results)} responses from CSV file: {csv_path}")
+
+        if not results:
+            print("Warning: No results found to process")
+            return
+
         input_prompt = "stam"
 
-        with open(jsonl_path, "a") as f:
+        with open(output_jsonl_path, "a") as f:
             for video_identifier, analysis_response in results.items():
                 video_name = FineTuner.get_video_name_without_extension(video_identifier)
                 path = f"ben_gurion_frames/{video_name}"
@@ -181,6 +205,8 @@ class FineTuner:
                                                              input_prompt=input_prompt,
                                                              output_text=analysis_response.replace('\n', ''))
                     f.write(data_row)
+
+        print(f"Successfully added {len(results)} analysis responses to JSONL file: {output_jsonl_path}")
 
     @staticmethod
     def _construct_data_row(file_uri: str, input_prompt: str, output_text: str) -> str:
