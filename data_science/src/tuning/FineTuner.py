@@ -29,7 +29,7 @@ class FineTuner:
         return obj['video_identifier'], obj['iteration_results'][0]['analysis_response']
 
     @staticmethod
-    def extract_analysis_response_from_all_pickles_in_folder(folder_path: str, export_csv: bool = False) -> Dict:
+    def extract_analysis_responses_from_all_pickles_in_folder(folder_path: str, export_csv: bool = False) -> Dict:
         """
         Extracts analysis responses from all pickle files in the specified folder.
 
@@ -110,7 +110,7 @@ class FineTuner:
             frames_bucket: Name of the frames bucket.
         """
         # Get {video_identifier: analysis_response} dict
-        results = FineTuner.extract_analysis_response_from_all_pickles_in_folder(pickles_folder)
+        results = FineTuner.extract_analysis_responses_from_all_pickles_in_folder(pickles_folder)
         input_prompt = "stam"
 
         with open(jsonl_path, "a") as f:
