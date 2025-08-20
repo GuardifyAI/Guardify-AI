@@ -1,32 +1,10 @@
 import os
-import sys
-from datetime import datetime
-
-# Add the project root to Python path FIRST - more robust approach
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Navigate from data_science/src to project root (Guardify-AI)
-project_root = os.path.dirname(os.path.dirname(current_dir))
-
-# Add project root to path if not already there
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# Import load_env_variables using absolute path to avoid conflict with local utils.py
-import importlib.util
-spec = importlib.util.spec_from_file_location("env_utils", os.path.join(project_root, "utils", "env_utils.py"))
-env_utils = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(env_utils)
-load_env_variables = env_utils.load_env_variables
 
 from google_client.google_client import GoogleClient
 from data_science.src.model.pipeline.shoplifting_analyzer import create_unified_analyzer, create_agentic_analyzer
 
 from data_science.src.utils import UNIFIED_MODEL, AGENTIC_MODEL
-# Import create_logger using absolute path to avoid conflict with local utils.py
-logger_spec = importlib.util.spec_from_file_location("logger_utils", os.path.join(project_root, "utils", "logger_utils.py"))
-logger_utils = importlib.util.module_from_spec(logger_spec)
-logger_spec.loader.exec_module(logger_utils)
-create_logger = logger_utils.create_logger
+from utils import load_env_variables, create_logger
 
 load_env_variables()
 from data_science.src.model.pipeline.pipeline_manager import PipelineManager
