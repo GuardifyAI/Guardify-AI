@@ -18,7 +18,7 @@ class FineTuner:
     )
 
     @staticmethod
-    def make_images_training_dataset_for_analysis_model(frames_bucket: str,
+    def make_images_dataset_for_analysis_model(frames_bucket: str,
                                                         input_prompt: str,
                                                         output_jsonl_path: str = None,
                                                         path_prefix_inside_bucket: str = None,
@@ -79,7 +79,7 @@ class FineTuner:
         print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
 
     @staticmethod
-    def make_videos_training_dataset_for_analysis_model(input_prompt: str,
+    def make_videos_dataset_for_analysis_model(input_prompt: str,
                                                         output_jsonl_path: str = None,
                                                         pickles_folder: str = None,
                                                         csv_path: str = None) -> None:
@@ -518,14 +518,14 @@ class FineTuner:
         return extension
 
 if __name__ == "__main__":
-    # FineTuner.make_images_training_dataset_for_analysis_model(
+    # FineTuner.make_images_dataset_for_analysis_model(
     #     pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
     #     frames_bucket="ben-gurion-shop-frames",
     #     input_prompt=enhanced_prompt,
     #     path_prefix_inside_bucket="ben_gurion_frames"
     # )
 
-    FineTuner.make_videos_training_dataset_for_analysis_model(
+    FineTuner.make_videos_dataset_for_analysis_model(
         input_prompt=enhanced_prompt,
         csv_path="/home/yonatan.r/Downloads/ben_gurion_data_annotation.csv"
     )
