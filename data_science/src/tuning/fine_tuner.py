@@ -24,7 +24,8 @@ class FineTuner:
                                                         output_jsonl_path: str = None,
                                                         path_prefix_inside_bucket: str = None,
                                                         pickles_folder: str = None,
-                                                        csv_path: str = None) -> None:
+                                                        csv_path: str = None,
+                                                        validation_percentage: float = 0.0) -> None:
         """
         Creates a training dataset in JSONL format for Google's analysis model from either pickle files or CSV.
         Exactly one of pickles_folder or csv_path must be provided.
@@ -48,6 +49,7 @@ class FineTuner:
             path_prefix_inside_bucket (str, optional): Path prefix inside the bucket for the frames.
             pickles_folder (str, optional): Path to the folder containing analysis pickle files.
             csv_path (str, optional): Path to the CSV file containing analysis responses.
+            validation_percentage (float, optional): Percentage of data to use for validation (0.0 to 1.0). Defaults to 0.0 (no validation split).
 
         Raises:
             ValueError: If neither or both of pickles_folder and csv_path are provided.
@@ -77,13 +79,15 @@ class FineTuner:
                                                                    output_text=analysis_response.replace('\n', ''))
                     f.write(data_row)
 
-        print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+        print(f"Successfully created dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+        FineTuner.split_dataset_to_train_and_validation(output_jsonl_path, validation_percentage)
 
     @staticmethod
     def make_videos_dataset_for_analysis_model(input_prompt: str,
                                                         output_jsonl_path: str = None,
                                                         pickles_folder: str = None,
-                                                        csv_path: str = None) -> None:
+                                                        csv_path: str = None,
+                                                        validation_percentage: float = 0.0) -> None:
         """
         Creates a training dataset in JSONL format for Google's analysis model from either pickle files or CSV.
         Exactly one of pickles_folder or csv_path must be provided.
@@ -105,6 +109,7 @@ class FineTuner:
             output_jsonl_path (str): Path to the output JSONL file.
             pickles_folder (str, optional): Path to the folder containing analysis pickle files.
             csv_path (str, optional): Path to the CSV file containing analysis responses.
+            validation_percentage (float, optional): Percentage of data to use for validation (0.0 to 1.0). Defaults to 0.0 (no validation split).
 
         Raises:
             ValueError: If neither or both of pickles_folder and csv_path are provided.
@@ -130,7 +135,8 @@ class FineTuner:
                                                                output_text=analysis_response.replace('\n', ''))
                 f.write(data_row)
 
-        print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+        print(f"Successfully created dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+        FineTuner.split_dataset_to_train_and_validation(output_jsonl_path, validation_percentage)
 
     @staticmethod
     def split_dataset_to_train_and_validation(jsonl_path: str, validation_percentage: float) -> None:
@@ -152,6 +158,10 @@ class FineTuner:
         # Check if input file exists
         if not os.path.exists(jsonl_path):
             raise FileNotFoundError(f"Input JSONL file not found: {jsonl_path}")
+
+        if validation_percentage == 0.0 or validation_percentage == 1.0:
+            print("No split performed as validation_percentage is 0.0 or 1.0")
+            return
 
         # Read all lines from the input file
         with open(jsonl_path, 'r') as f:
