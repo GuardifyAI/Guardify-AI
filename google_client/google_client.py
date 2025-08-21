@@ -6,6 +6,7 @@ from google.cloud import storage
 import tempfile
 import subprocess
 import os
+from datetime import datetime, timedelta
 try:
     import imageio_ffmpeg
     FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
@@ -210,3 +211,56 @@ class GoogleClient:
                     blob.delete()
 
                     print(f"Converted and replaced: {blob.name} with {new_blob_name}")
+
+    def generate_signed_url(self, bucket_name: str, blob_name: str, expiration_hours: int = 1) -> str:
+        """
+        Generate a signed URL for accessing a file in Google Cloud Storage.
+        
+        Args:
+            bucket_name (str): Name of the GCS bucket
+            blob_name (str): Name of the blob/file in the bucket
+            expiration_hours (int): How many hours the signed URL should be valid (default: 1)
+            
+        Returns:
+            str: A signed URL that can be used to access the file directly
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        
+        # Generate signed URL valid for the specified hours
+        expiration = datetime.utcnow() + timedelta(hours=expiration_hours)
+        
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=expiration,
+            method="GET"
+        )
+        
+        return signed_url
+    
+    def extract_bucket_and_blob_from_gs_url(self, gs_url: str) -> Tuple[str, str]:
+        """
+        Extract bucket name and blob name from a gs:// URL.
+        
+        Args:
+            gs_url (str): A GCS URL in format gs://bucket-name/path/to/file
+            
+        Returns:
+            Tuple[str, str]: (bucket_name, blob_name)
+            
+        Raises:
+            ValueError: If the URL is not in the expected gs:// format
+        """
+        if not gs_url.startswith("gs://"):
+            raise ValueError(f"Invalid GCS URL format: {gs_url}. Expected format: gs://bucket-name/path/to/file")
+        
+        # Remove gs:// prefix
+        path = gs_url[5:]
+        
+        # Split into bucket and blob
+        parts = path.split("/", 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid GCS URL format: {gs_url}. Expected format: gs://bucket-name/path/to/file")
+        
+        bucket_name, blob_name = parts
+        return bucket_name, blob_name
