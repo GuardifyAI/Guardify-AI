@@ -55,7 +55,8 @@ class AnalysisModel(GenerativeModel):
     }
 
     def __init__(self,
-                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 # default to the DEFAULT_ANALYSIS_MODEL_ID environment variable if not provided. if also this is not provided, default to DEFAULT_MODEL_ID.
+                 model_name: str = os.getenv("DEFAULT_ANALYSIS_MODEL_ID", os.getenv("DEFAULT_MODEL_ID")),
                  *,
                  generation_config: Optional[GenerationConfigType] = None,
                  safety_settings: Optional[SafetySettingsType] = None,
