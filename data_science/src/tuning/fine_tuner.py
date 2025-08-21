@@ -18,6 +18,73 @@ class FineTuner:
     )
 
     @staticmethod
+    def make_images_training_dataset_for_analysis_model(output_jsonl_path: str,
+                                                        frames_bucket: str,
+                                                        input_prompt: str,
+                                                        path_prefix_inside_bucket: str = None,
+                                                        pickles_folder: str = None,
+                                                        csv_path: str = None) -> None:
+        """
+        Creates a training dataset in JSONL format for Google's analysis model from either pickle files or CSV.
+        Exactly one of pickles_folder or csv_path must be provided.
+
+        This function takes analysis responses from either:
+        - Pickle files: Each pickle should contain a dictionary with 'video_identifier' and 'iteration_results'
+          where the first iteration has an 'analysis_response' field containing a JSON string
+        - CSV file: Should have a 'video_identifier' column and additional columns for each analysis field
+          (e.g., 'Shoplifting Detected', 'Confidence Level', 'Evidence Tier', etc.)
+
+        The function then creates a JSONL file where each line contains:
+        - User role: Image file URI and input prompt
+        - Model role: The analysis response
+
+        This format is compatible with Google's training data requirements for fine-tuning analysis models.
+
+        Args:
+            output_jsonl_path (str): Path to the output JSONL file.
+            frames_bucket (str): Name of the Google Cloud Storage bucket containing frame images.
+            input_prompt (str): Input prompt to the model to be included in the JSONL file.
+            path_prefix_inside_bucket (str, optional): Path prefix inside the bucket for the frames.
+            pickles_folder (str, optional): Path to the folder containing analysis pickle files.
+            csv_path (str, optional): Path to the CSV file containing analysis responses.
+
+        Raises:
+            ValueError: If neither or both of pickles_folder and csv_path are provided.
+        """
+        # Validate that exactly one input source is provided
+        if (pickles_folder is None and csv_path is None) or (pickles_folder is not None and csv_path is not None):
+            raise ValueError("Exactly one of 'pickles_folder' or 'csv_path' must be provided")
+
+        # Get results based on the input source
+        if pickles_folder is not None:
+            # Extract from pickle files
+            results = FineTuner.extract_analysis_responses_from_all_pickles_in_folder(pickles_folder)
+            print(f"Loaded {len(results)} responses from pickle files in: {pickles_folder}")
+        else:
+            # Extract from CSV file
+            results = FineTuner.extract_analysis_responses_from_csv(csv_path)
+            print(f"Loaded {len(results)} responses from CSV file: {csv_path}")
+
+        if not results:
+            print("Warning: No results found to process")
+            return
+
+        with open(output_jsonl_path, "a") as f:
+            for video_identifier, analysis_response in results.items():
+                video_name = FineTuner.get_video_name_without_extension(video_identifier)
+                path_inside_bucket = f"{path_prefix_inside_bucket}/{video_name}" if path_prefix_inside_bucket is not None else video_name
+                num_frames = FineTuner.google_client.num_of_files_in_bucket_path(frames_bucket, path_inside_bucket)
+                for i in range(num_frames):
+                    # Construct file URI for the frame
+                    file_uri = f"gs://{frames_bucket}/{path_inside_bucket}/{i}.png"
+                    data_row = FineTuner._construct_image_data_row(file_uri=file_uri,
+                                                                   input_prompt=input_prompt,
+                                                                   output_text=analysis_response.replace('\n', ''))
+                    f.write(data_row)
+
+        print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+
+    @staticmethod
     def extract_unified_response_from_pickle(pickle_path: str) -> Tuple[str, str]:
         obj = FineTuner.load_pickle_object(pickle_path)
         # return the response of the first iteration
@@ -157,62 +224,18 @@ class FineTuner:
             return {}
 
     @staticmethod
-    def add_analysis_responses_to_jsonl(output_jsonl_path: str,
-                                        frames_bucket: str,
-                                        input_prompt: str,
-                                        path_prefix_inside_bucket: str = None,
-                                        pickles_folder: str = None,
-                                        csv_path: str = None) -> None:
+    def _construct_image_data_row(file_uri: str, input_prompt: str, output_text: str) -> str:
         """
-        Generic function to add analysis responses to a JSONL file from either pickle files or CSV.
-        Exactly one of pickles_folder or csv_path must be provided.
+        Constructs a single row for the JSONL training dataset in Google's required format.
 
         Args:
-            output_jsonl_path (str): Path to the output JSONL file.
-            frames_bucket (str): Name of the frames bucket.
-            input_prompt (str): Input prompt to the model to be included in the JSONL file.
-            path_prefix_inside_bucket (str, optional): Path prefix inside the bucket for the frames.
-            pickles_folder (str, optional): Path to the folder containing analysis pickles.
-            csv_path (str, optional): Path to the CSV file containing analysis responses.
+            file_uri (str): Google Cloud Storage URI for the image frame
+            input_prompt (str): Input prompt text for the model
+            output_text (str): Expected output/analysis response
 
-        Raises:
-            ValueError: If neither or both of pickles_folder and csv_path are provided.
+        Returns:
+            str: JSONL row string with user and model roles
         """
-        # Validate that exactly one input source is provided
-        if (pickles_folder is None and csv_path is None) or (pickles_folder is not None and csv_path is not None):
-            raise ValueError("Exactly one of 'pickles_folder' or 'csv_path' must be provided")
-
-        # Get results based on the input source
-        if pickles_folder is not None:
-            # Extract from pickle files
-            results = FineTuner.extract_analysis_responses_from_all_pickles_in_folder(pickles_folder)
-            print(f"Loaded {len(results)} responses from pickle files in: {pickles_folder}")
-        else:
-            # Extract from CSV file
-            results = FineTuner.extract_analysis_responses_from_csv(csv_path)
-            print(f"Loaded {len(results)} responses from CSV file: {csv_path}")
-
-        if not results:
-            print("Warning: No results found to process")
-            return
-
-        with open(output_jsonl_path, "a") as f:
-            for video_identifier, analysis_response in results.items():
-                video_name = FineTuner.get_video_name_without_extension(video_identifier)
-                path_inside_bucket = f"{path_prefix_inside_bucket}/{video_name}" if path_prefix_inside_bucket is not None else video_name
-                num_frames = FineTuner.google_client.num_of_files_in_bucket_path(frames_bucket, path_inside_bucket)
-                for i in range(num_frames):
-                    # Construct file URI for the frame
-                    file_uri = f"gs://{frames_bucket}/{path_inside_bucket}/{i}.png"
-                    data_row = FineTuner._construct_data_row(file_uri=file_uri,
-                                                             input_prompt=input_prompt,
-                                                             output_text=analysis_response.replace('\n', ''))
-                    f.write(data_row)
-
-        print(f"Successfully added {len(results)} analysis responses to JSONL file: {output_jsonl_path}")
-
-    @staticmethod
-    def _construct_data_row(file_uri: str, input_prompt: str, output_text: str) -> str:
         row = {
             "contents": [
                 {
@@ -365,7 +388,7 @@ class FineTuner:
 
 if __name__ == "__main__":
     current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
-    FineTuner.add_analysis_responses_to_jsonl(
+    FineTuner.make_images_training_dataset_for_analysis_model(
         output_jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/converted_image_data_{current_date}.jsonl",
         pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
         frames_bucket="ben-gurion-shop-frames",
