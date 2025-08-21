@@ -10,6 +10,13 @@ from datetime import datetime
 import pandas as pd
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import enhanced_prompt
 import random
+from data_science.src.model.agentic.analysis_model import AnalysisModel
+from data_science.src.model.agentic.computer_vision_model import ComputerVisionModel
+from data_science.src.model.pipeline.pipeline_manager import PipelineManager
+from data_science.src.utils import AGENTIC_MODEL
+from utils.logger_utils import create_logger
+from data_science.src.model.pipeline.shoplifting_analyzer import ShopliftingAnalyzer
+from google_client.google_client import GoogleClient
 
 class FineTuner:
     google_client = GoogleClient(
@@ -586,6 +593,42 @@ class FineTuner:
             raise ValueError(f"Invalid video path in: {video_path_or_uri}")
         return extension
 
+    @staticmethod
+    def make_self_training_data():
+        logger = create_logger('FineTuner', 'fine_tuner_self_training.log')
+        google_client = GoogleClient(
+            project=os.getenv("GOOGLE_PROJECT_ID"),
+            location=os.getenv("GOOGLE_PROJECT_LOCATION"),
+            service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
+         )
+        cv_model = ComputerVisionModel()
+        analysis_model = AnalysisModel(model_name="gemini-2.5-flash")
+
+        shoplifting_analyzer = ShopliftingAnalyzer(
+            detection_strictness=0.7,
+            logger=logger,
+            strategy=AGENTIC_MODEL,
+            cv_model=cv_model,
+            analysis_model=analysis_model
+        )
+
+        # Create pipeline manager
+        pipeline_manager = PipelineManager(google_client, shoplifting_analyzer, logger=logger)
+        # Get bucket name from environment
+        bucket_name = os.getenv("BUCKET_NAME")
+        max_videos = 100
+
+        results = pipeline_manager.run_agentic_analysis(
+            bucket_name=bucket_name,
+            max_videos=max_videos,
+            iterations=1,
+            diagnostic=True,
+            export=True,
+            labels_csv_path=None
+        )
+
+        print(f"Successfully created self-training dataset with {len(results)} analysis responses.")
+
 if __name__ == "__main__":
     # FineTuner.make_images_dataset_for_analysis_model(
     #     pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
@@ -603,3 +646,5 @@ if __name__ == "__main__":
     #     jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/videos_dataset_08_21_16_19_51.jsonl",
     #     validation_percentage=0.2
     # )
+
+    # FineTuner.make_self_training_data()
