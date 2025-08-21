@@ -18,9 +18,9 @@ class FineTuner:
     )
 
     @staticmethod
-    def make_images_training_dataset_for_analysis_model(output_jsonl_path: str,
-                                                        frames_bucket: str,
+    def make_images_training_dataset_for_analysis_model(frames_bucket: str,
                                                         input_prompt: str,
+                                                        output_jsonl_path: str = None,
                                                         path_prefix_inside_bucket: str = None,
                                                         pickles_folder: str = None,
                                                         csv_path: str = None) -> None:
@@ -41,9 +41,9 @@ class FineTuner:
         This format is compatible with Google's training data requirements for fine-tuning analysis models.
 
         Args:
-            output_jsonl_path (str): Path to the output JSONL file.
             frames_bucket (str): Name of the Google Cloud Storage bucket containing frame images.
             input_prompt (str): Input prompt to the model to be included in the JSONL file.
+            output_jsonl_path (str): Path to the output JSONL file.
             path_prefix_inside_bucket (str, optional): Path prefix inside the bucket for the frames.
             pickles_folder (str, optional): Path to the folder containing analysis pickle files.
             csv_path (str, optional): Path to the CSV file containing analysis responses.
@@ -51,6 +51,11 @@ class FineTuner:
         Raises:
             ValueError: If neither or both of pickles_folder and csv_path are provided.
         """
+        # Set default output path if none provided
+        if output_jsonl_path is None:
+            current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
+            output_jsonl_path = f"images_dataset_{current_date}.jsonl"
+
         # Get results using helper function
         results = FineTuner._get_analysis_results_from_source(pickles_folder, csv_path)
 
@@ -74,8 +79,8 @@ class FineTuner:
         print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
 
     @staticmethod
-    def make_videos_training_dataset_for_analysis_model(output_jsonl_path: str,
-                                                        input_prompt: str,
+    def make_videos_training_dataset_for_analysis_model(input_prompt: str,
+                                                        output_jsonl_path: str = None,
                                                         pickles_folder: str = None,
                                                         csv_path: str = None) -> None:
         """
@@ -95,14 +100,19 @@ class FineTuner:
         This format is compatible with Google's training data requirements for fine-tuning analysis models.
 
         Args:
-            output_jsonl_path (str): Path to the output JSONL file.
             input_prompt (str): Input prompt to the model to be included in the JSONL file.
+            output_jsonl_path (str): Path to the output JSONL file.
             pickles_folder (str, optional): Path to the folder containing analysis pickle files.
             csv_path (str, optional): Path to the CSV file containing analysis responses.
 
         Raises:
             ValueError: If neither or both of pickles_folder and csv_path are provided.
         """
+        # Set default output path if none provided
+        if output_jsonl_path is None:
+            current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
+            output_jsonl_path = f"videos_dataset_{current_date}.jsonl"
+
         # Get results using helper function
         results = FineTuner._get_analysis_results_from_source(pickles_folder, csv_path)
 
@@ -508,9 +518,7 @@ class FineTuner:
         return extension
 
 if __name__ == "__main__":
-    current_date = datetime.now().strftime("%m_%d_%H_%M_%S")
     # FineTuner.make_images_training_dataset_for_analysis_model(
-    #     output_jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/images_dataset_{current_date}.jsonl",
     #     pickles_folder="/home/yonatan.r/PycharmProjects/Guardify-AI/analysis_results/bengurion-agentic",
     #     frames_bucket="ben-gurion-shop-frames",
     #     input_prompt=enhanced_prompt,
@@ -518,7 +526,6 @@ if __name__ == "__main__":
     # )
 
     FineTuner.make_videos_training_dataset_for_analysis_model(
-        output_jsonl_path=f"/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/videos_dataset_{current_date}.jsonl",
         input_prompt=enhanced_prompt,
         csv_path="/home/yonatan.r/Downloads/ben_gurion_data_annotation.csv"
     )
