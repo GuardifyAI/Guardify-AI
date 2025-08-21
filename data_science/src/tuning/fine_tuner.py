@@ -9,6 +9,7 @@ import cv2
 from datetime import datetime
 import pandas as pd
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import enhanced_prompt
+import random
 
 class FineTuner:
     google_client = GoogleClient(
@@ -130,6 +131,64 @@ class FineTuner:
                 f.write(data_row)
 
         print(f"Successfully created training dataset with {len(results)} analysis responses in JSONL file: {output_jsonl_path}")
+
+    @staticmethod
+    def split_dataset_to_train_and_validation(jsonl_path: str, validation_percentage: float) -> None:
+        """
+        Splits an input JSONL file into training and validation JSONL files.
+
+        Args:
+            jsonl_path (str): Path to the input JSONL file
+            validation_percentage (float): Percentage of data to use for validation (0.0 to 1.0)
+
+        Raises:
+            ValueError: If validation_percentage is not between 0.0 and 1.0
+            FileNotFoundError: If the input JSONL file doesn't exist
+        """
+        # Validate validation_percentage
+        if not 0.0 <= validation_percentage <= 1.0:
+            raise ValueError("validation_percentage must be between 0.0 and 1.0")
+
+        # Check if input file exists
+        if not os.path.exists(jsonl_path):
+            raise FileNotFoundError(f"Input JSONL file not found: {jsonl_path}")
+
+        # Read all lines from the input file
+        with open(jsonl_path, 'r') as f:
+            lines = f.readlines()
+
+        if not lines:
+            print("Warning: Input JSONL file is empty")
+            return
+
+        # Shuffle the lines randomly
+        random.shuffle(lines)
+
+        # Calculate split point
+        split_index = int(len(lines) * (1 - validation_percentage))
+        training_lines = lines[:split_index]
+        validation_lines = lines[split_index:]
+
+        # Generate output file paths in the same directory
+        directory = os.path.dirname(jsonl_path)
+        filename = os.path.basename(jsonl_path)
+        name, ext = os.path.splitext(filename)
+
+        training_path = os.path.join(directory, f"{name}_training{ext}")
+        validation_path = os.path.join(directory, f"{name}_validation{ext}")
+
+        # Write training data
+        with open(training_path, 'w') as f:
+            f.writelines(training_lines)
+
+        # Write validation data
+        with open(validation_path, 'w') as f:
+            f.writelines(validation_lines)
+
+        print(f"Successfully split dataset:")
+        print(f"  Training: {len(training_lines)} rows -> {training_path}")
+        print(f"  Validation: {len(validation_lines)} rows -> {validation_path}")
+        print(f"  Total: {len(lines)} rows")
 
     @staticmethod
     def _get_analysis_results_from_source(pickles_folder: str = None, csv_path: str = None) -> Dict[str, str]:
@@ -529,3 +588,8 @@ if __name__ == "__main__":
         input_prompt=enhanced_prompt,
         csv_path="/home/yonatan.r/Downloads/ben_gurion_data_annotation.csv"
     )
+
+    # FineTuner.split_dataset_to_train_and_validation(
+    #     jsonl_path="/home/yonatan.r/PycharmProjects/Guardify-AI/data_science/src/tuning/videos_dataset_08_21_16_19_51.jsonl",
+    #     validation_percentage=0.2
+    # )
