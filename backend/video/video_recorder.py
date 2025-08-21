@@ -5,7 +5,7 @@ import time
 
 from utils import load_env_variables
 from utils.logger_utils import create_logger
-from backend.video.upload_task import UploadTask
+from backend.celery_tasks.upload_task import UploadTask
 
 load_env_variables()
 

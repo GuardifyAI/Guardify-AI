@@ -1,9 +1,9 @@
 import threading
 import queue
-from backend.celery_tasks.analysis_tasks import analyze_video
+from backend.celery_tasks.upload_task import UploadTask
+from backend.celery_tasks.celery_utils import check_celery_availability, dispatch_video_analysis_task
 from google_client import google_client
 from utils.logger_utils import create_logger
-from backend.video.upload_task import UploadTask
 
 
 class VideoUploader:
@@ -37,7 +37,7 @@ class VideoUploader:
         self.uploaded_videos_lock = threading.Lock()
         
         # Celery task dispatch (with graceful fallback)
-        self.celery_available = self._check_celery_availability()
+        self.celery_available = check_celery_availability(self.logger)
 
     def start(self) -> None:
         """
@@ -96,23 +96,6 @@ class VideoUploader:
         
         self.logger.info("Upload worker thread stopped successfully")
     
-    def _check_celery_availability(self) -> bool:
-        """
-        Check if Celery is available for task dispatch.
-        
-        Returns:
-            bool: True if Celery is available, False otherwise
-        """
-        try:
-            self.logger.info("Celery tasks are available for video analysis")
-            return True
-        except ImportError as e:
-            self.logger.warning(f"Celery tasks not available: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"Error checking Celery availability: {e}")
-            return False
-    
     def _dispatch_analysis_task(self, camera_name: str, video_url: str, shop_id: str) -> None:
         """
         Dispatch (start) video analysis task using Celery.
@@ -126,20 +109,7 @@ class VideoUploader:
             self.logger.warning(f"Celery not available - skipping analysis for {video_url}")
             return
             
-        if not shop_id:
-            self.logger.warning(f"No shop_id provided - skipping analysis for {video_url}")
-            return
-            
-        try:
-            # Dispatch Celery task asynchronously
-            task = analyze_video.delay(camera_name, video_url, shop_id)
-            
-            self.logger.info(
-                f"Dispatched analysis task for camera '{camera_name}' (task_id: {task.id}): {video_url}"
-            )
-            
-        except Exception as e:
-            self.logger.error(f"Failed to dispatch analysis task for {video_url}: {e}")
+        dispatch_video_analysis_task(camera_name, video_url, shop_id, self.logger)
 
     def add_to_queue(self, task: UploadTask) -> None:
         """
