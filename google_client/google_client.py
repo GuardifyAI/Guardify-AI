@@ -6,12 +6,7 @@ from google.cloud import storage
 import tempfile
 import subprocess
 import os
-import sys
-
-# Add project root to path for imports
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+from datetime import datetime, timedelta
 
 from utils.logger_utils import create_logger
 
@@ -38,7 +33,7 @@ class GoogleClient:
         self.credentials = self._get_credentials()
         self._init_vertex_ai()
         self.storage_client = storage.Client(project=project, credentials=self.credentials)
-    
+
 
     def _get_credentials(self) -> Credentials:
         """Get Google Cloud credentials from service account file."""
@@ -95,12 +90,12 @@ class GoogleClient:
             if filename.startswith(prefix):
                 file_path = os.path.join(directory, filename)
                 matching_files.append(file_path)
-        
+
         # Sort by modification time, newest first
         matching_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-        
+
         self.logger.info(f"Found {len(matching_files)} files matching '{prefix}': {[os.path.basename(f) for f in matching_files]}")
-        
+
         return matching_files
 
     def export_camera_recording_to_bucket(self, bucket_name: str, camera_name: str) -> str:
@@ -117,27 +112,27 @@ class GoogleClient:
         
         Returns:
             str: The Google Cloud Storage URI of the uploaded video file (gs://bucket/filename)
-        
+
         Environment Variables Required:
             - PROVISION_VIDEOS_SOURCE: Local directory path where camera recordings are stored
         """
         try:
             self.logger.info(f"Starting upload process for camera '{camera_name}' to bucket '{bucket_name}'")
-            
+
             bucket = self.storage_client.bucket(bucket_name)
             videos_source = os.getenv("PROVISION_VIDEOS_SOURCE")
-            
+
             if not videos_source:
                 raise ValueError("PROVISION_VIDEOS_SOURCE environment variable not set")
-            
+
             self.logger.info(f"Searching for video files in: {videos_source}")
-            
+
             # Find matching video files
             matching_files = self._find_files_starting_with(videos_source, camera_name)
-            
+
             if not matching_files:
                 raise FileNotFoundError(f"No video files found starting with '{camera_name}' in {videos_source}")
-            
+
             local_file_path = matching_files[0]
             self.logger.info(f"Selected newest video file: {local_file_path}")
 
@@ -145,23 +140,23 @@ class GoogleClient:
             file_extension = os.path.splitext(local_file_path)[1].lower()
             upload_file_path = local_file_path
             converted_file_created = False
-            
+
             if file_extension != '.mp4':
                 self.logger.info(f"Converting {local_file_path} to MP4 format...")
                 self.logger.info(f"Using ffmpeg path: {FFMPEG_PATH}")
                 # Create temporary MP4 file path
                 base_name = os.path.splitext(local_file_path)[0]
                 converted_file_path = base_name + ".mp4"
-                
+
                 try:
                     # Convert to MP4 using ffmpeg
                     result = subprocess.run(
-                        [FFMPEG_PATH, "-i", local_file_path, converted_file_path], 
-                        check=True, 
-                        capture_output=True, 
+                        [FFMPEG_PATH, "-i", local_file_path, converted_file_path],
+                        check=True,
+                        capture_output=True,
                         text=True
                     )
-                    
+
                     # Verify the converted file was actually created
                     if os.path.exists(converted_file_path):
                         upload_file_path = converted_file_path
@@ -171,7 +166,7 @@ class GoogleClient:
                         self.logger.error(f"Converted file was not created: {converted_file_path}")
                         self.logger.warning("Using original file instead")
                         upload_file_path = local_file_path
-                        
+
                 except subprocess.CalledProcessError as e:
                     self.logger.error(f"ffmpeg conversion failed: {e}")
                     self.logger.error(f"stdout: {e.stdout}")
@@ -186,7 +181,7 @@ class GoogleClient:
             # Verify the file to upload actually exists
             if not os.path.exists(upload_file_path):
                 raise FileNotFoundError(f"File to upload does not exist: {upload_file_path}")
-            
+
             # Only the filename (not path) becomes the GCS blob name
             # Ensure the blob name has .mp4 extension if conversion was attempted
             original_blob_name = os.path.basename(upload_file_path)
@@ -194,7 +189,7 @@ class GoogleClient:
                 blob_name = os.path.splitext(original_blob_name)[0] + '.mp4'
             else:
                 blob_name = original_blob_name
-                
+
             blob = bucket.blob(blob_name)
 
             # Upload using the file path (original or converted)
@@ -208,15 +203,15 @@ class GoogleClient:
             # Delete the original file locally
             self.logger.info(f"Cleaning up local file: {local_file_path}")
             os.remove(local_file_path)
-            
+
             # Delete the converted file locally if it was created
             if converted_file_created and upload_file_path != local_file_path:
                 self.logger.info(f"Cleaning up converted file: {upload_file_path}")
                 os.remove(upload_file_path)
-                
+
             self.logger.info(f"Upload process completed successfully. Video URL: {video_url}")
             return video_url
-            
+
         except Exception as e:
             self.logger.error(f"Upload failed for camera '{camera_name}': {e}")
             raise
@@ -257,3 +252,56 @@ class GoogleClient:
                     blob.delete()
 
                     print(f"Converted and replaced: {blob.name} with {new_blob_name}")
+
+    def generate_signed_url(self, bucket_name: str, blob_name: str, expiration_hours: int = 1) -> str:
+        """
+        Generate a signed URL for accessing a file in Google Cloud Storage.
+
+        Args:
+            bucket_name (str): Name of the GCS bucket
+            blob_name (str): Name of the blob/file in the bucket
+            expiration_hours (int): How many hours the signed URL should be valid (default: 1)
+
+        Returns:
+            str: A signed URL that can be used to access the file directly
+        """
+        bucket = self.storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+
+        # Generate signed URL valid for the specified hours
+        expiration = datetime.utcnow() + timedelta(hours=expiration_hours)
+
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=expiration,
+            method="GET"
+        )
+
+        return signed_url
+
+    def extract_bucket_and_blob_from_gs_url(self, gs_url: str) -> Tuple[str, str]:
+        """
+        Extract bucket name and blob name from a gs:// URL.
+
+        Args:
+            gs_url (str): A GCS URL in format gs://bucket-name/path/to/file
+
+        Returns:
+            Tuple[str, str]: (bucket_name, blob_name)
+
+        Raises:
+            ValueError: If the URL is not in the expected gs:// format
+        """
+        if not gs_url.startswith("gs://"):
+            raise ValueError(f"Invalid GCS URL format: {gs_url}. Expected format: gs://bucket-name/path/to/file")
+
+        # Remove gs:// prefix
+        path = gs_url[5:]
+
+        # Split into bucket and blob
+        parts = path.split("/", 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid GCS URL format: {gs_url}. Expected format: gs://bucket-name/path/to/file")
+
+        bucket_name, blob_name = parts
+        return bucket_name, blob_name

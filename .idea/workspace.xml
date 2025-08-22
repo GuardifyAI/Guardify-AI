@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7188081c-ad51-4283-bddd-b9968775bdf6" name="Changes" comment="fixed comments">
+    <list default="true" id="7188081c-ad51-4283-bddd-b9968775bdf6" name="Changes" comment="fixed 2nd cr comments">
+      <change afterPath="$PROJECT_DIR$/backend/services/video_service.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/services/recording_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/services/recording_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_science/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_science/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/context/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/context/AuthContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UI/Guardify-UI/src/pages/EventPage.css" beforeDir="false" afterPath="$PROJECT_DIR$/UI/Guardify-UI/src/pages/EventPage.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/entities/event.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/entities/event.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/google_client/google_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/google_client/google_client.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,22 +20,22 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "michalmos262"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;michalmos262&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/GuardifyAI/Guardify-AI.git",
-    "accountId": "c04fd391-bfca-48b2-841c-0f7bd67c79e2"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/GuardifyAI/Guardify-AI.git&quot;,
+    &quot;accountId&quot;: &quot;c04fd391-bfca-48b2-841c-0f7bd67c79e2&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 5
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="31H5IROSKc7NRaG4eUlAdsxLuqw" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
@@ -47,7 +49,7 @@
     "Python.run.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "connect-model",
+    "git-widget-placeholder": "Merging connect-model",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
@@ -103,6 +105,15 @@
       <updated>1755168080082</updated>
       <workItem from="1755168082523" duration="1144000" />
     </task>
+    <task id="LOCAL-00001" summary="fixed 2nd cr comments">
+      <option name="closed" value="true" />
+      <created>1755803970139</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1755803970139</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -111,17 +122,20 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="fixed flask issue" />
     <MESSAGE value="fixed comments" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed comments" />
+    <MESSAGE value="fixed 2nd cr comments" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed 2nd cr comments" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Guardify_AI$ComputerVisionModel.coverage" NAME="ComputerVisionModel Coverage Results" MODIFIED="1747918916186" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/google" />
     <SUITE FILE_PATH="coverage/Guardify_AI$.coverage" NAME=" Coverage Results" MODIFIED="1754560983896" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/tests" />
     <SUITE FILE_PATH="coverage/Guardify_AI$video_recorder.coverage" NAME="video_recorder Coverage Results" MODIFIED="1754212551264" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src" />
-    <SUITE FILE_PATH="coverage/Guardify_AI$run.coverage" NAME="run Coverage Results" MODIFIED="1755168833556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$example.coverage" NAME="example Coverage Results" MODIFIED="1755789738637" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/video" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$run.coverage" NAME="run Coverage Results" MODIFIED="1755803974639" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
     <SUITE FILE_PATH="coverage/SurveillanceAI$main.coverage" NAME="main Coverage Results" MODIFIED="1736698585531" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/Guardify_AI$extract_frames.coverage" NAME="extract_frames Coverage Results" MODIFIED="1745741318597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science/src/azure" />
     <SUITE FILE_PATH="coverage/Guardify_AI$main__1_.coverage" NAME="main2 Coverage Results" MODIFIED="1754217483918" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend/video" />
     <SUITE FILE_PATH="coverage/Guardify_AI$analyze_shoplifting.coverage" NAME="analyze_shoplifting Coverage Results" MODIFIED="1747920579352" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/Guardify_AI$Flask__backend_run_py_.coverage" NAME="Flask (backend/run.py) Coverage Results" MODIFIED="1755272099382" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Guardify_AI$agentic_strategy.coverage" NAME="agentic-strategy Coverage Results" MODIFIED="1754387142204" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/Guardify_AI$main.coverage" NAME="main Coverage Results" MODIFIED="1754387274704" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data_science" />
     <SUITE FILE_PATH="coverage/Guardify_AI$data_science_src_azure_manager.coverage" NAME="data_science.src.azure.manager Coverage Results" MODIFIED="1746389268325" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

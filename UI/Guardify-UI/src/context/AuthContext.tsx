@@ -24,22 +24,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing token on app start
+  // Set loading to false immediately since we're not checking for stored tokens
   useEffect(() => {
-    const savedToken = localStorage.getItem('authToken');
-    const savedUser = localStorage.getItem('authUser');
-    
-    if (savedToken && savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setToken(savedToken);
-        setUser(parsedUser);
-      } catch (error) {
-        // Invalid stored data, clear it
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
-      }
-    }
     setIsLoading(false);
   }, []);
 
@@ -56,10 +42,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         setUser(userData);
         setToken(data.result.token); // Use the actual token from backend
-        
-        // Store in localStorage for persistence
-        localStorage.setItem('authToken', data.result.token);
-        localStorage.setItem('authUser', JSON.stringify(userData));
         
         return { success: true };
       } else {
@@ -96,8 +78,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
   };
 
   const value: AuthContextType = {
