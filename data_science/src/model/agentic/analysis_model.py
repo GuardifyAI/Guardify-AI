@@ -15,6 +15,7 @@ import json
 
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import (default_system_instruction,
                                                                               enhanced_prompt, enhanced_response_schema)
+from data_science.src.model.agentic.prompt_and_scheme.computer_vision_prompt import cv_observations_prompt
 from utils import load_env_variables
 
 load_env_variables()
@@ -94,9 +95,7 @@ class AnalysisModel(GenerativeModel):
         formatted_observations = self._format_structured_observations(structured_observations)
 
         # Use enhanced analysis prompt_and_scheme with formatted observations
-        updated_enhanced_prompt = (enhanced_prompt + "\n\nSTRUCTURED SURVEILLANCE OBSERVATIONS:\n"
-                                   + formatted_observations)
-
+        updated_enhanced_prompt = (enhanced_prompt + "\n\n" + cv_observations_prompt + "\n\n" + formatted_observations)
         contents = [video_file, updated_enhanced_prompt]
 
         # Generate analysis

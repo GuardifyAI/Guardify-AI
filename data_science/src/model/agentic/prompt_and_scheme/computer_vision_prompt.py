@@ -149,3 +149,11 @@ Rate your confidence in these observations (0.0-1.0) based on:
 
 Provide your structured observations in the specified JSON format. Be comprehensive and factual in your descriptions.
 """
+
+cv_observations_prompt = """
+STRUCTURED SURVEILLANCE OBSERVATIONS FROM COMPUTER VISION MODEL:
+The following is a textual analysis of a computer vision model that just described the video in a textual way.
+
+It has the following data about the video (see the dict keys): 'behavioral_sequence', 'person_description', 'item_interactions', 'hand_movements', 'environmental_context', 'suspicious_indicators', 'normal_indicators', 'behavioral_tone', 'observation_confidence', 'full_observations'.
+Use this data to inform your analysis of whether shoplifting is occurring: 
+"""
