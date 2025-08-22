@@ -1,5 +1,6 @@
 from backend.db import db
 from backend.app.dtos import EventDTO
+from backend.services.video_service import VideoService
 
 
 class Event(db.Model):
@@ -22,13 +23,24 @@ class Event(db.Model):
         return f"<Event {self.event_id} | Shop {self.shop_id} | Camera {self.camera_id} | Description {description_str}>"
 
     def to_dto(self, include_analysis: bool = False) -> EventDTO:
+        # Convert GCP URLs to signed URLs for browser access
+        processed_video_url = self.video_url
+        if self.video_url and self.video_url.startswith('gs://'):
+            try:
+                video_service = VideoService()
+                processed_video_url = video_service.get_signed_video_url(self.video_url)
+            except Exception as e:
+                # Log error but don't break the API - return original URL
+                print(f"Warning: Failed to generate signed URL for {self.video_url}: {e}")
+                processed_video_url = self.video_url
+        
         return EventDTO(
             event_id=self.event_id,
             shop_id=self.shop_id,
             camera_id=self.camera_id,
             event_timestamp=self.event_timestamp,
             description=self.description,
-            video_url=self.video_url,
+            video_url=processed_video_url,
             shop_name=self.shop.name if self.shop else None,
             camera_name=self.camera.camera_name if self.camera else None,
             event_datetime=self.event_timestamp.isoformat() if self.event_timestamp else None,
