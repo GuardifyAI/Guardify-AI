@@ -10,6 +10,7 @@ from backend.services.user_service import UserService
 from backend.services.shops_service import ShopsService
 from backend.services.stats_service import StatsService
 from backend.services.recording_service import RecordingService
+from backend.services.agentic_service import AgenticService
 from http import HTTPStatus
 import time
 from werkzeug.exceptions import Unauthorized, NotFound
@@ -35,6 +36,7 @@ class ApiHandler:
         shops_service (ShopsService): The shops service instance
         events_service (EventsService): The events service instance
         recording_service (RecordingService): The recording service instance
+        agentic_service (AgenticService): The agentic service instance
         cache (Cache): Flask-Caching instance for request caching
     """
 
@@ -50,7 +52,8 @@ class ApiHandler:
         self.stats_service = StatsService()
         self.shops_service = ShopsService()
         self.events_service = EventsService()
-        self.recording_service = RecordingService(self.shops_service)
+        self.agentic_service = AgenticService(self.shops_service)
+        self.recording_service = RecordingService(self.shops_service, self.agentic_service)
 
         # Configure Flask-Caching
         self.cache = Cache(app, config={
@@ -408,7 +411,7 @@ class ApiHandler:
         @self.require_auth
         def start_shop_recording(shop_id):
             """
-            Start video recording for a camera in the specified shop.
+            Start video recording for a camera in the specified shop and analyze the video.
 
             Args:
                 shop_id (str): The shop ID to start recording for
@@ -420,9 +423,14 @@ class ApiHandler:
                 }
 
             Returns:
-                JSON response with:
-                    - result: "OK" on success
-                    - errorMessage: None on success, error string on failure
+                JSON response with immediate confirmation:
+                    - recording_started: bool - True if recording started successfully
+                    - shop_id: str - The shop ID
+                    - camera_id: str - The camera ID  
+                    - camera_name: str - Name of the camera
+                    - message: str - Status message
+                Note: Videos will be analyzed automatically when uploaded. Analysis results 
+                      can be retrieved via separate endpoints or real-time notifications.
             """
             data = request.get_json(silent=True) or {}
 
@@ -431,10 +439,10 @@ class ApiHandler:
                 duration=data.get("duration", 30)
             )
 
-            # Start the recording
-            self.recording_service.start_recording(shop_id, start_recording_req_body)
+            # Start the recording and get immediate response
+            result = self.recording_service.start_recording(shop_id, start_recording_req_body)
 
-            return SUCCESS_RESPONSE, HTTPStatus.OK
+            return result, HTTPStatus.OK
 
         @self.app.route("/shops/<shop_id>/recording/stop", methods=["POST"])
         @self.require_auth

@@ -268,3 +268,42 @@ class ShopsService:
         
         # Convert to DTOs
         return event.to_dto(include_analysis=include_analysis)
+
+    def find_or_create_camera(self, shop_id: str, camera_name: str) -> Camera:
+        """
+        Find an existing camera or create a new one if it doesn't exist.
+        
+        Args:
+            shop_id (str): The shop ID
+            camera_name (str): Name of the camera
+            
+        Returns:
+            Camera: The found or created camera entity
+            
+        Raises:
+            ValueError: If shop_id or camera_name is invalid
+            Exception: If there's an error during database operations
+        """
+        if not shop_id or not shop_id.strip():
+            raise ValueError("Shop ID is required")
+        if not camera_name or not camera_name.strip():
+            raise ValueError("Camera name is required")
+            
+        try:
+            # Find existing camera
+            camera = Camera.query.filter_by(camera_name=camera_name, shop_id=shop_id).first()
+            if camera:
+                return camera
+                
+            # Create new camera if not found
+            camera = Camera(
+                camera_id=str(uuid.uuid4()),
+                shop_id=shop_id,
+                camera_name=camera_name
+            )
+            return save_and_refresh(camera)
+            
+        except Exception as e:
+            # Rollback in case of error
+            db.session.rollback()
+            raise Exception(f"Failed to find or create camera: {str(e)}")

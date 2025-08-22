@@ -87,6 +87,13 @@ Examples:
         help="Duration of each recording session in seconds (default: 30)"
     )
     
+    parser.add_argument(
+        "--shop-id", "-s",
+        type=str,
+        default=None,
+        help="Shop ID for context when triggering analysis callbacks"
+    )
+    
     return parser.parse_args()
 
 
@@ -129,7 +136,7 @@ def main():
 
     # Initialize video components
     video_uploader = VideoUploader(google_client)
-    video_recorder = VideoRecorder(video_uploader)
+    video_recorder = VideoRecorder(video_uploader, shop_id=args.shop_id)
     logger.info("Video components initialized successfully")
 
     # Start the upload worker

@@ -1,6 +1,7 @@
 import threading
 import queue
-
+from backend.celery_tasks.upload_task import UploadTask
+from backend.celery_tasks.celery_utils import check_celery_availability, dispatch_video_analysis_task
 from google_client import google_client
 from utils.logger_utils import create_logger
 
@@ -29,6 +30,14 @@ class VideoUploader:
 
         # Reference to the upload worker thread
         self.upload_thread = None
+        
+        # Dictionary to store uploaded video URLs by camera name
+        # Format: {camera_name: video_url}
+        self.uploaded_videos = {}
+        self.uploaded_videos_lock = threading.Lock()
+        
+        # Celery task dispatch (with graceful fallback)
+        self.celery_available = check_celery_availability(self.logger)
 
     def start(self) -> None:
         """
@@ -86,8 +95,23 @@ class VideoUploader:
                 self.logger.warning("Upload thread did not stop gracefully")
         
         self.logger.info("Upload worker thread stopped successfully")
+    
+    def _dispatch_analysis_task(self, camera_name: str, video_url: str, shop_id: str) -> None:
+        """
+        Dispatch (start) video analysis task using Celery.
+        
+        Args:
+            camera_name (str): Name of the camera
+            video_url (str): Google Cloud Storage URI of the video
+            shop_id (str): Shop ID for context
+        """
+        if not self.celery_available:
+            self.logger.warning(f"Celery not available - skipping analysis for {video_url}")
+            return
+            
+        dispatch_video_analysis_task(camera_name, video_url, shop_id, self.logger)
 
-    def add_to_queue(self, bucket_name: str, camera_name: str) -> None:
+    def add_to_queue(self, task: UploadTask) -> None:
         """
         Add an upload task to the processing queue.
         
@@ -96,10 +120,7 @@ class VideoUploader:
         other queued uploads.
         
         Args:
-            bucket_name (str): Name of the Google Cloud Storage bucket to upload to.
-                             The bucket must already exist and be accessible.
-            camera_name (str): Name/prefix of the camera used to identify the recording file.
-                             Used to find the corresponding local video file.
+            task (UploadTask): The upload task containing bucket name, camera name, and shop ID
         
         Behavior:
             - Adds task to thread-safe queue immediately
@@ -111,8 +132,11 @@ class VideoUploader:
             The upload worker thread must be started (via start()) before
             calling this method, otherwise tasks will queue but not be processed.
         """
-        self.logger.info(f"Queuing upload task for camera {camera_name} to bucket {bucket_name}")
-        self.upload_queue.put((bucket_name, camera_name))
+        # Validate the task
+        task.validate()
+        
+        self.logger.info(f"Queuing upload task: {task}")
+        self.upload_queue.put(task)
 
     def _upload_worker(self) -> None:
         """
@@ -127,7 +151,7 @@ class VideoUploader:
         allowing for clean shutdown even when no uploads are pending.
         
         Queue Task Format:
-            Each task in the queue should be a tuple: (bucket_name, camera_name)
+            Each task in the queue is an UploadTask object
         
         Behavior:
             - Processes upload tasks sequentially from the queue
@@ -141,11 +165,46 @@ class VideoUploader:
         while not self.stop_upload_thread.is_set():
             try:
                 # Wait for upload task with timeout to allow checking stop event
-                bucket_name, camera_name = self.upload_queue.get(timeout=1)
+                task_data = self.upload_queue.get(timeout=1)
                 
-                self.logger.info(f"Starting upload for camera {camera_name} to bucket {bucket_name}")
-                self.google_client.export_camera_recording_to_bucket(bucket_name, camera_name)
-                self.logger.info(f"Upload succeeded for camera {camera_name}")
+                # All tasks should be UploadTask objects
+                upload_task = task_data
+                
+                self.logger.info(f"Starting upload: {upload_task}")
+                
+                try:
+                    # Perform the actual upload
+                    self.logger.info(f"Calling Google Client export method for {upload_task.camera_name}...")
+                    video_url = self.google_client.export_camera_recording_to_bucket(
+                        upload_task.bucket_name, 
+                        upload_task.camera_name
+                    )
+                    self.logger.info(f"Google Client export method returned: {video_url}")
+                    
+                    if not video_url:
+                        self.logger.error(f"Upload failed - no video URL returned for camera {upload_task.camera_name}")
+                        self.upload_queue.task_done()
+                        continue
+                    
+                    # Store the uploaded video URL
+                    with self.uploaded_videos_lock:
+                        self.uploaded_videos[upload_task.camera_name] = video_url
+                    
+                    self.logger.info(f"Upload succeeded for camera {upload_task.camera_name}: {video_url}")
+                    
+                    # Dispatch Celery analysis task (primary method)
+                    self.logger.info(f"Dispatching Celery analysis task for {upload_task.camera_name}...")
+                    self._dispatch_analysis_task(
+                        upload_task.camera_name, 
+                        video_url, 
+                        upload_task.shop_id
+                    )
+                    self.logger.info(f"Celery analysis task dispatched successfully for {upload_task.camera_name}")
+                    
+                except Exception as upload_error:
+                    self.logger.error(f"Upload failed for camera {upload_task.camera_name}: {upload_error}")
+                    # Don't continue to next iteration - let the outer exception handler deal with it
+                    raise
                 
                 self.upload_queue.task_done()
                 

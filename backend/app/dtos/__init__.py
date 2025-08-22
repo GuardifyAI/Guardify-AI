@@ -5,6 +5,7 @@ from .camera_dto import CameraDTO
 from .company_dto import CompanyDTO
 from .user_shop_dto import UserShopDTO
 from .analysis_dto import AnalysisDTO
+from .analysis_result_dto import AnalysisResultDTO
 from .stats_dto import StatsDTO
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     'CompanyDTO',
     'UserShopDTO',
     'AnalysisDTO',
+    'AnalysisResultDTO',
     'StatsDTO'
 ] 

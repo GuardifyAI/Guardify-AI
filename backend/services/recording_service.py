@@ -1,11 +1,13 @@
-import subprocess
 import os
 import signal
-import time
+import subprocess
 import sys
-from typing import Dict
 import threading
+import time
 from pathlib import Path
+from typing import Dict, Any
+from google.cloud import storage
+from google.oauth2.service_account import Credentials
 
 from backend.app.request_bodies.recording_request_body import StartRecordingRequestBody, StopRecordingRequestBody
 from backend.video.main import EXIT_CAMERA_NOT_FOUND, EXIT_GENERAL_ERROR, get_exit_code_description
@@ -20,14 +22,29 @@ class RecordingService:
     by managing subprocess calls to the main.py video recording script.
     """
 
-    def __init__(self, shops_service):
+    def __init__(self, shops_service, agentic_service=None):
         """Initialize the recording service with process tracking."""
         # Dictionary to track running processes: {shop_id_camera_name: process_info}
         self.active_processes: Dict[str, Dict] = {}
         self.lock = threading.Lock()
         self._dependencies_checked = False
         self.shops_service = shops_service
+        self.agentic_service = agentic_service
         self.logger = create_logger("RecordingService", "recording_service.log")
+
+        # Initialize Google Cloud Storage client for querying uploaded videos
+        try:
+            service_account_file = os.getenv("SERVICE_ACCOUNT_FILE")
+            if service_account_file:
+                credentials = Credentials.from_service_account_file(service_account_file)
+                project_id = os.getenv("GOOGLE_PROJECT_ID")
+                self.storage_client = storage.Client(project=project_id, credentials=credentials)
+            else:
+                # Fall back to default credentials
+                self.storage_client = storage.Client()
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize Google Cloud Storage client: {e}")
+            self.storage_client = None
 
     def _check_request_params(self,
                               request_body: StartRecordingRequestBody | StopRecordingRequestBody) -> ValueError | None:
@@ -65,13 +82,20 @@ class RecordingService:
             raise ValueError(
                 f"Missing required environment variables for video recording: {', '.join(missing_vars)}. Please configure these in your .env file or environment.")
 
-    def start_recording(self, shop_id: str, req_body: StartRecordingRequestBody) -> None:
+    def start_recording(self, shop_id: str, req_body: StartRecordingRequestBody) -> Dict[str, Any]:
         """
-        Start video recording for a specific camera in a shop.
+        Start video recording for a specific camera in a shop (non-blocking).
 
         Args:
             shop_id (str): The shop ID
             req_body (StartRecordingRequestBody): The start recording request body
+
+        Returns:
+            Dict[str, Any]: Immediate response containing:
+                - recording_started: bool
+                - shop_id: str
+                - camera_id: str
+                - camera_name: str
 
         Raises:
             ValueError: If recording is already active for this camera
@@ -90,6 +114,18 @@ class RecordingService:
 
         process_key = self._get_process_key(shop_id, camera_name)
 
+        # Get camera_id for this camera name in this shop
+        cameras = self.shops_service.get_shop_cameras(shop_id)
+        camera_id = None
+        for camera in cameras:
+            if camera.camera_name == camera_name:
+                camera_id = camera.camera_id
+                break
+
+        if not camera_id:
+            self.logger.warning(f"Could not find camera_id for camera '{camera_name}' in shop '{shop_id}'")
+            camera_id = camera_name  # Fallback to camera name
+
         with self.lock:
             # Check if recording is already active for this camera
             if process_key in self.active_processes:
@@ -102,19 +138,34 @@ class RecordingService:
 
             try:
                 # Build command to run main.py using module syntax from project root
+                video_dir = Path(__file__).resolve().parent.parent / 'video'
+                main_py_path = video_dir / 'main.py'
+                project_root = Path(__file__).resolve().parent.parent.parent  # Go up to project root
+
+                # Build command to run main.py using module syntax from project root
                 project_root = Path(__file__).resolve().parent.parent.parent
-                
+
                 cmd = [
                     sys.executable,  # Use the same Python executable as the current process
-                    '-m', 'backend.video.main',  # Run as module to fix import issues
+                    str(main_py_path),  # Convert Path to string for subprocess
                     '--camera', camera_name,
-                    '--duration', str(duration)
+                    '--duration', str(duration),
+                    '--shop-id', shop_id
                 ]
+
+                # Set up environment with correct Python path
+                env = os.environ.copy()
+                current_pythonpath = env.get('PYTHONPATH', '')
+                if current_pythonpath:
+                    env['PYTHONPATH'] = f"{project_root}{os.pathsep}{current_pythonpath}"
+                else:
+                    env['PYTHONPATH'] = str(project_root)
 
                 # Start the process with output forwarding
                 process = subprocess.Popen(
                     cmd,
-                    cwd=str(project_root),  # Run from project root so imports work
+                    cwd=str(video_dir),  # Convert Path to string for subprocess
+                    env=env,  # Use modified environment with correct PYTHONPATH
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,  # Combine stderr with stdout
                     stdin=subprocess.PIPE,
@@ -242,7 +293,15 @@ class RecordingService:
                 # If we get here, the process is still running after validation period
                 self.logger.info(
                     f"Recording process started successfully for camera '{camera_name}' in shop '{shop_id}' (PID: {process.pid})")
-                self.logger.info("Camera validation passed - recording should be active now")
+                self.logger.info("Camera validation passed - recording is now active")
+
+                # Return immediately - don't wait for recording to complete
+                return {
+                    "recording_started": True,
+                    "shop_id": shop_id,
+                    "camera_id": camera_id,
+                    "camera_name": camera_name,
+                }
 
             except Exception as e:
                 if process_key in self.active_processes:
@@ -322,8 +381,10 @@ class RecordingService:
                     # Give a moment for any remaining cleanup
                     time.sleep(1)
 
+
                 # Clean up
                 del self.active_processes[process_key]
+
                 self.logger.info(f"Recording stopped successfully for camera '{camera_name}'")
 
             except Exception as e:
@@ -350,19 +411,19 @@ class RecordingService:
     def get_active_recordings(self, shop_id: str) -> list[dict]:
         """
         Get all active recordings for a specific shop.
-        
+
         Args:
             shop_id (str): The shop ID to get active recordings for
-            
+
         Returns:
             list[dict]: List of active recording information
         """
         # Verify shop exists using shops service
         self.shops_service.verify_shop_exists(shop_id)
-        
+
         # Clean up any dead processes first
         self.cleanup_dead_processes()
-        
+
         active_recordings = []
         with self.lock:
             for key, process_info in self.active_processes.items():
@@ -372,7 +433,7 @@ class RecordingService:
                         'started_at': process_info['started_at'],
                         'duration': process_info['duration']
                     })
-        
+
         return active_recordings
 
     def cleanup_dead_processes(self) -> None:
