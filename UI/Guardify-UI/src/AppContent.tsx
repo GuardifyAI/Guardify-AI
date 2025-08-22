@@ -22,7 +22,12 @@ export default function AppContent() {
   // Use shops directly from useShops
   const shops: Shop[] = fetchedShops;
   
-  const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
+  // Sort events by date in descending order (newest first)
+  const sortedEvents = [...events].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateB.getTime() - dateA.getTime();
+  });
   
   // Show loading state
   if (shopsLoading || eventsLoading) {
@@ -121,7 +126,7 @@ export default function AppContent() {
           <div className="animate-slide-in">
             <ShopPage
               shop={shops.find(s => s.id === selectedShop)!}
-              events={events}
+              events={sortedEvents}
               tab={activeTab as 'statistics' | 'events' | 'cameras'}
             />
           </div>
