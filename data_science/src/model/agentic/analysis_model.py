@@ -55,7 +55,8 @@ class AnalysisModel(GenerativeModel):
     }
 
     def __init__(self,
-                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 # default to the DEFAULT_ANALYSIS_MODEL_ID environment variable if not provided. if also this is not provided, default to DEFAULT_MODEL_ID.
+                 model_name: str = os.getenv("DEFAULT_ANALYSIS_MODEL_ID", os.getenv("DEFAULT_MODEL_ID")),
                  *,
                  generation_config: Optional[GenerationConfigType] = None,
                  safety_settings: Optional[SafetySettingsType] = None,
@@ -234,6 +235,8 @@ class AnalysisModel(GenerativeModel):
                     strong_theft_evidence = True
                     break
 
+        # TODO: Change the reasoning to be just the decision_reasoning that exists and genreated already by the analysis model.
+        # TODO: take the decision_reasoning of the iteration that is closest to the final_confidence. Or make a final reasoning which is a combination of all the decision_reasoning.
         # Enhanced decision logic
         if detection_rate >= 0.8 and avg_confidence >= 0.6:
             # High consistency and confidence - likely theft
