@@ -80,8 +80,6 @@ enhanced_prompt = """
 
     🎯 CONFIDENCE CALIBRATION (PREDICTION CERTAINTY):
 
-    **IMPORTANT: Confidence represents YOUR CERTAINTY in the assessment, NOT the likelihood of theft occurring.**
-
     **High Confidence (0.70+): "I am very certain about this assessment"**
     �� Clear, unambiguous behavioral evidence present
     🔍 Multiple strong indicators align consistently
@@ -158,7 +156,7 @@ enhanced_response_schema = {
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Confidence level from 0.0 to 1.0"
+            "description": "Your certainty in the assessment (0.0 = very uncertain, 1.0 = extremely certain). This represents how confident you are in your prediction. High confidence means you are very sure about your assessment regardless of whether you detected theft or normal behavior."
         },
         "Evidence Tier": {
             "type": "string",
