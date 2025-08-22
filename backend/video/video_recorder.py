@@ -5,6 +5,7 @@ import time
 
 from utils import load_env_variables
 from utils.logger_utils import create_logger
+from backend.celery_tasks.upload_task import UploadTask
 
 load_env_variables()
 
@@ -14,16 +15,25 @@ class VideoRecorder:
     A video recording system that captures camera streams from Provision ISR platform.
     """
 
-    def __init__(self, video_uploader):
+    def __init__(self, video_uploader, shop_id: str):
         """
         Initialize the VideoRecorder with video uploader integration.
         
         Args:
             video_uploader (VideoUploader): An instance of VideoUploader for handling
                                           concurrent upload processing.
+            shop_id (str): Shop ID for context when triggering analysis callbacks.
+                          This is required as it's essential for video analysis.
+                          
+        Raises:
+            ValueError: If shop_id is None or empty string
         """
+        if not shop_id or not shop_id.strip():
+            raise ValueError("shop_id is required and cannot be None or empty string")
+            
         self.logger = create_logger("video_recorder", "video_recorder.log")
         self.video_uploader = video_uploader
+        self.shop_id = shop_id
 
     def login_to_provisionisr(self, page: Page) -> None:
         """
@@ -127,7 +137,7 @@ class VideoRecorder:
                     camera_element.dblclick()
                     time.sleep(2)
                     
-            except Exception as e2:
+            except Exception:
                 # List available cameras for debugging
                 self.logger.error(f"Could not find camera '{camera_name}'. Available text elements:")
                 
@@ -138,7 +148,7 @@ class VideoRecorder:
                     for element in all_text_elements[:20]:  # Limit to first 20
                         try:
                             text = element.text_content()
-                            if text and len(text.strip()) > 1 and len(text.strip()) < 30:
+                            if text and 1 < len(text.strip()) < 30:
                                 available_texts.append(text.strip())
                         except:
                             continue
@@ -192,7 +202,12 @@ class VideoRecorder:
 
                 # Queue the upload task for background processing
                 bucket_name = os.getenv("BUCKET_NAME")
-                self.video_uploader.add_to_queue(bucket_name, camera_name)
+                upload_task = UploadTask(
+                    bucket_name=bucket_name,
+                    camera_name=camera_name,
+                    shop_id=self.shop_id
+                )
+                self.video_uploader.add_to_queue(upload_task)
                 
         except KeyboardInterrupt:
             self.logger.info("Recording interrupted by user")

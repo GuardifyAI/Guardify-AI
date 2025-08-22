@@ -3,13 +3,14 @@ from data_science.src.model.agentic.computer_vision_model import ComputerVisionM
 from data_science.src.model.unified.unified_shoplifting_model import UnifiedShopliftingModel
 import logging
 from data_science.src.utils import get_video_extension, AGENTIC_MODEL, UNIFIED_MODEL
-from utils.logger_utils import create_logger
+import os
 from vertexai.generative_models import Part
 from typing import List, Dict, Any
+from utils import create_logger
+
 import numpy as np
 import pickle
 import datetime
-import os
 
 
 def create_unified_analyzer(detection_threshold: float, logger: logging.Logger = None):
