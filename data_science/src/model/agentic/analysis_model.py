@@ -219,10 +219,9 @@ class AnalysisModel(GenerativeModel):
         detection_rate = detection_count / len(detections)
 
         # Check for strong theft evidence that should be protected from override
-        strong_theft_evidence = self.is_there_strong_theft_evidence(detailed_analyses)
+        strong_theft_evidence = self._is_there_strong_theft_evidence(detailed_analyses)
+        reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(confidences, detailed_analyses)
 
-        # TODO: Change the reasoning to be just the decision_reasoning that exists and genreated already by the analysis model.
-        # TODO: take the decision_reasoning of the iteration that is closest to the final_confidence. Or make a final reasoning which is a combination of all the decision_reasoning.
         high_detection_likelihood_threshold = shoplifting_detection_threshold
         moderate_detection_likelihood_threshold = 0.8 * shoplifting_detection_threshold
         low_detection_likelihood_threshold = 0.5 * shoplifting_detection_threshold
@@ -232,35 +231,36 @@ class AnalysisModel(GenerativeModel):
             # High consistency and confidence - likely theft
             final_confidence = min(avg_confidence, 0.9)
             final_detection = True
-            reasoning = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
+            reasoning_summary = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
 
         elif detection_rate >= moderate_detection_likelihood_threshold and avg_confidence >= moderate_detection_likelihood_threshold:
             # Moderate consistency - likely theft but with some uncertainty
             final_confidence = avg_confidence * 0.9  # Slight reduction for uncertainty
             final_detection = True
-            reasoning = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
+            reasoning_summary = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
 
         elif strong_theft_evidence and avg_confidence >= moderate_detection_likelihood_threshold:
             # Strong theft evidence should not be overridden by low consistency
             final_confidence = avg_confidence
             final_detection = True
-            reasoning = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
+            reasoning_summary = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
 
         elif detection_rate <= low_detection_likelihood_threshold and avg_confidence <= low_detection_likelihood_threshold:
             # Low detection rate and confidence - likely normal behavior
             final_confidence = min(avg_confidence, 0.3)
             final_detection = False
-            reasoning = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
+            reasoning_summary = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
 
         else:
             # Mixed signals - use average confidence with conservative approach
             final_confidence = avg_confidence * 0.8  # Conservative adjustment
             final_detection = False
-            reasoning = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
+            reasoning_summary = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
 
+        reasoning = reasoning_of_iteration_with_confidence_closest_to_the_average_confidence + "\nFinal Decision Reasoning Summary: " + reasoning_summary
         return final_confidence, final_detection, reasoning
 
-    def is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
+    def _is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
         """
         Check if there is strong theft evidence in the detailed analyses.
 
@@ -289,3 +289,44 @@ class AnalysisModel(GenerativeModel):
                     strong_theft_evidence = True
                     break
         return strong_theft_evidence
+
+    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self, confidences: List[float], detailed_analyses: List[Dict] = None) -> str:
+        """
+        Helper function to find the iteration with confidence closest to the average confidence
+        and return its decision reasoning.
+
+        Args:
+            confidences (List[float]): List of confidence scores from iterations
+            detailed_analyses (List[Dict], optional): Detailed analysis results
+
+        Returns:
+            str: Decision reasoning from the closest iteration, or empty string if not found
+        """
+        if not confidences or not detailed_analyses:
+            return ""
+
+        # Calculate average confidence
+        avg_confidence = sum(confidences) / len(confidences)
+
+        # Find the iteration with confidence closest to the average
+        closest_iteration_idx = 0
+        min_distance = float('inf')
+
+        for i, confidence in enumerate(confidences):
+            distance = abs(confidence - avg_confidence)
+            if distance < min_distance:
+                min_distance = distance
+                closest_iteration_idx = i
+
+        # Get the decision reasoning from the closest iteration
+        if closest_iteration_idx < len(detailed_analyses):
+            closest_reasoning = detailed_analyses[closest_iteration_idx].get("decision_reasoning", "")
+            if closest_reasoning:
+                return closest_reasoning
+
+        # If no reasoning found in closest iteration, try to get reasoning from any iteration
+        for analysis in detailed_analyses:
+            if analysis.get("decision_reasoning"):
+                return analysis.get("decision_reasoning")
+
+        return ""
