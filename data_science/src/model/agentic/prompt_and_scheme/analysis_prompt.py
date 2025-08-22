@@ -100,6 +100,8 @@ enhanced_prompt = """
     ✅ Observations are ambiguous or incomplete
     ✅ High uncertainty in the assessment
     ✅ Poor evidence quality or conflicting indicators
+    
+    **CONFIDENCE GUIDANCE: Be appropriately confident in your assessments. Avoid overly conservative low confidence scores when you have sufficient evidence to make a reasonable determination. However, do not exaggerate confidence beyond what the evidence supports.**
 
     📹 SURVEILLANCE-REALISTIC DETECTION PRINCIPLES:
 

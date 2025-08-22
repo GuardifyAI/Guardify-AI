@@ -244,6 +244,7 @@ class AnalysisModel(GenerativeModel):
             final_detection = True
             reasoning_summary = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
 
+        # TODO: fix this
         elif detection_rate <= low_detection_likelihood_threshold and avg_confidence <= low_detection_likelihood_threshold:
             # Low detection rate and confidence - likely normal behavior
             final_confidence = min(avg_confidence, 0.3)
@@ -268,26 +269,17 @@ class AnalysisModel(GenerativeModel):
         Returns:
             bool: True if strong theft evidence is found, False otherwise
         """
-        strong_theft_evidence = False
-        if detailed_analyses:
-            # Look for clear theft patterns in reasoning
-            theft_patterns = [
-                "classic", "grab and stuff", "concealment", "theft pattern",
-                "clear concealment", "definitive", "obvious", "pocket", "bag", "hidden"
-            ]
+        if not detailed_analyses:
+            return False
 
-            for analysis in detailed_analyses:
-                reasoning = analysis.get("decision_reasoning", "").lower()
-                concealment_actions = analysis.get("concealment_actions", [])
-                evidence_tier = analysis.get("evidence_tier", "")
-
-                # Strong evidence indicators
-                if (any(pattern in reasoning for pattern in theft_patterns) or
-                        concealment_actions or
-                        evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]):
-                    strong_theft_evidence = True
-                    break
-        return strong_theft_evidence
+        for analysis in detailed_analyses:
+            concealment_actions = analysis.get("concealment_actions", [])
+            evidence_tier = analysis.get("evidence_tier", "")
+            # Strong evidence indicators
+            if concealment_actions or evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]:
+                return True
+        else:
+            return False
 
     def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self, confidences: List[float], detailed_analyses: List[Dict] = None) -> str:
         """
