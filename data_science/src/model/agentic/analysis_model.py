@@ -194,14 +194,18 @@ class AnalysisModel(GenerativeModel):
                 "decision_reasoning": f"Response parsing error: {e}"
             }
 
-    def make_surveillance_realistic_decision(self, confidences: List[float], detections: List[bool],
+    def make_surveillance_realistic_decision(self,
+                                             confidences: List[float],
+                                             detections: List[bool],
+                                             shoplifting_detection_threshold: float,
                                              detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
         """
         Enhanced decision-making logic with protection for strong theft evidence.
         
         Args:
             confidences (List[float]): List of confidence scores from iterations
-            detections (List[bool]): List of detection results from iterations  
+            detections (List[bool]): List of detection results from iterations
+            shoplifting_detection_threshold (float): Threshold for shoplifting detection strictness. affects both the wanted confidence and detection rate.
             detailed_analyses (List[Dict], optional): Detailed analysis results
             
         Returns:
@@ -215,6 +219,56 @@ class AnalysisModel(GenerativeModel):
         detection_rate = detection_count / len(detections)
 
         # Check for strong theft evidence that should be protected from override
+        strong_theft_evidence = self.is_there_strong_theft_evidence(detailed_analyses)
+
+        # TODO: Change the reasoning to be just the decision_reasoning that exists and genreated already by the analysis model.
+        # TODO: take the decision_reasoning of the iteration that is closest to the final_confidence. Or make a final reasoning which is a combination of all the decision_reasoning.
+        high_detection_likelihood_threshold = shoplifting_detection_threshold
+        moderate_detection_likelihood_threshold = 0.8 * shoplifting_detection_threshold
+        low_detection_likelihood_threshold = 0.5 * shoplifting_detection_threshold
+
+        # Enhanced decision logic
+        if detection_rate >= high_detection_likelihood_threshold and avg_confidence >= high_detection_likelihood_threshold:
+            # High consistency and confidence - likely theft
+            final_confidence = min(avg_confidence, 0.9)
+            final_detection = True
+            reasoning = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
+
+        elif detection_rate >= moderate_detection_likelihood_threshold and avg_confidence >= moderate_detection_likelihood_threshold:
+            # Moderate consistency - likely theft but with some uncertainty
+            final_confidence = avg_confidence * 0.9  # Slight reduction for uncertainty
+            final_detection = True
+            reasoning = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
+
+        elif strong_theft_evidence and avg_confidence >= moderate_detection_likelihood_threshold:
+            # Strong theft evidence should not be overridden by low consistency
+            final_confidence = avg_confidence
+            final_detection = True
+            reasoning = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
+
+        elif detection_rate <= low_detection_likelihood_threshold and avg_confidence <= low_detection_likelihood_threshold:
+            # Low detection rate and confidence - likely normal behavior
+            final_confidence = min(avg_confidence, 0.3)
+            final_detection = False
+            reasoning = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
+
+        else:
+            # Mixed signals - use average confidence with conservative approach
+            final_confidence = avg_confidence * 0.8  # Conservative adjustment
+            final_detection = False
+            reasoning = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
+
+        return final_confidence, final_detection, reasoning
+
+    def is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
+        """
+        Check if there is strong theft evidence in the detailed analyses.
+
+        Args:
+            detailed_analyses (List[Dict], optional): Detailed analysis results.
+        Returns:
+            bool: True if strong theft evidence is found, False otherwise
+        """
         strong_theft_evidence = False
         if detailed_analyses:
             # Look for clear theft patterns in reasoning
@@ -234,38 +288,4 @@ class AnalysisModel(GenerativeModel):
                         evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]):
                     strong_theft_evidence = True
                     break
-
-        # TODO: Change the reasoning to be just the decision_reasoning that exists and genreated already by the analysis model.
-        # TODO: take the decision_reasoning of the iteration that is closest to the final_confidence. Or make a final reasoning which is a combination of all the decision_reasoning.
-        # Enhanced decision logic
-        if detection_rate >= 0.8 and avg_confidence >= 0.6:
-            # High consistency and confidence - likely theft
-            final_confidence = min(avg_confidence, 0.9)
-            final_detection = True
-            reasoning = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
-
-        elif detection_rate >= 0.6 and avg_confidence >= 0.5:
-            # Moderate consistency - likely theft but with some uncertainty
-            final_confidence = avg_confidence * 0.9  # Slight reduction for uncertainty
-            final_detection = True
-            reasoning = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
-
-        elif strong_theft_evidence and avg_confidence >= 0.4:
-            # Strong theft evidence should not be overridden by low consistency
-            final_confidence = avg_confidence
-            final_detection = avg_confidence >= 0.5
-            reasoning = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
-
-        elif detection_rate <= 0.3 and avg_confidence <= 0.4:
-            # Low detection rate and confidence - likely normal behavior
-            final_confidence = min(avg_confidence, 0.3)
-            final_detection = False
-            reasoning = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
-
-        else:
-            # Mixed signals - use average confidence with conservative approach
-            final_confidence = avg_confidence * 0.8  # Conservative adjustment
-            final_detection = final_confidence >= 0.5
-            reasoning = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
-
-        return final_confidence, final_detection, reasoning
+        return strong_theft_evidence
