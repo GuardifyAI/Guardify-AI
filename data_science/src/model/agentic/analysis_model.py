@@ -214,8 +214,7 @@ class AnalysisModel(GenerativeModel):
             return 0.1, False, "No analysis results available"
 
         avg_confidence = sum(confidences) / len(confidences)
-        detection_count = sum(detections)
-        detection_rate = detection_count / len(detections)
+        detection_rate = sum(detections) / len(detections)
 
         # Check for strong theft evidence that should be protected from override
         strong_theft_evidence = self._is_there_strong_theft_evidence(detailed_analyses)
