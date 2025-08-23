@@ -307,7 +307,9 @@ class AnalysisModel(GenerativeModel):
         else:
             return False
 
-    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self, confidences: List[float], detailed_analyses: List[Dict] = None) -> str:
+    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self,
+                                                                                       confidences: List[float],
+                                                                                       detailed_analyses: List[Dict] = None) -> str:
         """
         Helper function to find the iteration with confidence closest to the average confidence
         and return its decision reasoning.
@@ -322,28 +324,21 @@ class AnalysisModel(GenerativeModel):
         if not confidences or not detailed_analyses:
             return ""
 
-        # Calculate average confidence
-        avg_confidence = sum(confidences) / len(confidences)
+            # Use only indices present in both lists
+        n = min(len(confidences), len(detailed_analyses))
+        if n == 0:
+            return ""
 
-        # Find the iteration with confidence closest to the average
-        closest_iteration_idx = 0
-        min_distance = float('inf')
+        avg = sum(confidences) / len(confidences)
 
-        for i, confidence in enumerate(confidences):
-            distance = abs(confidence - avg_confidence)
-            if distance < min_distance:
-                min_distance = distance
-                closest_iteration_idx = i
+        closest_idx = min(range(n), key=lambda i: abs(confidences[i] - avg))
+        reasoning = detailed_analyses[closest_idx].get("decision_reasoning", "")
 
-        # Get the decision reasoning from the closest iteration
-        if closest_iteration_idx < len(detailed_analyses):
-            closest_reasoning = detailed_analyses[closest_iteration_idx].get("decision_reasoning", "")
-            if closest_reasoning:
-                return closest_reasoning
+        if reasoning:
+            return reasoning
 
-        # If no reasoning found in closest iteration, try to get reasoning from any iteration
-        for analysis in detailed_analyses:
-            if analysis.get("decision_reasoning"):
-                return analysis.get("decision_reasoning")
-
-        return ""
+        # Fallback: first non-empty reasoning anywhere
+        return next(
+            (a.get("decision_reasoning") for a in detailed_analyses if a.get("decision_reasoning")),
+            ""
+        )
