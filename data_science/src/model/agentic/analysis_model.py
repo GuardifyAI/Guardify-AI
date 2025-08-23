@@ -222,6 +222,88 @@ class AnalysisModel(GenerativeModel):
         reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(
             confidences, detailed_analyses)
 
+        # Determine the final decision based on detection rate, confidence, and evidence strength.
+        final_confidence, final_detection, reasoning_summary = self._get_final_analysis_detection_confidence_and_reasoning_summary_using_thresholds_and_strong_evidence(
+            detection_rate, avg_confidence, strong_theft_evidence, shoplifting_detection_threshold
+        )
+
+        final_reasoning = reasoning_of_iteration_with_confidence_closest_to_the_average_confidence + "\nFinal Decision Reasoning Summary: " + reasoning_summary
+        return final_confidence, final_detection, final_reasoning
+
+    def _is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
+        """
+        Check if there is strong theft evidence in the detailed analyses.
+
+        Args:
+            detailed_analyses (List[Dict], optional): Detailed analysis results.
+        Returns:
+            bool: True if strong theft evidence is found, False otherwise
+        """
+        if not detailed_analyses:
+            return False
+
+        for analysis in detailed_analyses:
+            concealment_actions = analysis.get("concealment_actions", [])
+            evidence_tier = analysis.get("evidence_tier", "")
+            # Strong evidence indicators
+            if concealment_actions or evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]:
+                return True
+        else:
+            return False
+
+    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self,
+                                                                                       confidences: List[float],
+                                                                                       detailed_analyses: List[Dict] = None) -> str:
+        """
+        Helper function to find the iteration with confidence closest to the average confidence
+        and return its decision reasoning.
+
+        Args:
+            confidences (List[float]): List of confidence scores from iterations
+            detailed_analyses (List[Dict], optional): Detailed analysis results
+
+        Returns:
+            str: Decision reasoning from the closest iteration, or empty string if not found
+        """
+        if not confidences or not detailed_analyses:
+            return ""
+
+            # Use only indices present in both lists
+        n = min(len(confidences), len(detailed_analyses))
+        if n == 0:
+            return ""
+
+        avg = sum(confidences) / len(confidences)
+
+        closest_idx = min(range(n), key=lambda i: abs(confidences[i] - avg))
+        reasoning = detailed_analyses[closest_idx].get("decision_reasoning", "")
+
+        if reasoning:
+            return reasoning
+
+        # Fallback: first non-empty reasoning anywhere
+        return next(
+            (a.get("decision_reasoning") for a in detailed_analyses if a.get("decision_reasoning")),
+            ""
+        )
+
+    def _get_final_analysis_detection_confidence_and_reasoning_summary_using_thresholds_and_strong_evidence(self,
+                                  detection_rate: float,
+                                  avg_confidence: float,
+                                  strong_theft_evidence: bool,
+                                  shoplifting_detection_threshold: float) -> Tuple[float, bool, str]:
+        """
+        Determine the final decision based on detection rate, confidence, and evidence strength.
+
+        Args:
+            detection_rate (float): Ratio of detections to total iterations
+            avg_confidence (float): Average confidence across all iterations
+            strong_theft_evidence (bool): Whether strong theft evidence was detected
+            shoplifting_detection_threshold (float): Threshold for shoplifting detection
+
+        Returns:
+            Tuple[float, bool, str]: (final_confidence, final_detection, reasoning_summary)
+        """
         high_detection_likelihood_threshold = shoplifting_detection_threshold
         moderate_detection_likelihood_threshold = 0.8 * shoplifting_detection_threshold
         low_detection_likelihood_threshold = 0.5 * shoplifting_detection_threshold
@@ -283,62 +365,4 @@ class AnalysisModel(GenerativeModel):
             final_detection = False
             reasoning_summary = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
 
-        reasoning = reasoning_of_iteration_with_confidence_closest_to_the_average_confidence + "\nFinal Decision Reasoning Summary: " + reasoning_summary
-        return final_confidence, final_detection, reasoning
-
-    def _is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
-        """
-        Check if there is strong theft evidence in the detailed analyses.
-
-        Args:
-            detailed_analyses (List[Dict], optional): Detailed analysis results.
-        Returns:
-            bool: True if strong theft evidence is found, False otherwise
-        """
-        if not detailed_analyses:
-            return False
-
-        for analysis in detailed_analyses:
-            concealment_actions = analysis.get("concealment_actions", [])
-            evidence_tier = analysis.get("evidence_tier", "")
-            # Strong evidence indicators
-            if concealment_actions or evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]:
-                return True
-        else:
-            return False
-
-    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self,
-                                                                                       confidences: List[float],
-                                                                                       detailed_analyses: List[Dict] = None) -> str:
-        """
-        Helper function to find the iteration with confidence closest to the average confidence
-        and return its decision reasoning.
-
-        Args:
-            confidences (List[float]): List of confidence scores from iterations
-            detailed_analyses (List[Dict], optional): Detailed analysis results
-
-        Returns:
-            str: Decision reasoning from the closest iteration, or empty string if not found
-        """
-        if not confidences or not detailed_analyses:
-            return ""
-
-            # Use only indices present in both lists
-        n = min(len(confidences), len(detailed_analyses))
-        if n == 0:
-            return ""
-
-        avg = sum(confidences) / len(confidences)
-
-        closest_idx = min(range(n), key=lambda i: abs(confidences[i] - avg))
-        reasoning = detailed_analyses[closest_idx].get("decision_reasoning", "")
-
-        if reasoning:
-            return reasoning
-
-        # Fallback: first non-empty reasoning anywhere
-        return next(
-            (a.get("decision_reasoning") for a in detailed_analyses if a.get("decision_reasoning")),
-            ""
-        )
+        return final_confidence, final_detection, reasoning_summary
