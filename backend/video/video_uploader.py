@@ -95,21 +95,35 @@ class VideoUploader:
                 self.logger.warning("Upload thread did not stop gracefully")
         
         self.logger.info("Upload worker thread stopped successfully")
-    
-    def _dispatch_analysis_task(self, camera_name: str, video_url: str, shop_id: str) -> None:
+
+    def _dispatch_analysis_task(self,
+                                camera_name: str,
+                                video_url: str,
+                                shop_id: str,
+                                detection_threshold: float = 0.8,
+                                iterations: int = 1) -> None:
         """
         Dispatch (start) video analysis task using Celery.
-        
+
         Args:
             camera_name (str): Name of the camera
             video_url (str): Google Cloud Storage URI of the video
             shop_id (str): Shop ID for context
+            detection_threshold (float): Threshold for shoplifting detection (default: 0.8)
+            iterations (int): Number of analysis iterations (default: 1)
         """
         if not self.celery_available:
             self.logger.warning(f"Celery not available - skipping analysis for {video_url}")
             return
-            
-        dispatch_video_analysis_task(camera_name, video_url, shop_id, self.logger)
+
+        dispatch_video_analysis_task(
+            camera_name,
+            video_url,
+            shop_id,
+            self.logger,
+            detection_threshold,
+            iterations
+        )
 
     def add_to_queue(self, task: UploadTask) -> None:
         """
@@ -197,7 +211,9 @@ class VideoUploader:
                     self._dispatch_analysis_task(
                         upload_task.camera_name, 
                         video_url, 
-                        upload_task.shop_id
+                        upload_task.shop_id,
+                        upload_task.detection_threshold,
+                        upload_task.iterations,
                     )
                     self.logger.info(f"Celery analysis task dispatched successfully for {upload_task.camera_name}")
                     

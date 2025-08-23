@@ -225,7 +225,12 @@ def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_
 
 
 @celery_app.task(bind=True, name='analyze_video')
-def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> AnalysisTaskResultDict:
+def analyze_video(self,
+                  camera_name: str,
+                  video_url: str,
+                  shop_id: str,
+                  detection_threshold: float = 0.8,
+                  iterations: int = 1) -> AnalysisTaskResultDict:
     """
     Analyze uploaded video using agentic AI strategy.
     
@@ -236,7 +241,9 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Analy
         camera_name (str): Name of the camera that recorded the video
         video_url (str): Google Cloud Storage URI of the video to analyze
         shop_id (str): Shop ID for context
-        
+        detection_threshold (float): Threshold for shoplifting detection (default: 0.8)
+        iterations (int): Number of analysis iterations (default: 1)
+
     Returns:
         AnalysisTaskResultDict: Typed analysis result dictionary containing
             video_url, final_confidence, final_detection, decision_reasoning,
@@ -248,7 +255,10 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Analy
     task_id = self.request.id
 
     try:
-        logger.info(f"[CELERY-TASK:{task_id}] Starting video analysis for camera '{camera_name}' in shop '{shop_id}': {video_url}")
+        logger.info(
+            f"[CELERY-TASK:{task_id}] Starting video analysis for camera '{camera_name}' in shop '{shop_id}': {video_url}")
+        logger.info(
+            f"[CELERY-TASK:{task_id}] Analysis parameters: threshold={detection_threshold}, iterations={iterations}")
 
         # Initialize services (now running within Flask app context)
         shops_service = ShopsService()
@@ -272,9 +282,13 @@ def analyze_video(self, camera_name: str, video_url: str, shop_id: str) -> Analy
                 camera_name=camera_name,
                 task_id=task_id
             ).to_dict()
-        
-        # Perform video analysis
-        analysis_result = agentic_service.analyze_single_video(video_url)
+
+        # Perform video analysis with the passed parameters
+        analysis_result = agentic_service.analyze_single_video(
+            video_url,
+            detection_threshold=detection_threshold,
+            iterations=iterations
+        )
         
         # Create structured task result with proper type conversion
         # Convert final_detection from string to boolean (agentic service returns string)

@@ -111,6 +111,8 @@ class RecordingService:
 
         camera_name = req_body.camera_name
         duration = req_body.duration
+        detection_threshold = req_body.detection_threshold
+        iterations = req_body.iterations
 
         process_key = self._get_process_key(shop_id, camera_name)
 
@@ -150,7 +152,9 @@ class RecordingService:
                     str(main_py_path),  # Convert Path to string for subprocess
                     '--camera', camera_name,
                     '--duration', str(duration),
-                    '--shop-id', shop_id
+                    '--shop-id', shop_id,
+                    '--detection-threshold', str(detection_threshold),
+                    '--iterations', str(iterations)
                 ]
 
                 # Set up environment with correct Python path
