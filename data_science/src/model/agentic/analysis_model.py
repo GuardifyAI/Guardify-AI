@@ -193,11 +193,11 @@ class AnalysisModel(GenerativeModel):
                 "decision_reasoning": f"Response parsing error: {e}"
             }
 
-    def make_surveillance_realistic_decision(self,
-                                             confidences: List[float],
-                                             detections: List[bool],
-                                             shoplifting_detection_threshold: float,
-                                             detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
+    def get_final_analysis_based_on_iterations_results(self,
+                                                       confidences: List[float],
+                                                       detections: List[bool],
+                                                       shoplifting_detection_threshold: float,
+                                                       detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
         """
         Enhanced decision-making logic with protection for strong theft evidence.
 

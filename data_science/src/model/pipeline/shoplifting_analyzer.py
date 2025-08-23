@@ -373,7 +373,7 @@ class ShopliftingAnalyzer:
 
         # Enhanced final decision using AnalysisModel's surveillance-realistic logic
         self.logger.info("=== MAKING FINAL DECISION ===")
-        final_confidence, final_detection, decision_reasoning = self.analysis_model.make_surveillance_realistic_decision(
+        final_confidence, final_detection, decision_reasoning = self.analysis_model.get_final_analysis_based_on_iterations_results(
             confidences=all_confidences,
             detections=all_detections,
             shoplifting_detection_threshold=self.shoplifting_detection_threshold,
