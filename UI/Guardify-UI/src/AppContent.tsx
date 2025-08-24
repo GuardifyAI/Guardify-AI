@@ -14,13 +14,22 @@ export default function AppContent() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
   const events = useEvents();
-  const { loading: eventsLoading, error: eventsError, selectedShop, setSelectedShop } = useEventsContext();
+  const { loading: eventsLoading, error: eventsError, selectedShop, setSelectedShop, refetch } = useEventsContext();
   
   // Use the shops API
   const { shops: fetchedShops, loading: shopsLoading, error: shopsError } = useShops();
   
   // Use shops directly from useShops
   const shops: Shop[] = fetchedShops;
+  
+  // Custom function to handle tab switching with events refresh
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    // Only refresh events when switching TO the events tab to get latest data
+    if (newTab === 'events') {
+      refetch();
+    }
+  };
   
   // Sort events by date in descending order (newest first)
   const sortedEvents = [...events].sort((a, b) => {
@@ -51,7 +60,7 @@ export default function AppContent() {
           shops={[]}
           selectedShop={selectedShop}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
           setSelectedShop={setSelectedShop}
         />
         <main className="lg:ml-72 p-4 lg:p-8 animate-fade-in flex flex-col items-center justify-center">
@@ -70,7 +79,7 @@ export default function AppContent() {
         shops={shops}
         selectedShop={selectedShop}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         setSelectedShop={setSelectedShop} 
       />
 
@@ -107,7 +116,7 @@ export default function AppContent() {
               showViewAllButton={true}
               onViewAll={() => {
                 setSelectedShop(null);
-                setActiveTab('events');
+                handleTabChange('events');
               }}
               title="Recent Security Events"
             />
