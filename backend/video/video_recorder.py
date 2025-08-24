@@ -15,7 +15,7 @@ class VideoRecorder:
     A video recording system that captures camera streams from Provision ISR platform.
     """
 
-    def __init__(self, video_uploader, shop_id: str):
+    def __init__(self, video_uploader, shop_id: str, detection_threshold: float = 0.8, analysis_iterations: int = 1):
         """
         Initialize the VideoRecorder with video uploader integration.
         
@@ -24,6 +24,8 @@ class VideoRecorder:
                                           concurrent upload processing.
             shop_id (str): Shop ID for context when triggering analysis callbacks.
                           This is required as it's essential for video analysis.
+            detection_threshold (float): Detection confidence threshold for AI analysis (default: 0.8)
+            analysis_iterations (int): Number of analysis iterations (default: 1)
                           
         Raises:
             ValueError: If shop_id is None or empty string
@@ -34,6 +36,8 @@ class VideoRecorder:
         self.logger = create_logger("video_recorder", "video_recorder.log")
         self.video_uploader = video_uploader
         self.shop_id = shop_id
+        self.detection_threshold = detection_threshold
+        self.analysis_iterations = analysis_iterations
 
     def login_to_provisionisr(self, page: Page) -> None:
         """
@@ -205,7 +209,9 @@ class VideoRecorder:
                 upload_task = UploadTask(
                     bucket_name=bucket_name,
                     camera_name=camera_name,
-                    shop_id=self.shop_id
+                    shop_id=self.shop_id,
+                    detection_threshold=self.detection_threshold,
+                    analysis_iterations=self.analysis_iterations
                 )
                 self.video_uploader.add_to_queue(upload_task)
                 
