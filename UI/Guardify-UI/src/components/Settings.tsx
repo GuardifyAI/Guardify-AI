@@ -28,7 +28,7 @@ const SETTINGS_CONFIG = {
     min: 1,
     max: 3,
     step: 1,
-    unit: 'passes',
+    unit: '',
     icon: Brain,
     title: 'Analysis Iterations',
     description: 'Number of AI analysis passes (more iterations = higher accuracy, slower processing)',
@@ -162,7 +162,7 @@ export default function Settings() {
           <div className="grid grid-cols-3 gap-4 text-sm">
             {Object.entries(SETTINGS_CONFIG).map(([key, config]) => (
               <div key={key}>
-                <span className="text-blue-700 font-medium">{config.title.split(' ')[0]}:</span>
+                <span className="text-blue-700 font-medium">{config.title}:</span>
                 <span className="text-blue-800 ml-1">
                   {recordingSettings[key as keyof typeof recordingSettings]}
                   {config.unit && config.unit}
