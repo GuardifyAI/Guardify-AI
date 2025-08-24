@@ -25,17 +25,22 @@ class AgenticService:
             service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
         )
 
-    def analyze_single_video(self, video_url: str) -> AnalysisResultDTO:
+    def analyze_single_video(self,
+                             video_url: str,
+                             detection_threshold: float = 0.8,
+                             iterations: int = 1) -> AnalysisResultDTO:
         """
         Analyze a single video using the agentic strategy (synchronous).
 
         Args:
             video_url (str): Google Cloud Storage URI of the video to analyze
+            detection_threshold (float): Threshold for shoplifting detection (default: 0.8)
+            iterations (int): Number of analysis iterations (default: 1)
 
         Returns:
             AnalysisResultDTO: Analysis result containing:
                 - video_url: str
-                - final_confidence: float  
+                - final_confidence: float
                 - final_detection: str
                 - decision_reasoning: str
                 - iteration_results: List[Any]
@@ -48,14 +53,14 @@ class AgenticService:
             
             # Create agentic analyzer
             shoplifting_analyzer = create_agentic_analyzer(
-                detection_threshold=0.45,  # Default threshold
+                detection_threshold=detection_threshold,
                 logger=self.logger
             )
             
             # Analyze the video
             analysis_result = shoplifting_analyzer.analyze_video_from_bucket(
                 video_url,
-                iterations=3,  # Default iterations
+                iterations=iterations,
                 pickle_analysis=False  # Don't save pickle for API calls
             )
             

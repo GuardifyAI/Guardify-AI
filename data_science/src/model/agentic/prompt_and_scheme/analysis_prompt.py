@@ -78,23 +78,30 @@ enhanced_prompt = """
     🌆 Environmental factors affecting observation quality
     🔄 Consistency of behaviors throughout the sequence
 
-    🎯 ENHANCED CONFIDENCE CALIBRATION:
+    🎯 CONFIDENCE CALIBRATION (PREDICTION CERTAINTY):
 
-    **High Confidence (0.70+)**: Multiple strong indicators present
-    🔍 Can you identify clear concealment actions from the observations?
-    🔍 Are there multiple supporting behavioral indicators?
-    🚨 Would this evidence warrant immediate security intervention?
-    🔍 Is the behavioral sequence clearly distinct from normal shopping?
+    **High Confidence (0.70+): "I am very certain about this assessment"**
+    �� Clear, unambiguous behavioral evidence present
+    🔍 Multiple strong indicators align consistently
+    🔍 Behavioral sequence is distinct and well-defined
+    🔍 Minimal ambiguity in the observations
+    🔍 Evidence quality is high and conclusive
 
-    **Moderate Confidence (0.40-0.70)**: Some concerning evidence
-    🔶 Behavioral patterns suggest possible theft but aren't definitive
-    🔶 Some theft indicators present but missing clear visual confirmation
-    👁️ Evidence warrants closer monitoring or investigation
+    **Moderate Confidence (0.40-0.70): "I am somewhat certain about this assessment"**
+    🔶 Some clear evidence but with some ambiguity
+    🔶 Behavioral patterns suggest theft but aren't definitive
+    🔶 Some indicators present but missing complete visual confirmation
+    🔶 Evidence warrants closer monitoring or investigation
+    🔶 Moderate evidence quality with some uncertainty
 
-    **Low Confidence (0.05-0.40)**: Minimal or normal behavior
-    ✅ Behavior consistent with legitimate shopping
-    ✅ Brief interactions without clear concealment intent
-    ✅ Minor irregularities within normal shopping range
+    **Low Confidence (0.05-0.40): "I am uncertain about this assessment"**
+    ✅ Behavior could be interpreted multiple ways
+    ✅ Limited or unclear behavioral evidence
+    ✅ Observations are ambiguous or incomplete
+    ✅ High uncertainty in the assessment
+    ✅ Poor evidence quality or conflicting indicators
+    
+    **CONFIDENCE GUIDANCE: Be appropriately confident in your assessments. Avoid overly conservative low confidence scores when you have sufficient evidence to make a reasonable determination. However, do not exaggerate confidence beyond what the evidence supports.**
 
     📹 SURVEILLANCE-REALISTIC DETECTION PRINCIPLES:
 
@@ -151,7 +158,7 @@ enhanced_response_schema = {
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Confidence level from 0.0 to 1.0"
+            "description": "Your certainty in the assessment (0.0 = very uncertain, 1.0 = extremely certain). This represents how confident you are in your prediction. High confidence means you are very sure about your assessment regardless of whether you detected theft or normal behavior."
         },
         "Evidence Tier": {
             "type": "string",
