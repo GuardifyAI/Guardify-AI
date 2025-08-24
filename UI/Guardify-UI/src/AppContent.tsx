@@ -9,6 +9,7 @@ import AnalyticsCharts from './components/Dashboard/AnalyticsCharts';
 import EventsGrid from './components/EventsGrid';
 import LoadingSpinner from './components/LoadingSpinnerProps';
 import ErrorDisplay from './components/ErrorDisplay';
+import Settings from './components/Settings';
 
 export default function AppContent() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -129,6 +130,10 @@ export default function AppContent() {
             showCameraFilter={true}
             title="All Security Events"
           />
+        )}
+
+        {activeTab === 'settings' && !selectedShop && (
+          <Settings />
         )}
 
         {selectedShop && ['statistics', 'events', 'cameras'].includes(activeTab) && (

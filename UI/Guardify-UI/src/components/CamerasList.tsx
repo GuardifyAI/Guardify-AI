@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Camera, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { cameraService } from '../services/cameras';
 import { mapApiCameras } from '../utils/mappers';
 import type { Camera as CameraType } from '../types/ui';
@@ -31,6 +32,7 @@ export default function CamerasList({ shopId, shopName }: CamerasListProps) {
   const [operationInProgress, setOperationInProgress] = useState<string | null>(null);
   const [showAddCameraModal, setShowAddCameraModal] = useState(false);
   const { token } = useAuth();
+  const { recordingSettings } = useSettings();
 
   // Fetch cameras for the shop
   const fetchCameras = async () => {
@@ -108,7 +110,14 @@ export default function CamerasList({ shopId, shopName }: CamerasListProps) {
 
     setOperationInProgress(cameraName);
     try {
-      const response = await cameraService.startRecording(shopId, cameraName, 30, token);
+      const response = await cameraService.startRecording(
+        shopId, 
+        cameraName, 
+        recordingSettings.duration,
+        recordingSettings.detectionThreshold,
+        recordingSettings.analysisIterations,
+        token
+      );
       
       if (response.result && !response.errorMessage) {
         // Refresh status after starting
