@@ -49,7 +49,7 @@ class ApiHandler:
         """
         self.app = app
         
-        # Configure Flask-Caching first
+        # Configure Flask-Caching
         self.cache = Cache(app, config={
             'CACHE_TYPE': 'simple',  # In-memory cache
             'CACHE_DEFAULT_TIMEOUT': 600  # 10 minutes default TTL
