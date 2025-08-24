@@ -36,12 +36,21 @@ class CameraService {
   /**
    * Start recording for a camera in a shop
    */
-  async startRecording(shopId: string, cameraName: string, duration: number = 30, token: string): Promise<ApiResponse<string>> {
+  async startRecording(
+    shopId: string, 
+    cameraName: string, 
+    duration: number = 30, 
+    detectionThreshold: number = 0.8,
+    analysisIterations: number = 1,
+    token: string
+  ): Promise<ApiResponse<string>> {
     return apiService.makeRequest<string>(`/shops/${shopId}/recording/start`, {
       method: 'POST',
       body: JSON.stringify({
         camera_name: cameraName,
-        duration: duration
+        duration: duration,
+        detection_threshold: detectionThreshold,
+        analysis_iterations: analysisIterations
       })
     }, token);
   }

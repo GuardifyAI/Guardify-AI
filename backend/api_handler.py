@@ -48,18 +48,20 @@ class ApiHandler:
             app (Flask): The Flask application instance to configure routes for
         """
         self.app = app
-        self.user_service = UserService()
-        self.stats_service = StatsService()
-        self.shops_service = ShopsService()
-        self.events_service = EventsService()
-        self.agentic_service = AgenticService(self.shops_service)
-        self.recording_service = RecordingService(self.shops_service, self.agentic_service)
-
+        
         # Configure Flask-Caching
         self.cache = Cache(app, config={
             'CACHE_TYPE': 'simple',  # In-memory cache
             'CACHE_DEFAULT_TIMEOUT': 600  # 10 minutes default TTL
         })
+        
+        # Initialize services with cache
+        self.user_service = UserService()
+        self.stats_service = StatsService()
+        self.shops_service = ShopsService(cache=self.cache)
+        self.events_service = EventsService()
+        self.agentic_service = AgenticService(self.shops_service)
+        self.recording_service = RecordingService(self.shops_service, self.agentic_service)
 
         self.setup_routes()  # Ensure routes are set up during initialization
 

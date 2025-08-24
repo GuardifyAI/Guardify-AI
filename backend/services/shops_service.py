@@ -19,6 +19,10 @@ from typing import List
 
 class ShopsService:
 
+    def __init__(self, cache=None):
+        """Initialize the shops service with optional cache for invalidation."""
+        self.cache = cache
+
     def verify_shop_exists(self, shop_id):
         """
         Verify that a shop exists in the database.
@@ -235,6 +239,11 @@ class ShopsService:
 
             # Convert to DTO using the refreshed entity
             result_dto = refreshed_event.to_dto()
+            
+            # Invalidate events cache when a new event is created
+            if self.cache:
+                self.cache.clear()
+            
             return result_dto
 
         except Exception as e:

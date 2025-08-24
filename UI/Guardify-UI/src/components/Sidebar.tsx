@@ -160,7 +160,17 @@ export default function Sidebar({ shops, selectedShop, activeTab, setActiveTab, 
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-gray-700 space-y-2">
-        <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-300 hover:bg-gray-800 hover:text-white">
+        <button 
+          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+            activeTab === 'settings' 
+              ? 'bg-primary-500 text-white shadow-medium' 
+              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+          }`}
+          onClick={() => {
+            setSelectedShop(null);
+            setActiveTab('settings');
+          }}
+        >
           <Settings className="w-5 h-5" />
           <span className="font-medium">Settings</span>
         </button>

@@ -4,13 +4,15 @@ import AppContent from './AppContent';
 import EventPage from './pages/EventPage';
 import { EventsProvider } from './context/EventsContext';
 import { AuthProvider } from './context/AuthContext';
+import { SettingsProvider } from './context/SettingsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
     <AuthProvider>
-      <EventsProvider>
-        <BrowserRouter>
+      <SettingsProvider>
+        <EventsProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<LoginPage />} />
@@ -34,6 +36,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </EventsProvider>
+    </SettingsProvider>
     </AuthProvider>
   );
 }
