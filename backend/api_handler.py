@@ -421,7 +421,7 @@ class ApiHandler:
                     "camera_name": str,           - Name of the camera to record from (required)
                     "duration": int,              - Duration in seconds (optional, defaults to 30)
                     "detection_threshold": float, - Threshold for shoplifting detection (optional, defaults to 0.8)
-                    "iterations": int             - Number of analysis iterations (optional, defaults to 1)
+                    "analysis_iterations": int    - Number of analysis iterations (optional, defaults to 1)
                 }
 
             Returns:
