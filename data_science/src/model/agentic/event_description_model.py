@@ -53,7 +53,7 @@ class EventDescriptionModel(GenerativeModel):
     }
 
     def __init__(self,
-                 model_name: str = os.getenv("DEFAULT_MODEL_ID"),
+                 model_name: str = os.getenv("EVENT_DESCRIPTION_MODEL_ID"),
                  *,
                  generation_config: Optional[GenerationConfigType] = None,
                  safety_settings: Optional[SafetySettingsType] = None,
