@@ -418,25 +418,29 @@ class ApiHandler:
 
             Expected JSON payload:
                 {
-                    "camera_name": str,  - Name of the camera to record from (required)
-                    "duration": int      - Duration in seconds (optional, defaults to 30)
+                    "camera_name": str,           - Name of the camera to record from (required)
+                    "duration": int,              - Duration in seconds (optional, defaults to 30)
+                    "detection_threshold": float, - Threshold for shoplifting detection (optional, defaults to 0.8)
+                    "analysis_iterations": int    - Number of analysis iterations (optional, defaults to 1)
                 }
 
             Returns:
                 JSON response with immediate confirmation:
                     - recording_started: bool - True if recording started successfully
                     - shop_id: str - The shop ID
-                    - camera_id: str - The camera ID  
+                    - camera_id: str - The camera ID
                     - camera_name: str - Name of the camera
                     - message: str - Status message
-                Note: Videos will be analyzed automatically when uploaded. Analysis results 
+                Note: Videos will be analyzed automatically when uploaded. Analysis results
                       can be retrieved via separate endpoints or real-time notifications.
             """
             data = request.get_json(silent=True) or {}
 
             start_recording_req_body = StartRecordingRequestBody(
                 camera_name=data.get("camera_name"),
-                duration=data.get("duration", 30)
+                duration=data.get("duration", 30),
+                detection_threshold=data.get("detection_threshold", 0.8),
+                analysis_iterations=data.get("analysis_iterations", 1)
             )
 
             # Start the recording and get immediate response
