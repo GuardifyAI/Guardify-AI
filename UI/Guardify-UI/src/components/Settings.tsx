@@ -149,7 +149,7 @@ export default function Settings() {
             <input
               type="range"
               min="1"
-              max="5"
+              max="3"
               step="1"
               value={localSettings.analysisIterations}
               onChange={(e) => handleChange('analysisIterations', parseInt(e.target.value))}
@@ -159,7 +159,7 @@ export default function Settings() {
               <input
                 type="number"
                 min="1"
-                max="5"
+                max="3"
                 value={localSettings.analysisIterations}
                 onChange={(e) => handleChange('analysisIterations', parseInt(e.target.value))}
                 className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -169,7 +169,7 @@ export default function Settings() {
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>1 (Fast)</span>
-            <span>5 (Thorough)</span>
+            <span>3 (Thorough)</span>
           </div>
         </div>
 
