@@ -2,6 +2,40 @@ import { useState } from 'react';
 import { Settings as SettingsIcon, RotateCcw, Save, Camera, Brain, Clock } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
+// Settings configuration
+const SETTINGS_CONFIG = {
+  duration: {
+    min: 10,
+    max: 300,
+    step: 10,
+    unit: 'sec',
+    icon: Clock,
+    title: 'Recording Duration',
+    description: 'Default duration for video recordings (seconds)',
+    rangeLabels: ['10s', '5 minutes']
+  },
+  detectionThreshold: {
+    min: 0.1,
+    max: 1.0,
+    step: 0.05,
+    unit: '',
+    icon: Camera,
+    title: 'Detection Threshold',
+    description: 'Sensitivity for shoplifting detection (0.1 = very sensitive, 1.0 = very strict)',
+    rangeLabels: ['0.1 (Sensitive)', '1.0 (Strict)']
+  },
+  analysisIterations: {
+    min: 1,
+    max: 3,
+    step: 1,
+    unit: 'passes',
+    icon: Brain,
+    title: 'Analysis Iterations',
+    description: 'Number of AI analysis passes (more iterations = higher accuracy, slower processing)',
+    rangeLabels: ['1 (Fast)', '3 (Thorough)']
+  }
+} as const;
+
 export default function Settings() {
   const { recordingSettings, updateRecordingSettings, resetToDefaults } = useSettings();
   const [localSettings, setLocalSettings] = useState(recordingSettings);
@@ -27,6 +61,57 @@ export default function Settings() {
   const handleCancel = () => {
     setLocalSettings(recordingSettings);
     setHasChanges(false);
+  };
+
+  // Reusable setting item component
+  const SettingItem = ({ 
+    settingKey, 
+    config 
+  }: { 
+    settingKey: keyof typeof SETTINGS_CONFIG; 
+    config: typeof SETTINGS_CONFIG[keyof typeof SETTINGS_CONFIG] 
+  }) => {
+    const IconComponent = config.icon;
+    const value = localSettings[settingKey];
+    
+    return (
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="flex items-center space-x-3 mb-3">
+          <IconComponent className="w-5 h-5 text-gray-600" />
+          <div>
+            <h3 className="font-medium text-gray-900">{config.title}</h3>
+            <p className="text-sm text-gray-600">{config.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <input
+            type="range"
+            min={config.min}
+            max={config.max}
+            step={config.step}
+            value={value}
+            onChange={(e) => handleChange(settingKey, parseFloat(e.target.value))}
+            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider accent-primary-500"
+          />
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              min={config.min}
+              max={config.max}
+              step={config.step}
+              value={value}
+              onChange={(e) => handleChange(settingKey, parseFloat(e.target.value))}
+              className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+            {config.unit && <span className="text-sm text-gray-600">{config.unit}</span>}
+          </div>
+        </div>
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>{config.rangeLabels[0]}</span>
+          <span>{config.rangeLabels[1]}</span>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -62,133 +147,28 @@ export default function Settings() {
       </div>
 
       <div className="space-y-6">
-        {/* Recording Duration */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center space-x-3 mb-3">
-            <Clock className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Recording Duration</h3>
-              <p className="text-sm text-gray-600">Default duration for video recordings (seconds)</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <input
-              type="range"
-              min="10"
-              max="300"
-              step="10"
-              value={localSettings.duration}
-              onChange={(e) => handleChange('duration', parseInt(e.target.value))}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider accent-primary-500"
-            />
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="10"
-                max="300"
-                value={localSettings.duration}
-                onChange={(e) => handleChange('duration', parseInt(e.target.value))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-              <span className="text-sm text-gray-600">sec</span>
-            </div>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>10s</span>
-            <span>5 minutes</span>
-          </div>
-        </div>
-
-        {/* Detection Threshold */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center space-x-3 mb-3">
-            <Camera className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Detection Threshold</h3>
-              <p className="text-sm text-gray-600">Sensitivity for shoplifting detection (0.1 = very sensitive, 1.0 = very strict)</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.05"
-              value={localSettings.detectionThreshold}
-              onChange={(e) => handleChange('detectionThreshold', parseFloat(e.target.value))}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider accent-primary-500"
-            />
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="0.1"
-                max="1.0"
-                step="0.05"
-                value={localSettings.detectionThreshold}
-                onChange={(e) => handleChange('detectionThreshold', parseFloat(e.target.value))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0.1 (Sensitive)</span>
-            <span>1.0 (Strict)</span>
-          </div>
-        </div>
-
-        {/* Analysis Iterations */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center space-x-3 mb-3">
-            <Brain className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Analysis Iterations</h3>
-              <p className="text-sm text-gray-600">Number of AI analysis passes (more iterations = higher accuracy, slower processing)</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <input
-              type="range"
-              min="1"
-              max="3"
-              step="1"
-              value={localSettings.analysisIterations}
-              onChange={(e) => handleChange('analysisIterations', parseInt(e.target.value))}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider accent-primary-500"
-            />
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="1"
-                max="3"
-                value={localSettings.analysisIterations}
-                onChange={(e) => handleChange('analysisIterations', parseInt(e.target.value))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-              <span className="text-sm text-gray-600">passes</span>
-            </div>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>1 (Fast)</span>
-            <span>3 (Thorough)</span>
-          </div>
-        </div>
+        {/* Dynamically render all settings */}
+        {Object.entries(SETTINGS_CONFIG).map(([key, config]) => (
+          <SettingItem 
+            key={key}
+            settingKey={key as keyof typeof SETTINGS_CONFIG}
+            config={config}
+          />
+        ))}
 
         {/* Current Settings Summary */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">Current Settings Summary</h4>
           <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-blue-700 font-medium">Duration:</span>
-              <span className="text-blue-800 ml-1">{recordingSettings.duration}s</span>
-            </div>
-            <div>
-              <span className="text-blue-700 font-medium">Threshold:</span>
-              <span className="text-blue-800 ml-1">{recordingSettings.detectionThreshold}</span>
-            </div>
-            <div>
-              <span className="text-blue-700 font-medium">Iterations:</span>
-              <span className="text-blue-800 ml-1">{recordingSettings.analysisIterations}</span>
-            </div>
+            {Object.entries(SETTINGS_CONFIG).map(([key, config]) => (
+              <div key={key}>
+                <span className="text-blue-700 font-medium">{config.title.split(' ')[0]}:</span>
+                <span className="text-blue-800 ml-1">
+                  {recordingSettings[key as keyof typeof recordingSettings]}
+                  {config.unit && config.unit}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
