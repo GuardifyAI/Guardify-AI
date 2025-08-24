@@ -440,7 +440,7 @@ class ApiHandler:
                 camera_name=data.get("camera_name"),
                 duration=data.get("duration", 30),
                 detection_threshold=data.get("detection_threshold", 0.8),
-                iterations=data.get("iterations", 1)
+                analysis_iterations=data.get("analysis_iterations", 1)
             )
 
             # Start the recording and get immediate response

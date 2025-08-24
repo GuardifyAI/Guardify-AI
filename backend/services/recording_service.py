@@ -112,7 +112,7 @@ class RecordingService:
         camera_name = req_body.camera_name
         duration = req_body.duration
         detection_threshold = req_body.detection_threshold
-        iterations = req_body.iterations
+        iterations = req_body.analysis_iterations
 
         process_key = self._get_process_key(shop_id, camera_name)
 

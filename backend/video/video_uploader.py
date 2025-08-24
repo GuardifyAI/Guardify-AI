@@ -213,7 +213,7 @@ class VideoUploader:
                         video_url, 
                         upload_task.shop_id,
                         upload_task.detection_threshold,
-                        upload_task.iterations,
+                        upload_task.analysis_iterations,
                     )
                     self.logger.info(f"Celery analysis task dispatched successfully for {upload_task.camera_name}")
                     
