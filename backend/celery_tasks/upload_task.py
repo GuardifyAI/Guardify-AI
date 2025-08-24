@@ -16,12 +16,12 @@ class UploadTask:
     camera_name: str
     shop_id: Optional[str] = None
     detection_threshold: float = 0.8
-    iterations: int = 1
+    analysis_iterations: int = 1
 
     def __str__(self) -> str:
         """String representation for logging."""
         shop_info = f" (shop: {self.shop_id})" if self.shop_id else ""
-        analysis_info = f" [threshold:{self.detection_threshold}, iterations:{self.iterations}]"
+        analysis_info = f" [threshold:{self.detection_threshold}, iterations:{self.analysis_iterations}]"
         return f"UploadTask[{self.camera_name} -> {self.bucket_name}{shop_info}{analysis_info}]"
 
     def validate(self) -> None:
@@ -45,5 +45,5 @@ class UploadTask:
         if not (0.0 <= self.detection_threshold <= 1.0):
             raise ValueError("detection_threshold must be between 0.0 and 1.0")
 
-        if self.iterations < 1:
-            raise ValueError("iterations must be at least 1")
+        if self.analysis_iterations < 1:
+            raise ValueError("analysis_iterations must be at least 1")

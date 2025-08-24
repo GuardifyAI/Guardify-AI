@@ -154,7 +154,7 @@ class RecordingService:
                     '--duration', str(duration),
                     '--shop-id', shop_id,
                     '--detection-threshold', str(detection_threshold),
-                    '--iterations', str(iterations)
+                    '--analysis-iterations', str(iterations)
                 ]
 
                 # Set up environment with correct Python path
