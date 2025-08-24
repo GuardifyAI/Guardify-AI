@@ -218,11 +218,11 @@ class AnalysisModel(GenerativeModel):
 
         # Check for strong theft evidence that should be protected from override
         strong_theft_evidence = self._is_there_strong_theft_evidence(detailed_analyses)
-        reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(
+        reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_near_avg_confidence(
             confidences, detailed_analyses)
 
         # Determine the final decision based on detection rate, confidence, and evidence strength.
-        final_confidence, final_detection, reasoning_summary = self._get_final_analysis_detection_confidence_and_reasoning_summary_using_thresholds_and_strong_evidence(
+        final_confidence, final_detection, reasoning_summary = self._get_detection_confidence_summary(
             detection_rate, avg_confidence, strong_theft_evidence, shoplifting_detection_threshold
         )
 
@@ -250,9 +250,9 @@ class AnalysisModel(GenerativeModel):
         else:
             return False
 
-    def _find_reasoning_of_iteration_with_confidence_closest_to_the_average_confidence(self,
-                                                                                       confidences: List[float],
-                                                                                       detailed_analyses: List[Dict] = None) -> str:
+    def _find_reasoning_near_avg_confidence(self,
+                                            confidences: List[float],
+                                            detailed_analyses: List[Dict] = None) -> str:
         """
         Helper function to find the iteration with confidence closest to the average confidence
         and return its decision reasoning.
@@ -286,11 +286,11 @@ class AnalysisModel(GenerativeModel):
             ""
         )
 
-    def _get_final_analysis_detection_confidence_and_reasoning_summary_using_thresholds_and_strong_evidence(self,
-                                  detection_rate: float,
-                                  avg_confidence: float,
-                                  strong_theft_evidence: bool,
-                                  shoplifting_detection_threshold: float) -> Tuple[float, bool, str]:
+    def _get_detection_confidence_summary(self,
+                                          detection_rate: float,
+                                          avg_confidence: float,
+                                          strong_theft_evidence: bool,
+                                          shoplifting_detection_threshold: float) -> Tuple[float, bool, str]:
         """
         Determine the final decision based on detection rate, confidence, and evidence strength.
 
