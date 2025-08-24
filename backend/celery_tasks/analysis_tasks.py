@@ -14,7 +14,7 @@ from backend.services.events_service import EventsService
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.db import db
-from data_science.src.utils.summary_generator import generate_event_description_summary
+from backend.services.event_description_service import EventDescriptionService
 from utils.logger_utils import create_logger
 
 # Create task-specific logger
@@ -105,13 +105,13 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     # Create Event using ShopsService
     logger.info(f"[CELERY-TASK:{task_id}] Creating event record...")
     
-    # Generate summarized description for Event from iteration results
-    detailed_description = generate_event_description_summary(
-        analysis_result.iteration_results or [],
+    # Generate AI-powered event description from decision reasoning
+    event_description_service = EventDescriptionService()
+    detailed_description = event_description_service.generate_event_description(
         analysis_result.decision_reasoning or 'No reasoning provided'
     )
     
-    logger.info(f"[CELERY-TASK:{task_id}] Generated summarized description for event: {detailed_description[:100]}...")
+    logger.info(f"[CELERY-TASK:{task_id}] Generated AI event description: {detailed_description}")
     
     event_request = EventRequestBody(
         camera_id=camera.camera_id,  # Use the actual camera_id from the camera record
