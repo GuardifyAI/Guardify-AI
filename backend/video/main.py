@@ -94,6 +94,20 @@ Examples:
         help="Shop ID for context when triggering analysis callbacks"
     )
     
+    parser.add_argument(
+        "--detection-threshold",
+        type=float,
+        default=0.8,
+        help="Detection confidence threshold for AI analysis (default: 0.8)"
+    )
+    
+    parser.add_argument(
+        "--analysis-iterations",
+        type=int,
+        default=1,
+        help="Number of analysis iterations (default: 1)"
+    )
+    
     return parser.parse_args()
 
 
@@ -136,7 +150,12 @@ def main():
 
     # Initialize video components
     video_uploader = VideoUploader(google_client)
-    video_recorder = VideoRecorder(video_uploader, shop_id=args.shop_id)
+    video_recorder = VideoRecorder(
+        video_uploader, 
+        shop_id=args.shop_id,
+        detection_threshold=args.detection_threshold,
+        analysis_iterations=args.analysis_iterations
+    )
     logger.info("Video components initialized successfully")
 
     # Start the upload worker
