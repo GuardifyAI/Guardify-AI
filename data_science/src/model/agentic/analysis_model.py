@@ -15,6 +15,7 @@ import json
 
 from data_science.src.model.agentic.prompt_and_scheme.analysis_prompt import (default_system_instruction,
                                                                               enhanced_prompt, enhanced_response_schema)
+from data_science.src.model.agentic.prompt_and_scheme.computer_vision_prompt import cv_observations_prompt
 from utils import load_env_variables
 
 load_env_variables()
@@ -94,9 +95,7 @@ class AnalysisModel(GenerativeModel):
         formatted_observations = self._format_structured_observations(structured_observations)
 
         # Use enhanced analysis prompt_and_scheme with formatted observations
-        updated_enhanced_prompt = (enhanced_prompt + "\n\nSTRUCTURED SURVEILLANCE OBSERVATIONS:\n"
-                                   + formatted_observations)
-
+        updated_enhanced_prompt = (enhanced_prompt + "\n\n" + cv_observations_prompt + "\n\n" + formatted_observations)
         contents = [video_file, updated_enhanced_prompt]
 
         # Generate analysis
@@ -194,16 +193,20 @@ class AnalysisModel(GenerativeModel):
                 "decision_reasoning": f"Response parsing error: {e}"
             }
 
-    def make_surveillance_realistic_decision(self, confidences: List[float], detections: List[bool],
-                                             detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
+    def get_final_analysis_based_on_iterations_results(self,
+                                                       confidences: List[float],
+                                                       detections: List[bool],
+                                                       shoplifting_detection_threshold: float,
+                                                       detailed_analyses: List[Dict] = None) -> Tuple[float, bool, str]:
         """
         Enhanced decision-making logic with protection for strong theft evidence.
-        
+
         Args:
             confidences (List[float]): List of confidence scores from iterations
-            detections (List[bool]): List of detection results from iterations  
+            detections (List[bool]): List of detection results from iterations
+            shoplifting_detection_threshold (float): Threshold for shoplifting detection strictness. affects both the wanted confidence and detection rate.
             detailed_analyses (List[Dict], optional): Detailed analysis results
-            
+
         Returns:
             Tuple[float, bool, str]: (final_confidence, final_detection, reasoning)
         """
@@ -211,61 +214,154 @@ class AnalysisModel(GenerativeModel):
             return 0.1, False, "No analysis results available"
 
         avg_confidence = sum(confidences) / len(confidences)
-        detection_count = sum(detections)
-        detection_rate = detection_count / len(detections)
+        detection_rate = sum(detections) / len(detections)
 
         # Check for strong theft evidence that should be protected from override
-        strong_theft_evidence = False
-        if detailed_analyses:
-            # Look for clear theft patterns in reasoning
-            theft_patterns = [
-                "classic", "grab and stuff", "concealment", "theft pattern",
-                "clear concealment", "definitive", "obvious", "pocket", "bag", "hidden"
-            ]
+        strong_theft_evidence = self._is_there_strong_theft_evidence(detailed_analyses)
+        reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_near_avg_confidence(
+            confidences, detailed_analyses)
 
-            for analysis in detailed_analyses:
-                reasoning = analysis.get("decision_reasoning", "").lower()
-                concealment_actions = analysis.get("concealment_actions", [])
-                evidence_tier = analysis.get("evidence_tier", "")
+        # Determine the final decision based on detection rate, confidence, and evidence strength.
+        final_confidence, final_detection, reasoning_summary = self._get_detection_confidence_summary(
+            detection_rate, avg_confidence, strong_theft_evidence, shoplifting_detection_threshold
+        )
 
-                # Strong evidence indicators
-                if (any(pattern in reasoning for pattern in theft_patterns) or
-                        concealment_actions or
-                        evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]):
-                    strong_theft_evidence = True
-                    break
+        final_reasoning = reasoning_of_iteration_with_confidence_closest_to_the_average_confidence + "\nFinal Decision Reasoning Summary: " + reasoning_summary
+        return final_confidence, final_detection, final_reasoning
 
-        # TODO: Change the reasoning to be just the decision_reasoning that exists and genreated already by the analysis model.
-        # TODO: take the decision_reasoning of the iteration that is closest to the final_confidence. Or make a final reasoning which is a combination of all the decision_reasoning.
-        # Enhanced decision logic
-        if detection_rate >= 0.8 and avg_confidence >= 0.6:
+    def _is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
+        """
+        Check if there is strong theft evidence in the detailed analyses.
+
+        Args:
+            detailed_analyses (List[Dict], optional): Detailed analysis results.
+        Returns:
+            bool: True if strong theft evidence is found, False otherwise
+        """
+        if not detailed_analyses:
+            return False
+
+        for analysis in detailed_analyses:
+            concealment_actions = analysis.get("concealment_actions", [])
+            evidence_tier = analysis.get("evidence_tier", "")
+            # Strong evidence indicators
+            if concealment_actions or evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]:
+                return True
+        else:
+            return False
+
+    def _find_reasoning_near_avg_confidence(self,
+                                            confidences: List[float],
+                                            detailed_analyses: List[Dict] = None) -> str:
+        """
+        Helper function to find the iteration with confidence closest to the average confidence
+        and return its decision reasoning.
+
+        Args:
+            confidences (List[float]): List of confidence scores from iterations
+            detailed_analyses (List[Dict], optional): Detailed analysis results
+
+        Returns:
+            str: Decision reasoning from the closest iteration, or empty string if not found
+        """
+        if not confidences or not detailed_analyses:
+            return ""
+
+            # Use only indices present in both lists
+        n = min(len(confidences), len(detailed_analyses))
+        if n == 0:
+            return ""
+
+        avg = sum(confidences) / len(confidences)
+
+        closest_idx = min(range(n), key=lambda i: abs(confidences[i] - avg))
+        reasoning = detailed_analyses[closest_idx].get("decision_reasoning", "")
+
+        if reasoning:
+            return reasoning
+
+        # Fallback: first non-empty reasoning anywhere
+        return next(
+            (a.get("decision_reasoning") for a in detailed_analyses if a.get("decision_reasoning")),
+            ""
+        )
+
+    def _get_detection_confidence_summary(self,
+                                          detection_rate: float,
+                                          avg_confidence: float,
+                                          strong_theft_evidence: bool,
+                                          shoplifting_detection_threshold: float) -> Tuple[float, bool, str]:
+        """
+        Determine the final decision based on detection rate, confidence, and evidence strength.
+
+        Args:
+            detection_rate (float): Ratio of detections to total iterations
+            avg_confidence (float): Average confidence across all iterations
+            strong_theft_evidence (bool): Whether strong theft evidence was detected
+            shoplifting_detection_threshold (float): Threshold for shoplifting detection
+
+        Returns:
+            Tuple[float, bool, str]: (final_confidence, final_detection, reasoning_summary)
+        """
+        high_detection_likelihood_threshold = shoplifting_detection_threshold
+        moderate_detection_likelihood_threshold = 0.8 * shoplifting_detection_threshold
+        low_detection_likelihood_threshold = 0.5 * shoplifting_detection_threshold
+        high_confidence_threshold = shoplifting_detection_threshold
+        moderate_confidence_threshold = 0.8 * shoplifting_detection_threshold
+
+        # Enhanced decision logic addressing high confidence scenarios
+        if detection_rate >= high_detection_likelihood_threshold and avg_confidence >= high_confidence_threshold:
             # High consistency and confidence - likely theft
             final_confidence = min(avg_confidence, 0.9)
             final_detection = True
-            reasoning = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
+            reasoning_summary = f"High detection consistency ({detection_rate:.1%}) with strong confidence ({avg_confidence:.3f})"
 
-        elif detection_rate >= 0.6 and avg_confidence >= 0.5:
+        elif detection_rate >= moderate_detection_likelihood_threshold and avg_confidence >= moderate_confidence_threshold:
             # Moderate consistency - likely theft but with some uncertainty
             final_confidence = avg_confidence * 0.9  # Slight reduction for uncertainty
             final_detection = True
-            reasoning = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
+            reasoning_summary = f"Moderate detection consistency ({detection_rate:.1%}) with adequate confidence ({avg_confidence:.3f})"
 
-        elif strong_theft_evidence and avg_confidence >= 0.4:
+        elif strong_theft_evidence and avg_confidence >= moderate_confidence_threshold:
             # Strong theft evidence should not be overridden by low consistency
             final_confidence = avg_confidence
-            final_detection = avg_confidence >= 0.5
-            reasoning = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
+            final_detection = True
+            reasoning_summary = f"Strong theft evidence detected, maintaining original assessment (confidence: {avg_confidence:.3f})"
 
-        elif detection_rate <= 0.3 and avg_confidence <= 0.4:
-            # Low detection rate and confidence - likely normal behavior
+        elif detection_rate <= low_detection_likelihood_threshold and avg_confidence >= high_confidence_threshold:
+            # Low detection rate but high confidence - likely normal behavior with high certainty
+            final_confidence = avg_confidence
+            final_detection = False
+            reasoning_summary = f"Low detection rate ({detection_rate:.1%}) but high confidence ({avg_confidence:.3f}) - normal behavior with high certainty"
+
+        elif detection_rate <= low_detection_likelihood_threshold and avg_confidence >= moderate_confidence_threshold:
+            # Low detection rate with moderate confidence - likely normal behavior
+            final_confidence = avg_confidence
+            final_detection = False
+            reasoning_summary = f"Low detection rate ({detection_rate:.1%}) with moderate confidence ({avg_confidence:.3f}) - normal behavior"
+
+        elif detection_rate <= low_detection_likelihood_threshold and avg_confidence < moderate_confidence_threshold:
+            # Low detection rate and low confidence - normal behavior but uncertain
             final_confidence = min(avg_confidence, 0.3)
             final_detection = False
-            reasoning = f"Low detection rate ({detection_rate:.1%}) and confidence ({avg_confidence:.3f}) - normal behavior"
+            reasoning_summary = f"Low detection rate ({detection_rate:.1%}) and low confidence ({avg_confidence:.3f}) - normal behavior but uncertain"
+
+        elif detection_rate >= moderate_detection_likelihood_threshold and avg_confidence < moderate_confidence_threshold:
+            # Moderate detection rate but low confidence - mixed signals with theft suspicion
+            final_confidence = avg_confidence * 0.8
+            final_detection = False
+            reasoning_summary = f"Moderate detection rate ({detection_rate:.1%}) but low confidence ({avg_confidence:.3f}) - mixed signals with theft suspicion"
+
+        elif moderate_detection_likelihood_threshold > detection_rate > low_detection_likelihood_threshold and avg_confidence >= moderate_confidence_threshold:
+            # Medium detection rate with moderate confidence - unclear but leaning toward theft
+            final_confidence = avg_confidence * 0.85
+            final_detection = avg_confidence >= shoplifting_detection_threshold
+            reasoning_summary = f"Medium detection rate ({detection_rate:.1%}) with moderate confidence ({avg_confidence:.3f}) - unclear but leaning toward theft"
 
         else:
             # Mixed signals - use average confidence with conservative approach
             final_confidence = avg_confidence * 0.8  # Conservative adjustment
-            final_detection = final_confidence >= 0.5
-            reasoning = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
+            final_detection = False
+            reasoning_summary = f"Mixed signals - detection rate: {detection_rate:.1%}, confidence: {avg_confidence:.3f}, adjusted to {final_confidence:.3f}"
 
-        return final_confidence, final_detection, reasoning
+        return final_confidence, final_detection, reasoning_summary

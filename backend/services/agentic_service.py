@@ -53,14 +53,14 @@ class AgenticService:
             
             # Create agentic analyzer
             shoplifting_analyzer = create_agentic_analyzer(
-                detection_threshold=detection_threshold,
+                detection_threshold=0.8,  # Default threshold
                 logger=self.logger
             )
             
             # Analyze the video
             analysis_result = shoplifting_analyzer.analyze_video_from_bucket(
                 video_url,
-                iterations=iterations,
+                iterations=1,  # Default iterations
                 pickle_analysis=False  # Don't save pickle for API calls
             )
             

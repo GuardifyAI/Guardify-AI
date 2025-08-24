@@ -373,8 +373,11 @@ class ShopliftingAnalyzer:
 
         # Enhanced final decision using AnalysisModel's surveillance-realistic logic
         self.logger.info("=== MAKING FINAL DECISION ===")
-        final_confidence, final_detection, decision_reasoning = self.analysis_model.make_surveillance_realistic_decision(
-            all_confidences, all_detections, analysis_details
+        final_confidence, final_detection, decision_reasoning = self.analysis_model.get_final_analysis_based_on_iterations_results(
+            confidences=all_confidences,
+            detections=all_detections,
+            shoplifting_detection_threshold=self.shoplifting_detection_threshold,
+            detailed_analyses=analysis_details
         )
 
         self.logger.info(f"Final Decision:")
@@ -382,18 +385,12 @@ class ShopliftingAnalyzer:
         self.logger.info(f"  Final Confidence: {final_confidence:.3f}")
         self.logger.info(f"  Decision Reasoning: {decision_reasoning}")
 
-        # Check against threshold
-        threshold_decision = final_confidence >= self.shoplifting_detection_threshold
-        if threshold_decision != final_detection:
-            self.logger.warning(
-                f"Threshold adjustment: {final_detection} -> {threshold_decision} (threshold: {self.shoplifting_detection_threshold})")
-
         # Compile comprehensive results
         results = {
             "video_identifier": video_identifier,
             "analysis_approach": AGENTIC_MODEL,
             "iterations": iterations,
-            "final_detection": threshold_decision,
+            "final_detection": final_detection,
             "final_confidence": final_confidence,
             "decision_reasoning": decision_reasoning,
             "confidence_levels": all_confidences,
@@ -412,7 +409,6 @@ class ShopliftingAnalyzer:
         self.logger.info(f"Iterations: {iterations}")
         self.logger.info(f"Confidence Range: {min(all_confidences):.3f} - {max(all_confidences):.3f}")
         self.logger.info(f"Detection Consistency: {sum(all_detections)}/{len(all_detections)}")
-        self.logger.info(f"Final Result: detected={threshold_decision}, confidence={final_confidence:.3f}")
 
         return results
 
