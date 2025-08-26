@@ -9,12 +9,13 @@ import AnalyticsCharts from './components/Dashboard/AnalyticsCharts';
 import EventsGrid from './components/EventsGrid';
 import LoadingSpinner from './components/LoadingSpinnerProps';
 import ErrorDisplay from './components/ErrorDisplay';
+import Settings from './components/Settings';
 
 export default function AppContent() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
   const events = useEvents();
-  const { loading: eventsLoading, error: eventsError, selectedShop, setSelectedShop } = useEventsContext();
+  const { loading: eventsLoading, error: eventsError, selectedShop, setSelectedShop, refetch } = useEventsContext();
   
   // Use the shops API
   const { shops: fetchedShops, loading: shopsLoading, error: shopsError } = useShops();
@@ -22,7 +23,21 @@ export default function AppContent() {
   // Use shops directly from useShops
   const shops: Shop[] = fetchedShops;
   
-  const sortedEvents = [...events].sort((a, b) => b.date.localeCompare(a.date));
+  // Custom function to handle tab switching with events refresh
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    // Only refresh events when switching TO the events tab to get latest data
+    if (newTab === 'events') {
+      refetch();
+    }
+  };
+  
+  // Sort events by date in descending order (newest first)
+  const sortedEvents = [...events].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateB.getTime() - dateA.getTime();
+  });
   
   // Show loading state
   if (shopsLoading || eventsLoading) {
@@ -46,7 +61,7 @@ export default function AppContent() {
           shops={[]}
           selectedShop={selectedShop}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
           setSelectedShop={setSelectedShop}
         />
         <main className="lg:ml-72 p-4 lg:p-8 animate-fade-in flex flex-col items-center justify-center">
@@ -65,7 +80,7 @@ export default function AppContent() {
         shops={shops}
         selectedShop={selectedShop}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         setSelectedShop={setSelectedShop} 
       />
 
@@ -102,7 +117,7 @@ export default function AppContent() {
               showViewAllButton={true}
               onViewAll={() => {
                 setSelectedShop(null);
-                setActiveTab('events');
+                handleTabChange('events');
               }}
               title="Recent Security Events"
             />
@@ -117,11 +132,15 @@ export default function AppContent() {
           />
         )}
 
+        {activeTab === 'settings' && !selectedShop && (
+          <Settings />
+        )}
+
         {selectedShop && ['statistics', 'events', 'cameras'].includes(activeTab) && (
           <div className="animate-slide-in">
             <ShopPage
               shop={shops.find(s => s.id === selectedShop)!}
-              events={events}
+              events={sortedEvents}
               tab={activeTab as 'statistics' | 'events' | 'cameras'}
             />
           </div>
