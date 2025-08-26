@@ -217,7 +217,7 @@ class AnalysisModel(GenerativeModel):
         detection_rate = sum(detections) / len(detections)
 
         # Check for strong theft evidence that should be protected from override
-        strong_theft_evidence = self._is_there_strong_theft_evidence(detailed_analyses)
+        strong_theft_evidence = self._is_there_strong_theft_evidence(shoplifting_detection_threshold, detailed_analyses)
         reasoning_of_iteration_with_confidence_closest_to_the_average_confidence = self._find_reasoning_near_avg_confidence(
             confidences, detailed_analyses)
 
@@ -229,26 +229,37 @@ class AnalysisModel(GenerativeModel):
         final_reasoning = reasoning_of_iteration_with_confidence_closest_to_the_average_confidence + "\nFinal Decision Reasoning Summary: " + reasoning_summary
         return final_confidence, final_detection, final_reasoning
 
-    def _is_there_strong_theft_evidence(self, detailed_analyses: List[Dict] = None) -> bool:
+    def _is_there_strong_theft_evidence(self,
+                                        shoplifting_detection_threshold: float,
+                                        detailed_analyses: List[Dict] = None) -> bool:
         """
-        Check if there is strong theft evidence in the detailed analyses.
+        Check if there is strong theft evidence in the detailed analyses,
+        based on a detection threshold.
 
         Args:
             detailed_analyses (List[Dict], optional): Detailed analysis results.
+            shoplifting_detection_threshold (float):
+                Minimum ratio of analyses that must contain concealment actions
+                or strong/moderate evidence tier in order to return True.
+
         Returns:
-            bool: True if strong theft evidence is found, False otherwise
+            bool: True if strong theft evidence meets the threshold, False otherwise.
         """
         if not detailed_analyses:
             return False
+
+        total = len(detailed_analyses)
+        matches = 0
 
         for analysis in detailed_analyses:
             concealment_actions = analysis.get("concealment_actions", [])
             evidence_tier = analysis.get("evidence_tier", "")
             # Strong evidence indicators
             if concealment_actions or evidence_tier in ["TIER_1_HIGH", "TIER_2_MODERATE"]:
-                return True
-        else:
-            return False
+                matches += 1
+
+        ratio = matches / total
+        return ratio >= shoplifting_detection_threshold
 
     def _find_reasoning_near_avg_confidence(self,
                                             confidences: List[float],
