@@ -5,7 +5,6 @@ This module contains Celery tasks for processing video analysis asynchronously.
 """
 from typing import Optional, List, TypedDict
 from celery import current_task
-from dataclasses import dataclass
 
 from backend.celery_app import celery_app
 from backend.services.agentic_service import AgenticService
@@ -14,7 +13,7 @@ from backend.services.events_service import EventsService
 from backend.app.request_bodies.event_request_body import EventRequestBody
 from backend.app.request_bodies.analysis_request_body import AnalysisRequestBody
 from backend.db import db
-from data_science.src.utils.summary_generator import generate_event_description_summary
+from backend.services.event_description_service import EventDescriptionService
 from utils.logger_utils import create_logger
 
 # Create task-specific logger
@@ -40,46 +39,10 @@ class AnalysisTaskResultDict(TypedDict, total=False):
     error: Optional[str]
 
 
-@dataclass
-class AnalysisTaskResult:
-    """
-    Standardized result type for video analysis tasks.
-    
-    This dataclass provides type safety for the analysis task return values,
-    ensuring consistent structure across all analysis task responses.
-    """
-    video_url: str
-    final_confidence: float
-    final_detection: bool
-    decision_reasoning: str
-    shop_id: str
-    camera_name: str
-    task_id: str
-    iteration_results: Optional[List[dict]] = None
-    event_id: Optional[str] = None
-    
-    def to_dict(self) -> AnalysisTaskResultDict:
-        """Convert to typed dictionary for Celery task return."""
-        result: AnalysisTaskResultDict = {
-            "video_url": self.video_url,
-            "final_confidence": self.final_confidence,
-            "final_detection": self.final_detection,
-            "decision_reasoning": self.decision_reasoning,
-            "shop_id": self.shop_id,
-            "camera_name": self.camera_name,
-            "task_id": self.task_id
-        }
-        
-        if self.iteration_results is not None:
-            result["iteration_results"] = self.iteration_results
-        if self.event_id is not None:
-            result["event_id"] = self.event_id
-            
-        return result
 
 
 def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_id: str, camera_name: str,
-                            shops_service: ShopsService, task_result: AnalysisTaskResult) -> None:
+                            shops_service: ShopsService, task_result: AnalysisTaskResultDict) -> None:
     """
     Store analysis results in database using existing services.
     
@@ -90,7 +53,7 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
         shop_id (str): Shop ID for context
         camera_name (str): Name of the camera that recorded the video
         shops_service (ShopsService): Instance of shops service
-        task_result (AnalysisTaskResult): Task result object to update with event_id
+        task_result (AnalysisTaskResultDict): Task result dictionary to update with event_id
         
     Raises:
         Exception: If database storage fails
@@ -105,13 +68,13 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     # Create Event using ShopsService
     logger.info(f"[CELERY-TASK:{task_id}] Creating event record...")
     
-    # Generate summarized description for Event from iteration results
-    detailed_description = generate_event_description_summary(
-        analysis_result.iteration_results or [],
+    # Generate AI-powered event description from decision reasoning
+    event_description_service = EventDescriptionService()
+    detailed_description = event_description_service.generate_event_description(
         analysis_result.decision_reasoning or 'No reasoning provided'
     )
     
-    logger.info(f"[CELERY-TASK:{task_id}] Generated summarized description for event: {detailed_description[:100]}...")
+    logger.info(f"[CELERY-TASK:{task_id}] Generated AI event description: {detailed_description}")
     
     event_request = EventRequestBody(
         camera_id=camera.camera_id,  # Use the actual camera_id from the camera record
@@ -140,13 +103,13 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     logger.info(f"[CELERY-TASK:{task_id}] Created analysis record for event: {event_id}")
     
     # Add event_id to task result for reference
-    task_result.event_id = event_id
+    task_result["event_id"] = event_id
     
     logger.info(f"[CELERY-TASK:{task_id}] Successfully stored analysis results in database")
 
 
 def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_name: str,
-                       exc: Exception) -> AnalysisTaskResult:
+                       exc: Exception) -> AnalysisTaskResultDict:
     """
     Handle task errors and determine if retry is needed.
     
@@ -159,7 +122,7 @@ def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_
         exc (Exception): The exception that occurred
         
     Returns:
-        AnalysisTaskResult: Error result object if not retrying
+        AnalysisTaskResultDict: Error result dictionary if not retrying
         
     Raises:
         Retry: If error is retryable and max retries not exceeded
@@ -185,17 +148,17 @@ def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_
     if is_permanent:
         logger.error(f"[CELERY-TASK:{task_id}] Permanent error analyzing {video_url}: {exc}")
         # Return error result instead of retrying
-        return AnalysisTaskResult(
-            video_url=video_url,
-            final_confidence=0.0,
-            final_detection=False,
-            decision_reasoning=f"Analysis failed (permanent error): {str(exc)}",
-            shop_id=shop_id,
-            camera_name=camera_name,
-            task_id=task_id
-        )
+        return {
+            "video_url": video_url,
+            "final_confidence": 0.0,
+            "final_detection": False,
+            "decision_reasoning": f"Analysis failed (permanent error): {str(exc)}",
+            "shop_id": shop_id,
+            "camera_name": camera_name,
+            "task_id": task_id
+        }
     
-    elif is_retryable or self.request.retries < self.max_retries:
+    elif is_retryable and self.request.retries < self.max_retries:
         # Calculate exponential backoff
         countdown = min(300, (2 ** self.request.retries) * 60)  # Max 5 minutes
         
@@ -213,15 +176,15 @@ def _handle_task_error(self, task_id: str, video_url: str, shop_id: str, camera_
         logger.error(
             f"[CELERY-TASK:{task_id}] Max retries exceeded for {video_url}: {exc}"
         )
-        return AnalysisTaskResult(
-            video_url=video_url,
-            final_confidence=0.0,
-            final_detection=False,
-            decision_reasoning=f"Analysis failed (max retries exceeded): {str(exc)}",
-            shop_id=shop_id,
-            camera_name=camera_name,
-            task_id=task_id
-        )
+        return {
+            "video_url": video_url,
+            "final_confidence": 0.0,
+            "final_detection": False,
+            "decision_reasoning": f"Analysis failed (max retries exceeded): {str(exc)}",
+            "shop_id": shop_id,
+            "camera_name": camera_name,
+            "task_id": task_id
+        }
 
 
 @celery_app.task(bind=True, name='analyze_video')
@@ -273,15 +236,15 @@ def analyze_video(self,
         except Exception as shop_error:
             logger.error(f"[CELERY-TASK:{task_id}] Shop verification failed for '{shop_id}': {shop_error}")
             # Don't retry for shop verification failures - likely a permanent error
-            return AnalysisTaskResult(
-                video_url=video_url,
-                final_confidence=0.0,
-                final_detection=False,
-                decision_reasoning=f"Shop verification failed: {str(shop_error)}",
-                shop_id=shop_id,
-                camera_name=camera_name,
-                task_id=task_id
-            ).to_dict()
+            return {
+                "video_url": video_url,
+                "final_confidence": 0.0,
+                "final_detection": False,
+                "decision_reasoning": f"Shop verification failed: {str(shop_error)}",
+                "shop_id": shop_id,
+                "camera_name": camera_name,
+                "task_id": task_id
+            }
 
         # Perform video analysis with the passed parameters
         analysis_result = agentic_service.analyze_single_video(
@@ -294,16 +257,18 @@ def analyze_video(self,
         # Convert final_detection from string to boolean (agentic service returns string)
         final_detection_bool = analysis_result.final_detection.lower() == 'true'
         
-        task_result = AnalysisTaskResult(
-            video_url=analysis_result.video_url,
-            final_confidence=analysis_result.final_confidence,
-            final_detection=final_detection_bool,
-            decision_reasoning=analysis_result.decision_reasoning,
-            shop_id=shop_id,
-            camera_name=camera_name,
-            task_id=task_id,
-            iteration_results=analysis_result.iteration_results
-        )
+        task_result: AnalysisTaskResultDict = {
+            "video_url": analysis_result.video_url,
+            "final_confidence": analysis_result.final_confidence,
+            "final_detection": final_detection_bool,
+            "decision_reasoning": analysis_result.decision_reasoning,
+            "shop_id": shop_id,
+            "camera_name": camera_name,
+            "task_id": task_id
+        }
+        
+        if analysis_result.iteration_results is not None:
+            task_result["iteration_results"] = analysis_result.iteration_results
         
         logger.info(
             f"[CELERY-TASK:{task_id}] Analysis completed for {video_url}: "
@@ -325,10 +290,10 @@ def analyze_video(self,
             except Exception:
                 pass
         
-        return task_result.to_dict()
+        return task_result
         
     except Exception as exc:
-        return _handle_task_error(self, task_id, video_url, shop_id, camera_name, exc).to_dict()
+        return _handle_task_error(self, task_id, video_url, shop_id, camera_name, exc)
 
 
 class HealthCheckResult(TypedDict):
