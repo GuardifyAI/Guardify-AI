@@ -263,7 +263,6 @@
   height: 100%;
   border-radius: 6px;
   transition: width 0.3s ease;
-  background: linear-gradient(90deg, currentColor 0%, currentColor 100%);
 }
 
 .reasoning-section {
