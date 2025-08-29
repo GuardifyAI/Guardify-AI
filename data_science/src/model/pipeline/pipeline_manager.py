@@ -376,7 +376,7 @@ class PipelineManager:
             results_data.append({
                 'video_identifier': analysis['video_identifier'],
                 'video_name': name,
-                'shoplifting_determination': analysis['shoplifting_determination']
+                'final_detection': analysis['final_detection']
             })
 
         df = pd.DataFrame(results_data)
@@ -396,7 +396,7 @@ class PipelineManager:
 
         # Save to CSV
         csv_path = os.path.join(results_dir, csv_filename)
-
+        print(f"Exporting results to {csv_path}")
         # Write the main results
         df.to_csv(csv_path, index=False)
 
