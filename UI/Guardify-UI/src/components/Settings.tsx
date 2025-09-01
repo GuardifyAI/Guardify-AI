@@ -115,7 +115,11 @@ export default function Settings() {
   };
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-soft border border-gray-100">
+    <div
+      className="bg-white rounded-xl p-6 shadow-soft border border-gray-100"
+      style={{ overflowAnchor: 'none' }}
+    >
+      {/* Header with Save/Cancel always visible */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
@@ -126,30 +130,33 @@ export default function Settings() {
             <p className="text-sm text-gray-600">Configure default parameters for camera recordings</p>
           </div>
         </div>
-        
-        {hasChanges && (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCancel}
-              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors shadow-sm hover:shadow-md"
-            >
-              <Save className="w-4 h-4" />
-              <span>Save Changes</span>
-            </button>
-          </div>
-        )}
+
+        {/* Save/Cancel section — always visible, disabled when no changes */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleCancel}
+            disabled={!hasChanges}
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Changes</span>
+          </button>
+        </div>
       </div>
 
+      {/* Settings content */}
       <div className="space-y-6">
         {/* Dynamically render all settings */}
         {Object.entries(SETTINGS_CONFIG).map(([key, config]) => (
-          <SettingItem 
+          <SettingItem
             key={key}
             settingKey={key as keyof typeof SETTINGS_CONFIG}
             config={config}
