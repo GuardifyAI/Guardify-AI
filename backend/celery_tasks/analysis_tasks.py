@@ -102,6 +102,18 @@ def _store_analysis_results(task_id: str, analysis_result, video_url: str, shop_
     analysis_dto = events_service.create_event_analysis(event_id, analysis_request)
     logger.info(f"[CELERY-TASK:{task_id}] Created analysis record for event: {event_id}")
     
+    # Invalidate Redis cache to ensure fresh data with analysis included
+    try:
+        import redis
+        import os
+        redis_client = redis.from_url(os.getenv('REDIS_URL', 'redis://localhost:6379/0'))
+        # Clear all Flask-Caching keys (they have a specific prefix)
+        for key in redis_client.scan_iter(match="flask_cache_*"):
+            redis_client.delete(key)
+        logger.info(f"[CELERY-TASK:{task_id}] Cache invalidated after analysis creation")
+    except Exception as cache_error:
+        logger.warning(f"[CELERY-TASK:{task_id}] Failed to invalidate cache: {cache_error}")
+    
     # Add event_id to task result for reference
     task_result["event_id"] = event_id
     

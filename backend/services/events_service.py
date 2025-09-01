@@ -11,6 +11,10 @@ load_env_variables()
 
 class EventsService:
 
+    def __init__(self, cache=None):
+        """Initialize the events service with optional cache for invalidation."""
+        self.cache = cache
+
     def get_event_analysis(self, event_id: str) -> AnalysisDTO:
         if not event_id or str(event_id).strip() == "":
             raise ValueError("Event ID is required")
@@ -50,6 +54,11 @@ class EventsService:
 
             # Convert to DTO using the refreshed entity
             result_dto = refreshed_analysis.to_dto()
+            
+            # Invalidate events cache when analysis is created since it affects include_analysis responses
+            if self.cache:
+                self.cache.clear()
+            
             return result_dto
 
         except Exception as e:
