@@ -13,6 +13,7 @@ from backend.services.recording_service import RecordingService
 from backend.services.agentic_service import AgenticService
 from http import HTTPStatus
 import time
+import os
 from werkzeug.exceptions import Unauthorized, NotFound
 from functools import wraps
 from dataclasses import asdict
@@ -49,9 +50,10 @@ class ApiHandler:
         """
         self.app = app
         
-        # Configure Flask-Caching
+        # Configure Flask-Caching with Redis for cross-process cache invalidation
         self.cache = Cache(app, config={
-            'CACHE_TYPE': 'simple',  # In-memory cache
+            'CACHE_TYPE': 'redis',  # Redis cache for cross-process sharing
+            'CACHE_REDIS_URL': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
             'CACHE_DEFAULT_TIMEOUT': 600  # 10 minutes default TTL
         })
         
@@ -59,7 +61,7 @@ class ApiHandler:
         self.user_service = UserService()
         self.stats_service = StatsService()
         self.shops_service = ShopsService(cache=self.cache)
-        self.events_service = EventsService()
+        self.events_service = EventsService(cache=self.cache)
         self.agentic_service = AgenticService(self.shops_service)
         self.recording_service = RecordingService(self.shops_service, self.agentic_service)
 
