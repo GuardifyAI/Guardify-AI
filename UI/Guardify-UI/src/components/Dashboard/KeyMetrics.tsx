@@ -1,7 +1,7 @@
 import { AlertTriangle, Shield, Activity, TrendingUp } from 'lucide-react';
 import React from 'react';
 import { subMonths, subWeeks } from 'date-fns';
-import type { Shop } from '../../types';
+import type { Shop } from '../../types/ui';
 
 interface KeyMetricsProps {
   events: any[];

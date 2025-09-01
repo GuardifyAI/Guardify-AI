@@ -30,9 +30,23 @@ class GoogleClient:
         self.project = project
         self.location = location
         self.service_account_json_path = service_account_json_path
-        self.credentials = self._get_credentials()
-        self._init_vertex_ai()
-        self.storage_client = storage.Client(project=project, credentials=self.credentials)
+        
+        # Initialize credentials and clients only if credentials are available
+        if not project or not service_account_json_path:
+            self.logger.warning("Google Cloud project or credentials not configured. Some features will be disabled.")
+            self.credentials = None
+            self.storage_client = None
+            return
+            
+        try:
+            self.credentials = self._get_credentials()
+            self._init_vertex_ai()
+            self.storage_client = storage.Client(project=project, credentials=self.credentials)
+            self.logger.info(f"Google Cloud client initialized successfully for project: {project}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Google Cloud client: {e}")
+            self.credentials = None
+            self.storage_client = None
 
 
     def _get_credentials(self) -> Credentials:
@@ -58,6 +72,10 @@ class GoogleClient:
         Returns:
             Tuple[List[str], List[str]]: Lists of video URIs and names
         """
+        if not self.storage_client:
+            self.logger.warning("Google Cloud Storage client not initialized. Returning empty lists.")
+            return [], []
+            
         # Get the bucket object
         bucket = self.storage_client.get_bucket(bucket_name)
         

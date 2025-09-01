@@ -1,0 +1,83 @@
+# Backend-only Dockerfile for Docker Compose setup
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ffmpeg \
+    postgresql-client \
+    git \
+    build-essential \
+    pkg-config \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Playwright dependencies
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy Python requirements
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend/ ./backend/
+COPY data_science/ ./data_science/
+COPY utils/ ./utils/
+COPY google_client/ ./google_client/
+COPY .env* ./
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Create a non-root user for security with home directory
+RUN useradd -r -m -s /bin/bash guardify && \
+    chown -R guardify:guardify /app
+
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data && \
+    chown -R guardify:guardify /app/logs /app/data
+
+# Create Playwright cache directory with proper permissions
+RUN mkdir -p /home/guardify/.cache/ms-playwright && \
+    chown -R guardify:guardify /home/guardify
+
+# Switch to non-root user
+USER guardify
+
+# Install Playwright browsers as non-root user
+RUN playwright install chromium
+
+# The extension setup will be handled at runtime if needed
+
+# Expose port
+EXPOSE 8574
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8574/app/health || exit 1
+
+# Default command (can be overridden in docker-compose)
+CMD ["python", "backend/run.py"]

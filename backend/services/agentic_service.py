@@ -20,9 +20,9 @@ class AgenticService:
         
         # Initialize Google client for single video analysis
         self.google_client = GoogleClient(
-            project=os.getenv("GOOGLE_PROJECT_ID"),
-            location=os.getenv("GOOGLE_PROJECT_LOCATION"),
-            service_account_json_path=os.getenv("SERVICE_ACCOUNT_FILE")
+            project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+            location=os.getenv("GOOGLE_PROJECT_LOCATION", "us-central1"),
+            service_account_json_path=os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         )
 
     def analyze_single_video(self,
