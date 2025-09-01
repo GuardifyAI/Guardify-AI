@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Redis for Celery message broker (Linux container)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Flask Backend API (includes video recorder)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
+      - GOOGLE_PROJECT_LOCATION=${GOOGLE_PROJECT_LOCATION:-us-central1}
+      - PROVISION_ISR_USERNAME=${PROVISION_ISR_USERNAME}
+      - PROVISION_ISR_PASSWORD=${PROVISION_ISR_PASSWORD}
+      - PROVISION_USERNAME=${PROVISION_USERNAME}
+      - PROVISION_PASSWORD=${PROVISION_PASSWORD}
+      - PROVISION_QR_CODE=${PROVISION_QR_CODE}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
+      - SERVICE_ACCOUNT_FILE=${SERVICE_ACCOUNT_FILE}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PLAYWRIGHT_BROWSERS_PATH=/home/guardify/.cache/ms-playwright
+      - PYTHONPATH=/app
+    ports:
+      - "8574:8574"
+    volumes:
+      - ./credentials:/app/credentials
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - playwright_cache:/home/guardify/.cache/ms-playwright
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8574/app/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Celery Worker for Video Analysis
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: celery -A backend.celery_app worker --loglevel=info --pool=solo --queues=analysis --concurrency=2
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
+      - GOOGLE_PROJECT_LOCATION=${GOOGLE_PROJECT_LOCATION:-us-central1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AZURE_AI_ENDPOINT=${AZURE_AI_ENDPOINT}
+      - AZURE_AI_KEY=${AZURE_AI_KEY}
+      - PYTHONPATH=/app
+    volumes:
+      - ./credentials:/app/credentials
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "backend.celery_app", "inspect", "ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # Frontend (IIS serving React app)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  redis_data:
+    driver: local
+  playwright_cache:
+    driver: local
+
+networks:
+  default:
+    driver: bridge

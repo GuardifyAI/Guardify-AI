@@ -10,10 +10,13 @@ from backend.app import create_app
 
 def make_celery(app):
     """Create and configure Celery app with Flask application context."""
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    print(f"Using Redis URL: {redis_url}")  # Debug logging
+    
     celery = Celery(
         app.import_name,
-        broker=os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
-        backend=os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        broker=redis_url,
+        backend=redis_url,
         include=['backend.celery_tasks.analysis_tasks']
     )
     

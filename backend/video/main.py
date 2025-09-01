@@ -166,6 +166,7 @@ def main():
         # Initialize Playwright and start recording
         with sync_playwright() as p:
             logger.info("Starting browser and authentication...")
+            
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
 
