@@ -47,7 +47,7 @@ Guardify-AI provides automated, AI-powered surveillance that:
 - Python 3.9+ 
 - Node.js 18+
 - PostgreSQL database
-- **Docker Desktop** (for Redis)
+- Docker Desktop (for Redis)
 - Google Cloud account
 
 ### Installation
