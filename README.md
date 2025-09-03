@@ -1,6 +1,5 @@
 # 🛡️ Guardify-AI: Advanced Surveillance & Shoplifting Detection System
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![React](https://img.shields.io/badge/react-19.1.0-blue.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-5.8.3-blue.svg)
@@ -48,6 +47,7 @@ Guardify-AI provides automated, AI-powered surveillance that:
 - Python 3.9+ 
 - Node.js 18+
 - PostgreSQL database
+- **Docker Desktop** (for Redis)
 - Google Cloud account
 
 ### Installation
@@ -72,19 +72,30 @@ cp .env.example .env
 ```
 
 ### Running the Application
+
+**Important**: For full functionality, you need Redis and Celery workers running.
+
 ```bash
-# Start backend (Terminal 1)
+# 1. Start Redis (ensure Docker Desktop is running first)
+docker run --name redis -d -p 6379:6379 redis
+
+# 2. Start backend (Terminal 1)
 cd backend && python run.py
 
-# Start frontend (Terminal 2)  
+# 3. Start Celery worker (Terminal 2)
+celery -A backend.celery_app worker --loglevel=info --pool=solo --queues=analysis
+
+# 4. Start frontend (Terminal 3)  
 cd UI/Guardify-UI && npm run dev
 
-# Run AI analysis (Terminal 3)
+# 5. Run AI analysis (Terminal 4 - optional)
 python data_science/src/main.py --strategy unified
 ```
 
+**Application URLs:**
 - **Backend**: http://localhost:8574
 - **Frontend**: http://localhost:5173
+- **Celery Flower** (optional monitoring): http://localhost:5555
 
 ## 🧠 AI Analysis Strategies
 
@@ -134,10 +145,23 @@ python data_science/src/main.py --strategy agentic --iterations 3
 
 ## 🔧 Development
 
+### Development Workflow
+```bash
+# Daily development startup
+1. Start Docker Desktop
+2. docker run --name redis -d -p 6379:6379 redis
+3. cd backend && python run.py
+4. celery -A backend.celery_app worker --loglevel=info --pool=solo --queues=analysis
+5. cd UI/Guardify-UI && npm run dev
+```
+
 ### Project Structure
 ```
 guardify-ai/
 ├── backend/              # Flask API + services
+│   ├── celery_tasks/     # Background job processing
+│   ├── services/         # Business logic
+│   └── video/           # Video recording automation
 ├── UI/Guardify-UI/       # React frontend  
 ├── data_science/         # AI analysis pipeline
 ├── google_client/        # Cloud integration
@@ -195,19 +219,6 @@ JWT_SECRET_KEY=your-jwt-secret
 REDIS_URL=redis://localhost:6379/0  # Optional
 ```
 
-## 🚧 Troubleshooting
-
-### Redis Connection Issues
-System automatically falls back to simple memory cache if Redis is unavailable.
-
-### Google Cloud Setup
-```bash
-# Authenticate service account
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/key.json"
-
-# Test connection
-python -c "from google.cloud import storage; print('Success!')"
-```
 
 ## 📄 License & Support
 
