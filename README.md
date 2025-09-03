@@ -228,11 +228,8 @@ REDIS_URL=redis://localhost:6379/0  # Optional
 
 ## 🗺️ Roadmap
 
-- [ ] Mobile notifications app
+- [ ] SMS notifications
 - [ ] Advanced ML model improvements  
-- [ ] Multi-language support
-- [ ] Integration with more camera systems
-- [ ] Predictive analytics dashboard
 
 ---
 
