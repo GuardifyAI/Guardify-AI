@@ -50,12 +50,27 @@ class ApiHandler:
         """
         self.app = app
         
-        # Configure Flask-Caching with Redis for cross-process cache invalidation
-        self.cache = Cache(app, config={
-            'CACHE_TYPE': 'redis',  # Redis cache for cross-process sharing
-            'CACHE_REDIS_URL': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        # Configure Flask-Caching with fallback from Redis to Simple cache
+        cache_config = {
             'CACHE_DEFAULT_TIMEOUT': 600  # 10 minutes default TTL
-        })
+        }
+        
+        # Try Redis first, fallback to simple memory cache if Redis unavailable
+        redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+        try:
+            import redis
+            redis_client = redis.from_url(redis_url)
+            redis_client.ping()  # Test connection
+            cache_config.update({
+                'CACHE_TYPE': 'redis',
+                'CACHE_REDIS_URL': redis_url
+            })
+            print("Using Redis cache")
+        except Exception as e:
+            print(f"Redis unavailable ({e}), falling back to simple memory cache")
+            cache_config['CACHE_TYPE'] = 'simple'
+        
+        self.cache = Cache(app, config=cache_config)
         
         # Initialize services with cache
         self.user_service = UserService()
