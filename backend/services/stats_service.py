@@ -13,7 +13,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 import pickle
 import os
-from functools import lru_cache
+
 from werkzeug.exceptions import NotFound
 from backend.app.entities.shop import Shop
 from backend.app.dtos import StatsDTO, EventDTO
@@ -122,7 +122,6 @@ class StatsService:
         # Use database-based stats computation for better performance
         return self.compute_stats_from_db(shop_id, include_category=include_category)
 
-    @lru_cache()
     def compute_stats_from_db(self, shop_id: str, include_category: bool = True) -> StatsDTO:
         """
         Compute aggregated statistics directly from database using SQLAlchemy aggregations.
@@ -147,7 +146,6 @@ class StatsService:
         except Exception as e:
             raise self.StatsComputationError(f"Failed to compute stats from DB: {str(e)}", cause=e)
 
-    @lru_cache()
     def compute_stats_from_dtos(self, events: List[EventDTO], include_category: bool = True) -> StatsDTO:
         """
         Compute aggregated statistics from a list of events.
